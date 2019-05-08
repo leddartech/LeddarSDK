@@ -1,4 +1,4 @@
-# ledddar_ros
+# leddar_ros
 
 ROS package exposing LeddarTech sensors, based on the "leddar" python module. This package has been tested with ros-melodic.
 
