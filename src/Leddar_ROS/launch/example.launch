@@ -1,0 +1,26 @@
+<launch>
+  <!-- Connection info, see python leddar.Device.connect for more info -->
+  <arg name="param1" default="null" />
+  <!-- [All] value returned by GetDeviceList['name'],
+    [Serial] serial port com,
+    [USB] serial number, 
+    [SPI-FTDI] FTDI cable id (use get_devices("SpiFTDI")), 
+    [CANBus komodo] Baudrate in kbps, 
+    [Ethernet] Ip address -->
+  <arg name="device_type" default="not specified" />
+  <!-- (optional but recommended) Device type | connection type - 
+    Both are mandatory for CANBus protocol (from leddar.device_types dictionnary) -->
+  <arg name="param3" default="0"/>
+  <!-- (optional) [Serial] modbus address (default 1), 
+    [CANBus komodo] Tx (default 0x750) ,
+    [Ethernet] port (default 48630) -->
+  <arg name="param4" default="0"/>
+  <!-- param4: (optional) [Serial] baudrate (default 115200), 
+    [CANBus komodo] Rx (default 0x740),
+    [Ethernet] Communication timeout -->
+  
+  <include file="$(find leddar_ros)/config/device.xml" ns="LeddarTech_1" pass_all_args="true">
+  </include>
+
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find leddar_ros)/rviz/example.rviz" output="screen"/>
+</launch>

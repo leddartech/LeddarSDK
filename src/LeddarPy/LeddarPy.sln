@@ -1,0 +1,102 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28010.2003
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "leddarPy", "LeddarPy.vcxproj", "{AA2A46C1-BCA6-4A58-9309-D1E5F1EF3FAA}"
+	ProjectSection(ProjectDependencies) = postProject
+		{DC440990-149E-44AF-A6A8-2E4BEB493C16} = {DC440990-149E-44AF-A6A8-2E4BEB493C16}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LeddarConfigurator4", "..\LeddarConfigurator4\LeddarConfigurator4.vcxproj", "{DC440990-149E-44AF-A6A8-2E4BEB493C16}"
+EndProject
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "LeddarPyExample", "LeddarPyExample.pyproj", "{BC9EB001-6AD9-42C9-B6B5-E0484316EE4B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Python27|Any CPU = Python27|Any CPU
+		Python27|x64 = Python27|x64
+		Python27|x86 = Python27|x86
+		Python36|Any CPU = Python36|Any CPU
+		Python36|x64 = Python36|x64
+		Python36|x86 = Python36|x86
+		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AA2A46C1-BCA6-4A58-9309-D1E5F1EF3FAA}.Debug|Any CPU.ActiveCfg = Python36|x64
+		{AA2A46C1-BCA6-4A58-9309-D1E5F1EF3FAA}.Debug|Any CPU.Build.0 = Python36|x64
+		{AA2A46C1-BCA6-4A58-9309-D1E5F1EF3FAA}.Debug|x64.ActiveCfg = Python36|x64
+		{AA2A46C1-BCA6-4A58-9309-D1E5F1EF3FAA}.Debug|x64.Build.0 = Python36|x64
+		{AA2A46C1-BCA6-4A58-9309-D1E5F1EF3FAA}.Debug|x86.ActiveCfg = Python36|Win32
+		{AA2A46C1-BCA6-4A58-9309-D1E5F1EF3FAA}.Debug|x86.Build.0 = Python36|Win32
+		{AA2A46C1-BCA6-4A58-9309-D1E5F1EF3FAA}.Python27|Any CPU.ActiveCfg = Python27|Win32
+		{AA2A46C1-BCA6-4A58-9309-D1E5F1EF3FAA}.Python27|x64.ActiveCfg = Python27|x64
+		{AA2A46C1-BCA6-4A58-9309-D1E5F1EF3FAA}.Python27|x64.Build.0 = Python27|x64
+		{AA2A46C1-BCA6-4A58-9309-D1E5F1EF3FAA}.Python27|x64.Deploy.0 = Python27|x64
+		{AA2A46C1-BCA6-4A58-9309-D1E5F1EF3FAA}.Python27|x86.ActiveCfg = Python27|Win32
+		{AA2A46C1-BCA6-4A58-9309-D1E5F1EF3FAA}.Python27|x86.Build.0 = Python27|Win32
+		{AA2A46C1-BCA6-4A58-9309-D1E5F1EF3FAA}.Python36|Any CPU.ActiveCfg = Python36|Win32
+		{AA2A46C1-BCA6-4A58-9309-D1E5F1EF3FAA}.Python36|x64.ActiveCfg = Python36|x64
+		{AA2A46C1-BCA6-4A58-9309-D1E5F1EF3FAA}.Python36|x64.Build.0 = Python36|x64
+		{AA2A46C1-BCA6-4A58-9309-D1E5F1EF3FAA}.Python36|x64.Deploy.0 = Python36|x64
+		{AA2A46C1-BCA6-4A58-9309-D1E5F1EF3FAA}.Python36|x86.ActiveCfg = Python36|Win32
+		{AA2A46C1-BCA6-4A58-9309-D1E5F1EF3FAA}.Python36|x86.Build.0 = Python36|Win32
+		{AA2A46C1-BCA6-4A58-9309-D1E5F1EF3FAA}.Release|Any CPU.ActiveCfg = Python36|x64
+		{AA2A46C1-BCA6-4A58-9309-D1E5F1EF3FAA}.Release|Any CPU.Build.0 = Python36|x64
+		{AA2A46C1-BCA6-4A58-9309-D1E5F1EF3FAA}.Release|x64.ActiveCfg = Python36|x64
+		{AA2A46C1-BCA6-4A58-9309-D1E5F1EF3FAA}.Release|x64.Build.0 = Python36|x64
+		{AA2A46C1-BCA6-4A58-9309-D1E5F1EF3FAA}.Release|x86.ActiveCfg = Python36|Win32
+		{AA2A46C1-BCA6-4A58-9309-D1E5F1EF3FAA}.Release|x86.Build.0 = Python36|Win32
+		{DC440990-149E-44AF-A6A8-2E4BEB493C16}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{DC440990-149E-44AF-A6A8-2E4BEB493C16}.Debug|x64.ActiveCfg = Debug|x64
+		{DC440990-149E-44AF-A6A8-2E4BEB493C16}.Debug|x64.Build.0 = Debug|x64
+		{DC440990-149E-44AF-A6A8-2E4BEB493C16}.Debug|x86.ActiveCfg = Debug|Win32
+		{DC440990-149E-44AF-A6A8-2E4BEB493C16}.Debug|x86.Build.0 = Debug|Win32
+		{DC440990-149E-44AF-A6A8-2E4BEB493C16}.Python27|Any CPU.ActiveCfg = Release|x64
+		{DC440990-149E-44AF-A6A8-2E4BEB493C16}.Python27|Any CPU.Build.0 = Release|x64
+		{DC440990-149E-44AF-A6A8-2E4BEB493C16}.Python27|Any CPU.Deploy.0 = Release|x64
+		{DC440990-149E-44AF-A6A8-2E4BEB493C16}.Python27|x64.ActiveCfg = Release|x64
+		{DC440990-149E-44AF-A6A8-2E4BEB493C16}.Python27|x64.Build.0 = Release|x64
+		{DC440990-149E-44AF-A6A8-2E4BEB493C16}.Python27|x64.Deploy.0 = Release|x64
+		{DC440990-149E-44AF-A6A8-2E4BEB493C16}.Python27|x86.ActiveCfg = Release|Win32
+		{DC440990-149E-44AF-A6A8-2E4BEB493C16}.Python27|x86.Build.0 = Release|Win32
+		{DC440990-149E-44AF-A6A8-2E4BEB493C16}.Python27|x86.Deploy.0 = Release|Win32
+		{DC440990-149E-44AF-A6A8-2E4BEB493C16}.Python36|Any CPU.ActiveCfg = Release|x64
+		{DC440990-149E-44AF-A6A8-2E4BEB493C16}.Python36|Any CPU.Build.0 = Release|x64
+		{DC440990-149E-44AF-A6A8-2E4BEB493C16}.Python36|Any CPU.Deploy.0 = Release|x64
+		{DC440990-149E-44AF-A6A8-2E4BEB493C16}.Python36|x64.ActiveCfg = Release|x64
+		{DC440990-149E-44AF-A6A8-2E4BEB493C16}.Python36|x64.Build.0 = Release|x64
+		{DC440990-149E-44AF-A6A8-2E4BEB493C16}.Python36|x64.Deploy.0 = Release|x64
+		{DC440990-149E-44AF-A6A8-2E4BEB493C16}.Python36|x86.ActiveCfg = Release|Win32
+		{DC440990-149E-44AF-A6A8-2E4BEB493C16}.Python36|x86.Build.0 = Release|Win32
+		{DC440990-149E-44AF-A6A8-2E4BEB493C16}.Python36|x86.Deploy.0 = Release|Win32
+		{DC440990-149E-44AF-A6A8-2E4BEB493C16}.Release|Any CPU.ActiveCfg = Release|Win32
+		{DC440990-149E-44AF-A6A8-2E4BEB493C16}.Release|x64.ActiveCfg = Release|x64
+		{DC440990-149E-44AF-A6A8-2E4BEB493C16}.Release|x64.Build.0 = Release|x64
+		{DC440990-149E-44AF-A6A8-2E4BEB493C16}.Release|x86.ActiveCfg = Release|Win32
+		{DC440990-149E-44AF-A6A8-2E4BEB493C16}.Release|x86.Build.0 = Release|Win32
+		{BC9EB001-6AD9-42C9-B6B5-E0484316EE4B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BC9EB001-6AD9-42C9-B6B5-E0484316EE4B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{BC9EB001-6AD9-42C9-B6B5-E0484316EE4B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{BC9EB001-6AD9-42C9-B6B5-E0484316EE4B}.Python27|Any CPU.ActiveCfg = Python27|Any CPU
+		{BC9EB001-6AD9-42C9-B6B5-E0484316EE4B}.Python27|x64.ActiveCfg = Python27|Any CPU
+		{BC9EB001-6AD9-42C9-B6B5-E0484316EE4B}.Python27|x86.ActiveCfg = Python27|Any CPU
+		{BC9EB001-6AD9-42C9-B6B5-E0484316EE4B}.Python36|Any CPU.ActiveCfg = Python36|Any CPU
+		{BC9EB001-6AD9-42C9-B6B5-E0484316EE4B}.Python36|x64.ActiveCfg = Python36|Any CPU
+		{BC9EB001-6AD9-42C9-B6B5-E0484316EE4B}.Python36|x86.ActiveCfg = Python36|Any CPU
+		{BC9EB001-6AD9-42C9-B6B5-E0484316EE4B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BC9EB001-6AD9-42C9-B6B5-E0484316EE4B}.Release|x64.ActiveCfg = Release|Any CPU
+		{BC9EB001-6AD9-42C9-B6B5-E0484316EE4B}.Release|x86.ActiveCfg = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {643D1782-757A-434D-8049-4F2939DF643D}
+	EndGlobalSection
+EndGlobal

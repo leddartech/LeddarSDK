@@ -1,0 +1,39 @@
+<launch>
+  <!-- Connection info, see python leddar.Device.connect for more info -->
+  <arg name="param1" default="null" />
+  <!-- [All] value returned by GetDeviceList['name'],
+    [Serial] serial port com,
+    [USB] serial number, 
+    [SPI-FTDI] FTDI cable id (use get_devices("SpiFTDI")), 
+    [CANBus komodo] Baudrate in kbps, 
+    [Ethernet] Ip address -->
+  <arg name="device_type" default="not specified" />
+  <!-- (optional but recommended) Device type | connection type - 
+    Both are mandatory for CANBus protocol (from leddar.device_types dictionnary) -->
+  <arg name="param3" default="0"/>
+  <!-- (optional) [Serial] modbus address (default 1), 
+    [CANBus komodo] Tx (default 0x750) ,
+    [Ethernet] port (default 48630) -->
+  <arg name="param4" default="0"/>
+  <!-- param4: (optional) [Serial] baudrate (default 115200), 
+    [CANBus komodo] Rx (default 0x740),
+    [Ethernet] Communication timeout -->
+
+  <arg name="frame_id" default="sensor_frame" />
+  <arg name="parent_frame_id" default="map" />
+
+  <arg name="position" default="0 0 0" />
+  <arg name="rotation" default="-0.707106781 0 0 0.707106781" />
+
+  <node pkg="leddar_ros" type="device.py" name="sensor">
+    <param name="device_type" value="$(arg device_type)" />
+    <param name="frame_id" value="$(arg frame_id)" />
+    <param name="param1" value="$(arg param1)" />
+    <param name="param3" value="$(arg param3)" />
+    <param name="param4" value="$(arg param4)" />
+  </node>
+
+  <node pkg="tf" type="static_transform_publisher" name="leddar_1_to_map"
+      args="$(arg position) $(arg rotation) $(arg parent_frame_id) $(arg frame_id) 10" />
+
+</launch>
