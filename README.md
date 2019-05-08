@@ -1,7 +1,7 @@
 # LeddarSDK
 
-LeddarSDK is c++ cross-platform SDK that allows you to connect to LeddarTech sensors.
-Online documentation can be found here <https://sdk.leddartech.com/>
+LeddarSDK is c++ cross-platform SDK that allows you to connect to LeddarTech sensors.  
+Online documentation can be found [here](https://sdk.leddartech.com)
 
 ## 1 - Content Description
 
@@ -77,7 +77,7 @@ To change USB access, create a file in /etc/udev/rules.d
 ## 4 - Python Package
 
 ==================  
-First you need to build the SDK using instructions found at step 2 - <[Compiling LeddarSDK](https://github.com/leddartech/LeddarSDK#2---compiling-leddarsdk)>
+First you need to build the SDK using instructions found at step 2 - [Compiling LeddarSDK](https://github.com/leddartech/LeddarSDK#2---compiling-leddarsdk)
 
 ### Linux python
 
