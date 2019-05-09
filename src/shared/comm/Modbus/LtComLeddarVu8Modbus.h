@@ -50,7 +50,8 @@ namespace LtComLeddarVu8Modbus
         DID_THRESHOLD_OFFSET = 4,
         DID_LED_INTENSITY = 5,
         DID_ACQ_OPTIONS = 6,
-        DID_CHANGE_DELAY = 7,
+        DID_LED_AUTO_FRAME_AVG = 7,
+        DID_LED_AUTO_ECHO_AVG = 9,
         DID_PRECISION = 11,
         DID_SEGMENT_ENABLE = 12
     };

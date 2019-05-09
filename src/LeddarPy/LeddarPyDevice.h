@@ -175,7 +175,7 @@ static PyMethodDef Device_methods[] =
         "get_echoes", ( PyCFunction )GetEchoes, METH_VARARGS, "Get last echoes from sensor.\n"
         "param1: (int) number of retries (optional, default to 5)\n"
         "param2: (int) ms between retries (optional, default to 15)\n"
-        "Returns: False if no new echoes are available, else a dict with keys\n"
+        "Returns: Exception if there is no new data, else a dict with keys\n"
         "timestamp: the 32-bit base timestamp\n"
         "distance_scale: the scale that was applied to distances\n"
         "amplitude_scale: the scale that was applied to amplitudes\n"

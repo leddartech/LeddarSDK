@@ -131,6 +131,12 @@ LeddarCore::LdBufferProperty::SetStringValue( size_t aIndex, const std::string &
 {
     CanEdit();
 
+    if( aIndex >= Count() && ( Count() != 0 && aIndex != 0 ) )
+        throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+    else if( ( aValue.size() / 2 ) > Size() )
+        throw std::out_of_range( "String too long. Verify property size. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+
+
     std::vector<uint8_t> lBuffer( Size(), 0 );
 
     for( size_t i = 0; i < aValue.size(); i += 2 )
@@ -140,7 +146,8 @@ LeddarCore::LdBufferProperty::SetStringValue( size_t aIndex, const std::string &
 
         if( ( 0 == lBuffer[i / 2] && aValue.substr( i, 2 ) != "00" ) || errno != 0 )
         {
-            throw std::invalid_argument( "Could not convert hex string to uint8_t values (error " + LeddarUtils::LtStringUtils::IntToString( errno ) + " ) " );
+            throw std::invalid_argument( "Could not convert hex string to uint8_t values (error " + LeddarUtils::LtStringUtils::IntToString( errno ) + " ) Property id: " +
+                                         LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
         }
     }
 

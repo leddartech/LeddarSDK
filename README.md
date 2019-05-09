@@ -13,7 +13,7 @@ Online documentation can be found [here](https://sdk.leddartech.com)
 ./shared                            Structures used by the communication classes  
 ./src/Leddar                        Sensors classes  
 ./src/LeddarTech                    Utilities  
-./src/LeddarConfigurator4_Public    Visual Studio 2013 project files  
+./src/LeddarConfigurator4           Visual Studio 2013 project files  
 ./src/LeddarExample                 Example using LeddarSDK  
 ./src/LeddarPy                      Python wrapper package
 ./src/Leddar_ROS                    ROS package

@@ -213,8 +213,14 @@ LdSensorVu8Modbus::GetConfig( void )
     GetProperties()->GetEnumProperty( LeddarCore::LdPropertyIds::ID_LED_INTENSITY )->SetClean();
     GetProperties()->GetBitProperty( LeddarCore::LdPropertyIds::ID_ACQ_OPTIONS )->SetValue( 0, lResponse2[2] );
     GetProperties()->GetBitProperty( LeddarCore::LdPropertyIds::ID_ACQ_OPTIONS )->SetClean();
-    GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_CHANGE_DELAY )->SetValue( 0, lResponse2[3] );
-    GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_CHANGE_DELAY )->SetClean();
+    GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_LED_AUTO_FRAME_AVG )->SetValue( 0, lResponse2[3] );
+    GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_LED_AUTO_FRAME_AVG )->SetClean();
+
+    memset( lResponse2, 0, LTMODBUS_RTU_MAX_ADU_LENGTH );
+    mInterface->ReadRegisters( 9, 1, lResponse2 );
+    LeddarUtils::LtTimeUtils::WaitBlockingMicro( LEDDARVU8_WAIT_AFTER_REQUEST );
+    GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_LED_AUTO_ECHO_AVG )->SetValue( 0, lResponse2[0] );
+    GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_LED_AUTO_ECHO_AVG )->SetClean();
 
     memset( lResponse2, 0, LTMODBUS_RTU_MAX_ADU_LENGTH );
     mInterface->ReadRegisters( 11, 3, lResponse2 );
@@ -254,43 +260,43 @@ LdSensorVu8Modbus::GetConstants( void )
     uint8_t lRawRequest[10] = { mConnectionInfoModbus->GetModbusAddr(), 0x11 };
     uint8_t lResponse[LTMODBUS_RTU_MAX_ADU_LENGTH] = { 0 };
 
-    mInterface->SendRawRequest(lRawRequest, 2);
-    size_t lReceivedSize = mInterface->ReceiveRawConfirmation(lResponse, 0);
-    LeddarUtils::LtTimeUtils::WaitBlockingMicro(LEDDARVU8_WAIT_AFTER_REQUEST);
+    mInterface->SendRawRequest( lRawRequest, 2 );
+    size_t lReceivedSize = mInterface->ReceiveRawConfirmation( lResponse, 0 );
+    LeddarUtils::LtTimeUtils::WaitBlockingMicro( LEDDARVU8_WAIT_AFTER_REQUEST );
 
-    if (lReceivedSize < sizeof(LtComLeddarVu8Modbus::sLeddarVu8ModbusServerId))
+    if( lReceivedSize < sizeof( LtComLeddarVu8Modbus::sLeddarVu8ModbusServerId ) )
     {
         mInterface->Flush();
-        throw LeddarException::LtComException("Received size too small, received: " + LeddarUtils::LtStringUtils::IntToString(lReceivedSize) + " expected: " +
-            LeddarUtils::LtStringUtils::IntToString(
-                sizeof(LtComLeddarVu8Modbus::sLeddarVu8ModbusServerId)));
+        throw LeddarException::LtComException( "Received size too small, received: " + LeddarUtils::LtStringUtils::IntToString( lReceivedSize ) + " expected: " +
+                                               LeddarUtils::LtStringUtils::IntToString(
+                                                       sizeof( LtComLeddarVu8Modbus::sLeddarVu8ModbusServerId ) ) );
     }
 
-    LtComLeddarVu8Modbus::sLeddarVu8ModbusServerId lServedId = *(reinterpret_cast<LtComLeddarVu8Modbus::sLeddarVu8ModbusServerId*>(&lResponse[MODBUS_DATA_OFFSET]));
+    LtComLeddarVu8Modbus::sLeddarVu8ModbusServerId lServedId = *( reinterpret_cast<LtComLeddarVu8Modbus::sLeddarVu8ModbusServerId *>( &lResponse[MODBUS_DATA_OFFSET] ) );
 
-    GetProperties()->GetTextProperty(LdPropertyIds::ID_SERIAL_NUMBER)->ForceValue(0, lServedId.mSerialNumber);
-    GetProperties()->GetTextProperty(LdPropertyIds::ID_DEVICE_NAME)->ForceValue(0, lServedId.mDeviceName);
-    GetProperties()->GetTextProperty(LdPropertyIds::ID_PART_NUMBER)->ForceValue(0, lServedId.mHardwarePartNumber);
-    GetProperties()->GetTextProperty(LdPropertyIds::ID_SOFTWARE_PART_NUMBER)->ForceValue(0, lServedId.mSoftwarePartNumber);
+    GetProperties()->GetTextProperty( LdPropertyIds::ID_SERIAL_NUMBER )->ForceValue( 0, lServedId.mSerialNumber );
+    GetProperties()->GetTextProperty( LdPropertyIds::ID_DEVICE_NAME )->ForceValue( 0, lServedId.mDeviceName );
+    GetProperties()->GetTextProperty( LdPropertyIds::ID_PART_NUMBER )->ForceValue( 0, lServedId.mHardwarePartNumber );
+    GetProperties()->GetTextProperty( LdPropertyIds::ID_SOFTWARE_PART_NUMBER )->ForceValue( 0, lServedId.mSoftwarePartNumber );
 
-    LeddarCore::LdIntegerProperty* lFirmwareVersion = GetProperties()->GetIntegerProperty(LdPropertyIds::ID_FIRMWARE_VERSION_INT);
-    LeddarCore::LdIntegerProperty* lBootloaderVersion = GetProperties()->GetIntegerProperty(LdPropertyIds::ID_BOOTLOADER_VERSION);
-    lFirmwareVersion->SetCount(4);
-    lBootloaderVersion->SetCount(4);
+    LeddarCore::LdIntegerProperty *lFirmwareVersion = GetProperties()->GetIntegerProperty( LdPropertyIds::ID_FIRMWARE_VERSION_INT );
+    LeddarCore::LdIntegerProperty *lBootloaderVersion = GetProperties()->GetIntegerProperty( LdPropertyIds::ID_BOOTLOADER_VERSION );
+    lFirmwareVersion->SetCount( 4 );
+    lBootloaderVersion->SetCount( 4 );
 
-    for (int i = 0; i < 4; i++)
+    for( int i = 0; i < 4; i++ )
     {
-        lFirmwareVersion->ForceValue(i, lServedId.mFirwareVersion[i]);
-        lBootloaderVersion->ForceValue(i, lServedId.mBootloaderVersion[i]);
+        lFirmwareVersion->ForceValue( i, lServedId.mFirwareVersion[i] );
+        lBootloaderVersion->ForceValue( i, lServedId.mBootloaderVersion[i] );
     }
 
-    GetProperties()->GetIntegerProperty(LdPropertyIds::ID_FPGA_VERSION)->ForceValue(0, lServedId.mFpgaVersion);
-    GetProperties()->GetBitProperty(LdPropertyIds::ID_OPTIONS)->ForceValue(0, lServedId.mDeviceOptions);
-    GetProperties()->GetIntegerProperty(LdPropertyIds::ID_DEVICE_TYPE)->ForceValue(0, lServedId.mDeviceId);
+    GetProperties()->GetIntegerProperty( LdPropertyIds::ID_FPGA_VERSION )->ForceValue( 0, lServedId.mFpgaVersion );
+    GetProperties()->GetBitProperty( LdPropertyIds::ID_OPTIONS )->ForceValue( 0, lServedId.mDeviceOptions );
+    GetProperties()->GetIntegerProperty( LdPropertyIds::ID_DEVICE_TYPE )->ForceValue( 0, lServedId.mDeviceId );
 
-    if (GetConnection()->GetDeviceType() == 0)
+    if( GetConnection()->GetDeviceType() == 0 )
     {
-        GetConnection()->SetDeviceType(lServedId.mDeviceId);
+        GetConnection()->SetDeviceType( lServedId.mDeviceId );
     }
 
     UpdateConstants();
@@ -753,14 +759,14 @@ LdSensorVu8Modbus::InitProperties( void )
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_COM_CAN_PORT_PORT_ACQCYCLE_DELAY, 0, 2,
                               "CAN Port Inter-Cycle Delay" ) );
 
-    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE, LdPropertyIds::ID_CARRIER_PART_NUMBER, 0, 32, LdTextProperty::TYPE_ASCII,
+    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_CARRIER_PART_NUMBER, 0, 32, LdTextProperty::TYPE_ASCII,
                               "Carrier Board Part Number" ) );
-    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE, LdPropertyIds::ID_CARRIER_SERIAL_NUMBER, 0, 32, LdTextProperty::TYPE_ASCII,
+    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_CARRIER_SERIAL_NUMBER, 0, 32, LdTextProperty::TYPE_ASCII,
                               "Carrier Board Serial Number" ) );
-    mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE, LdPropertyIds::ID_CARRIER_OPTIONS, 0, 4, "Option (Internal Use)" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE, LdPropertyIds::ID_CARRIER_FIRMWARE_VERSION, 0, 4,
+    mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_CARRIER_OPTIONS, 0, 4, "Option (Internal Use)" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_CARRIER_FIRMWARE_VERSION, 0, 4,
                               "Carrier Board Firmware Version" ) );
-    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE, LdPropertyIds::ID_CARRIER_FIRMWARE_PART_NUMBER, 0, 32, LdTextProperty::TYPE_ASCII,
+    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_CARRIER_FIRMWARE_PART_NUMBER, 0, 32, LdTextProperty::TYPE_ASCII,
                               "Carrier Board Firmware Part Number" ) );
 
     //The properties below have a device id, corresponding to the register used with command 0x03 and 0x06
@@ -776,10 +782,12 @@ LdSensorVu8Modbus::InitProperties( void )
                               LtComLeddarVu8Modbus::DID_LED_INTENSITY, 1, false, "Laser Intensity" ) );
     mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_ACQ_OPTIONS,
                               LtComLeddarVu8Modbus::DID_ACQ_OPTIONS, 2, "Acquisition Options" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_CHANGE_DELAY,
-                              LtComLeddarVu8Modbus::DID_CHANGE_DELAY, 2, "Change Delay(Frame)" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_LED_AUTO_FRAME_AVG,
+                              LtComLeddarVu8Modbus::DID_LED_AUTO_FRAME_AVG, 2, "Change delay (in frame) for automatic led power" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_LED_AUTO_ECHO_AVG,
+                              LtComLeddarVu8Modbus::DID_LED_AUTO_ECHO_AVG, 2, "Number of tolerated saturated channel for auto led power" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_PRECISION,
-                              LtComLeddarVu8Modbus::DID_PRECISION, 4, "Smoothing", true ) );
+                              LtComLeddarVu8Modbus::DID_PRECISION, 2, "Smoothing", true ) );
     mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_SEGMENT_ENABLE,
                               LtComLeddarVu8Modbus::DID_SEGMENT_ENABLE, 2, "Segments Enable" ) );
 

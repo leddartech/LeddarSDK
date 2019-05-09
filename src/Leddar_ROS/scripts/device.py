@@ -110,7 +110,7 @@ if __name__ == '__main__':
             pub_triangles.publish(marker)
 
     dev.set_callback_echo(echoes_callback)
-    dev.set_data_mask(leddar.data_masks["PDM_ECHOES"])
+    dev.set_data_mask(leddar.data_masks["DM_ECHOES"])
     dev.set_data_thread_delay(1000)
     dev.start_data_thread()
     rospy.spin()

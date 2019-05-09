@@ -1164,14 +1164,14 @@ PyObject *PackageStates( LeddarConnection::LdResultStates *aResultStates )
 ///
 /// \brief  Get the last echoes from sensor.
 ///
-/// \exception  std::runtime_error  Raised when a runtime error condition occurs.
+/// \exception  std::runtime_error  Raised when there is no new data
 ///
 /// \param [in,out] self    If non-null, the class instance that this method operates on.
 /// \param [in,out] args    If non-null, the arguments.
 ///                 int/size_t: (optional) number of retry
 ///                 int: (optional) time between retry (ms)
 ///
-/// \return nullptr if there is no new data, else see ­\ref PackageEchoes
+/// \return A dict with data see ­\ref PackageEchoes
 ///
 /// \author David Levy
 /// \date   November 2017
@@ -1210,7 +1210,7 @@ PyObject *GetEchoes( sLeddarDevice *self, PyObject *args )
 ///
 /// \param [in,out] aResultEchoes   Pointer to the sensor's result echoes.
 ///
-/// \return A dict with keys: indices, flags, data and timestamp
+/// \return A dict with keys: timestamp, distance_scale, amplitude_scale, led_power, v_fov, h_fov, v, h, data
 ///
 /// \author David Levy, Maxime Lemonnier
 /// \date   November 2017

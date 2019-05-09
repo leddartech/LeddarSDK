@@ -15,7 +15,7 @@ cd [...]LC4/main/src/Py_leddar_utils
 python setupy.py install --user
 ```
 
-Follow ros [installation instruction](http://wiki.ros.org/Installation/Ubuntu) and [catkin workspace instructions](http://wiki.ros.org/catkin/Tutorials/create_a_workspace). Sort story:
+Follow ros [installation instruction](http://wiki.ros.org/Installation/Ubuntu) and [catkin workspace instructions](http://wiki.ros.org/catkin/Tutorials/create_a_workspace). Short story:
 
 ``` bash
 sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
@@ -33,7 +33,7 @@ Copy Leddar_ROS as ```leddar_ros``` and clone ```ros_numpy``` in your catkin wor
 
 ``` bash
 cd ~/catkin_ws/src
-cp -r [...]LC4/main/src/Leddar_ROS leddar_ros
+cp -r [...]src/Leddar_ROS leddar_ros
 git clone https://github.com/eric-wieser/ros_numpy.git
 cd ~/catkin_ws/
 source /opt/ros/melodic/setup.bash
