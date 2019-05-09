@@ -4,7 +4,7 @@ dev = leddar.Device()
 ##Use one of this connection method
 
 sensor_list = leddar.get_devices("Usb")
-dev.connect(sensor_list[0], leddar.device_types["Usb"])
+dev.connect(sensor_list[0]["name"], leddar.device_types["Usb"])
 
 #dev.connect("\\\.\\COM11", leddar.device_types["Serial"] )
 
