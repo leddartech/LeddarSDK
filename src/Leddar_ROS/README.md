@@ -34,6 +34,7 @@ Copy Leddar_ROS as ```leddar_ros``` and clone ```ros_numpy``` in your catkin wor
 ``` bash
 cd ~/catkin_ws/src
 cp -r [...]src/Leddar_ROS leddar_ros
+chmod +x leddar_ros/scripts/device.py
 git clone https://github.com/eric-wieser/ros_numpy.git
 cd ~/catkin_ws/
 source /opt/ros/melodic/setup.bash
