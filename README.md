@@ -1,7 +1,7 @@
 # LeddarSDK
 
 LeddarSDK is c++ cross-platform SDK that allows you to connect to LeddarTech sensors.  
-Online documentation can be found [here](https://sdk.leddartech.com)
+Online documentation can be found [here](http://sdk.leddartech.com)
 
 ## 1 - Content Description
 
