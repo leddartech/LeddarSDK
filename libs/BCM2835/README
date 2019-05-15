@@ -1,2 +1,2 @@
 Source file for BCM 2835 are available https://www.airspayce.com/mikem/bcm2835/
-Copy source file of the BCM2835 library (v1.21) to LeddarSDK/libs/BCM2835 to use it as an example for library implementation.
+Copy source file of the BCM2835 library (v1.21) to LeddarSDK/libs/BCM2835/src/ to use it as an example for library implementation.
