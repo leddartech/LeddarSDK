@@ -1,5 +1,2 @@
-This is a C library for Raspberry Pi (RPi). It provides access to 
-GPIO and other IO functions on the Broadcom BCM 2835 chip.
-allowing access to the 
-26 pin ISE plug on the RPi board so you can control and interface with various
-external devices.
+Source file for BCM 2835 are available https://www.airspayce.com/mikem/bcm2835/
+Copy source file of the BCM2835 library (v1.21) to LeddarSDK/libs/BCM2835 to use it as an example for library implementation.
