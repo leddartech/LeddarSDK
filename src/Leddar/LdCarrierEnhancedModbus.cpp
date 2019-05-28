@@ -41,6 +41,7 @@
 
 #include <sstream>
 #include <cstring>
+#include <limits>
 
 using namespace LeddarCore;
 

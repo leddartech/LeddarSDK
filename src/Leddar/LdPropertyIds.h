@@ -87,6 +87,7 @@ namespace LeddarCore
             ID_AUTO_CONTROLLER_DELAY        = 0x00115F,
             ID_AUTO_CONTROLLER_STEP         = 0x001160,
             ID_DIGITAL_FILTER_ENABLE        = 0x001161,
+            ID_RELEASE_TYPE                 = 0x0010FA,
 
             ID_VSEGMENT                     = 0x001021,
             ID_HSEGMENT                     = 0x001020,

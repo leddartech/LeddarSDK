@@ -8,12 +8,13 @@
 #include "LdLjrRecorder.h"
 #include "LdLjrDefines.h"
 
-#include <ctime>
-
 #include "LdPropertyIds.h"
 #include "LtStringUtils.h"
 
 #include "rapidjson/writer.h"
+
+#include <ctime>
+#include <cerrno>
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \fn LeddarRecord::LdLjrRecorder::LdLjrRecorder( LeddarDevice::LdSensor *aSensor )
@@ -75,7 +76,7 @@ LeddarRecord::LdLjrRecorder::~LdLjrRecorder()
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 std::string LeddarRecord::LdLjrRecorder::StartRecording( const std::string &aPath )
 {
-    std::ifstream infile( aPath );
+    std::ifstream infile( aPath.c_str() ); //c_str for c++98
 
     if( infile.good() )
     {
@@ -110,7 +111,7 @@ std::string LeddarRecord::LdLjrRecorder::StartRecording( const std::string &aPat
         lPath += ".ljr";
     }
 
-    mFile.open( lPath, std::ios_base::out );
+    mFile.open( lPath.c_str(), std::ios_base::out ); //c_str for c++98
 
     if( !mFile.is_open() )
     {

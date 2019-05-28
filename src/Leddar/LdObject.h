@@ -8,9 +8,12 @@
 
 #pragma once
 
+#include "LtDefines.h"
+
 #include <cstddef>
 #include <list>
 #include <map>
+#include <stdexcept>
 
 namespace LeddarCore
 {

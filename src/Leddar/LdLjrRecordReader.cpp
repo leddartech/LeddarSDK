@@ -24,6 +24,8 @@
 #pragma GCC diagnostic pop
 #endif
 
+#include <cerrno>
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \fn LeddarRecord::LdLjrRecordReader::LdLjrRecordReader( const std::string &aFile )
 ///
@@ -41,7 +43,7 @@ LeddarRecord::LdLjrRecordReader::LdLjrRecordReader( const std::string &aFile ) :
     mFile(),
     mCurrentLine( 0 )
 {
-    mFile.open( aFile, std::ios_base::in );
+    mFile.open( aFile.c_str(), std::ios_base::in ); //c_str() for c++98
 
     if( !mFile.is_open() )
     {

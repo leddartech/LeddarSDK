@@ -320,7 +320,7 @@ LeddarCore::LdPropertiesContainer::AddProperty( LeddarCore::LdProperty *aPropert
 
     if( aProperty->GetDeviceId() != 0 )
     {
-        for( std::map< uint32_t, LeddarCore::LdProperty *>::iterator it = mProperties.begin(); it != mProperties.end(); it++ )
+        for( std::map< uint32_t, LeddarCore::LdProperty *>::iterator it = mProperties.begin(); it != mProperties.end(); it++ ) //begin/end -> cbegin/cend for c++98
         {
             if( it->second->GetDeviceId() == aProperty->GetDeviceId() )
             {
@@ -485,7 +485,7 @@ LeddarCore::LdPropertiesContainer::Callback( LdObject *aSender, const SIGNALS aS
 bool
 LeddarCore::LdPropertiesContainer::IsModified( LdProperty::eCategories aCategory )
 {
-    for( std::map< uint32_t, LeddarCore::LdProperty *>::iterator lIter = mProperties.begin(); lIter != mProperties.end(); ++lIter )
+    for( std::map< uint32_t, LeddarCore::LdProperty *>::iterator lIter = mProperties.begin(); lIter != mProperties.end(); ++lIter ) //begin/end -> cbegin/cend for c++98
     {
         if( ( lIter->second->GetCategory() & aCategory ) != 0 && lIter->second->Modified() )
         {
@@ -513,7 +513,7 @@ LeddarCore::LdPropertiesContainer::AddProperties( LeddarCore::LdPropertiesContai
     {
         const std::map< uint32_t, LeddarCore::LdProperty *> *lPropertyMap = aProperties->GetContent();
 
-        for( std::map< uint32_t, LeddarCore::LdProperty *>::const_iterator lIter = lPropertyMap->cbegin(); lIter != lPropertyMap->cend(); ++lIter )
+        for( std::map< uint32_t, LeddarCore::LdProperty *>::const_iterator lIter = lPropertyMap->begin(); lIter != lPropertyMap->end(); ++lIter ) //begin/end -> cbegin/cend for c++98
         {
             AddProperty( lIter->second );
         }

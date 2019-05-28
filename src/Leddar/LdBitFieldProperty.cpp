@@ -21,6 +21,7 @@
 #include <sstream>
 #include <string>
 #include <cassert>
+#include <limits>
 
 // *****************************************************************************
 // Function: LdBitFieldProperty::LdBitFieldProperty
