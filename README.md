@@ -81,7 +81,7 @@ First you need to build the SDK using instructions found at step 2 - [Compiling 
 
 ### Linux python
 
-In folder LeddarPy run (sudo) python setup.py install
+In folder LeddarPy run `python setup.py install --user`
 
 ### Windows python
 

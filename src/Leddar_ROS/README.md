@@ -1,6 +1,6 @@
 # leddar_ros
 
-ROS package exposing LeddarTech sensors, based on the "leddar" python module. This package has been tested with ros-melodic.
+ROS package exposing LeddarTech sensors based on the "leddar" Python module. This package has been tested with ros-melodic.
 
 ## Deployment
 
@@ -15,7 +15,7 @@ cd [...]LC4/main/src/Py_leddar_utils
 python setupy.py install --user
 ```
 
-Follow ros [installation instruction](http://wiki.ros.org/Installation/Ubuntu) and [catkin workspace instructions](http://wiki.ros.org/catkin/Tutorials/create_a_workspace). Short story:
+Follow ROS [installation instructions](http://wiki.ros.org/Installation/Ubuntu) and [catkin workspace instructions](http://wiki.ros.org/catkin/Tutorials/create_a_workspace). Short story:
 
 ``` bash
 sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
@@ -38,7 +38,7 @@ chmod +x leddar_ros/scripts/device.py
 git clone https://github.com/eric-wieser/ros_numpy.git
 cd ~/catkin_ws/
 source /opt/ros/melodic/setup.bash
-source ./devel/setup.bash 
+source ./devel/setup.bash
 catkin_make
 ```
 
@@ -46,7 +46,7 @@ catkin_make
 
 ### Using a Launch File
 
-You can use and modify the provided `example.launch`, it will start a leddar_ros node to be visulalized with RViz:
+You can use and modify the provided `example.launch`. It will start a leddar_ros node to be visualized with RViz:
 
 ```bash
 cd ~/catkin_ws/

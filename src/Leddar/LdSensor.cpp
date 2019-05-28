@@ -140,8 +140,8 @@ LeddarDevice::LdSensor::InitProperties( void )
     mProperties->GetIntegerProperty( LdPropertyIds::ID_VSEGMENT )->ForceValue( 0, 1 );
     mProperties->GetIntegerProperty( LdPropertyIds::ID_VSEGMENT )->SetClean();
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_NONE, LdPropertyIds::ID_CONNECTION_TYPE, 0, 2, "Connection type" ) );
-    mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_HFOV, LtComLeddarTechPublic::LT_COMM_ID_HFOV, 4, 0, 3, "Horizontal field of view." ) );
-    mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_VFOV, LtComLeddarTechPublic::LT_COMM_ID_VFOV, 4, 0, 3,
+    mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CONSTANT, LdProperty::F_SAVE, LdPropertyIds::ID_HFOV, LtComLeddarTechPublic::LT_COMM_ID_HFOV, 4, 0, 3, "Horizontal field of view." ) );
+    mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CONSTANT, LdProperty::F_SAVE, LdPropertyIds::ID_VFOV, LtComLeddarTechPublic::LT_COMM_ID_VFOV, 4, 0, 3,
                               "Vertical field of view. Default value is 3 for module but actual value is between 0.3 and 7.5" ) );
     mProperties->GetFloatProperty( LdPropertyIds::ID_VFOV )->ForceValue( 0, 3 );
     mProperties->GetFloatProperty( LdPropertyIds::ID_VFOV )->SetClean();

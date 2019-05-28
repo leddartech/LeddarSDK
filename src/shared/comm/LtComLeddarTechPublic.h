@@ -95,6 +95,7 @@ namespace LtComLeddarTechPublic
         LT_COMM_ID_REQUEST_HEADER = 0x00A0,                          ///< (0x00A0) {LtIpv4RequestHeader}
         /* Codes between 0x00B0 to 0x00DF are reserved */
         LT_COMM_ID_DEVICE_TYPE = 0x00E0,                             ///< (0x00E0) {uint16_t} - See PROTOCOL_IDT_DEVICE_TYPE_...
+        LT_COMM_ID_RELEASE_TYPE = 0x00E1,                            ///< (0x00E1) {uint8_t} - Flag defining release type, see eLtReleaseType */
         LT_COMM_ID_FIRMWARE_VERSION = 0x00F0,                        ///< (0x00F0) {uint16_t} - Firmware version build number
         LT_COMM_ID_FIRMWARE_VERSION_V2 = 0x00F1,                     ///< (0x00F1) {uint16_t}[4] - Full firmware version: major.minor.release.build
         LT_COMM_ID_FPGA_VERSION = 0x00F2,                            ///< (0x00F2) {char[LT_COMM_FPGA_VERSION_LENGTH]} - FPGA Version
@@ -456,4 +457,12 @@ namespace LtComLeddarTechPublic
         LT_COMM_DEVICE_TYPE_ADDRESS_NEW = 0x00046146
     } eLtCommDeviceTypeRegAddress;
 
+    typedef enum eLtReleaseType
+    {
+        LT_COMM_RT_INVALID = 0, /** Invalid */
+        LT_COMM_RT_DAILY = 0x01, /** Daily / nightly build */
+        LT_COMM_RT_BETA = 0x03, /** Beta version */
+        LT_COMM_RT_RELEASE = 0x04, /** Release (candidate) */
+        //Maximum value         0xFF
+    } eLtReleaseType;
 }
