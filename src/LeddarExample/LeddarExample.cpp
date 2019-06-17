@@ -261,7 +261,7 @@ void changeConfiguration( LeddarDevice::LdSensor *aSensor )
         return;
     }
 
-    auto *lProp = aSensor->GetProperties()->GetProperty( lChoice );
+    LeddarCore::LdProperty *lProp = aSensor->GetProperties()->GetProperty( lChoice );
 
     std::cout << "Current value: " << std::endl;
     std::cout << "Id: " << std::hex << lProp->GetId() << std::dec << " Desc: " << lProp->GetDescription() << " Val: " << lProp->GetStringValue( 0 ) << std::endl;

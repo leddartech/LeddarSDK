@@ -13,6 +13,7 @@
 // *****************************************************************************
 
 #include "LtTimeUtils.h"
+#include "LtDefines.h"
 
 #ifdef _WIN32
 #include <windows.h>

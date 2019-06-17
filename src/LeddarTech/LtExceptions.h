@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include "LtDefines.h"
+
 #include <string>
 #include <stdint.h>
 #include <stdexcept>
