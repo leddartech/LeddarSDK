@@ -33,3 +33,6 @@
 
 # Other
 *.zip
+*.bkl
+doc/
+unifdef.bat
