@@ -47,6 +47,15 @@ LeddarCore::LdObject::~LdObject( void )
 void
 LeddarCore::LdObject::ConnectSignal( LdObject *aSender, const SIGNALS aSignal )
 {
+    std::pair<std::multimap< LdObject *, SIGNALS>::iterator, std::multimap< LdObject *, SIGNALS>::iterator> lRange = mReceiverMap.equal_range( aSender );
+
+    for( std::multimap< LdObject *, SIGNALS>::iterator lIter = lRange.first; lIter != lRange.second; ++lIter )
+    {
+        if( lIter->second == aSignal && lIter->first == aSender )
+        {
+            throw std::logic_error( "This object is already connected to this signal" );
+        }
+    }
 
     mReceiverMap.insert( std::make_pair( aSender, aSignal ) );
 
@@ -78,14 +87,8 @@ LeddarCore::LdObject::DisconnectSignal( LdObject *aSender, const SIGNALS aSignal
     {
         if( lIter->second == aSignal && lIter->first == aSender )
         {
-            std::multimap< LdObject *, SIGNALS>::iterator lIterToErase = lIter;
-            ++lIter;
-            mReceiverMap.erase( lIterToErase );
-
-            if( lIter == mReceiverMap.end() )
-            {
-                break;
-            }
+            mReceiverMap.erase( lIter );
+            break;
         }
     }
 
