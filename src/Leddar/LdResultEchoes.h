@@ -44,9 +44,10 @@ namespace LeddarConnection
 
     typedef struct EchoBuffer
     {
-        EchoBuffer(): mCount( 0 ) {};
+        EchoBuffer(): mCount( 0 ), mScanDirection( 0 ) {};
         std::vector<LdEcho> mEchoes;
         uint32_t    mCount;
+        uint8_t mScanDirection;
     } EchoBuffer;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -87,6 +88,10 @@ namespace LeddarConnection
         uint32_t            GetAmplitudeScale( void ) const {return mAmplitudeScale;}
         void                SetAmplitudeScale( uint32_t aNewScale )  { mAmplitudeScale = aNewScale;}
 
+        uint8_t             GetScanDirection( eBuffer aBuffer = B_GET ) const { return static_cast< EchoBuffer * >( mDoubleBuffer.GetConstBuffer( aBuffer )->mBuffer )->mScanDirection; }
+        void                SetScanDirection( uint8_t aValue ) { static_cast< EchoBuffer * >( mDoubleBuffer.GetBuffer( B_SET )->mBuffer )->mScanDirection = aValue; }
+
+
         //Useful for cartesian coordinates
         double              GetVFOV( void ) const { return mVFOV; }
         void                SetVFOV( const double aVFOV ) { mVFOV = aVFOV; }
@@ -107,6 +112,7 @@ namespace LeddarConnection
         uint32_t mAmplitudeScale;
         double mHFOV, mVFOV;
         uint16_t mHChan, mVChan;
+
         LeddarCore::LdIntegerProperty mCurrentLedPower;
         LdDoubleBuffer mDoubleBuffer;
         EchoBuffer mEchoBuffer1, mEchoBuffer2;
