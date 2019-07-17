@@ -62,6 +62,7 @@ typedef struct sLeddarDevice
     sSharedData mDataThreadSharedData;  //Data shared between thread. Need to use mutex to read / write
     size_t v, h;
     float v_fov, h_fov;
+    std::string mIP;
 } sLeddarDevice;
 
 
@@ -79,6 +80,7 @@ PyObject *GetPropertyAvailableValues( sLeddarDevice *self, PyObject *args );
 PyObject *SetPropertyValue( sLeddarDevice *self, PyObject *args );
 PyObject *SetAccumulationExponent( sLeddarDevice *self, PyObject *args );
 PyObject *SetOversamplingExponent( sLeddarDevice *self, PyObject *args );
+PyObject *SendJSON( sLeddarDevice *self, PyObject *args );
 PyObject *SetIPConfig( sLeddarDevice *self, PyObject *args );
 PyObject *GetIPConfig( sLeddarDevice *self, PyObject *args );
 PyObject *GetDataMask( sLeddarDevice *self, PyObject *args );
@@ -146,6 +148,14 @@ static PyMethodDef Device_methods[] =
         "set_oversampling_exponent", ( PyCFunction )SetOversamplingExponent, METH_VARARGS, "Set the oversampling exponent value.\n"
         "param1: (int) the new value  see get_property_available_values() \n"
         "Returns: True on success"
+    },
+    {
+        "send_JSON", ( PyCFunction )SendJSON, METH_VARARGS, "send a json command.\n"
+        "param1: (str) the json command (use b-strings) "
+        "Example: {\"cmd\":\"runMode\", \"action\": \"wr\", \"mode\": 1} puts an LCA2 in trig mode, refer to your manual\n"
+        "param2: (int, optional) the json command string's length, will use strlen if not provided  \n"
+        "param3: (int, optional) the port, defaults to 46000 \n"
+        "Returns: (str) the server's answer"
     },
     {
         "get_IP_config", ( PyCFunction )GetIPConfig, METH_NOARGS, "Get IP address configuration.\n"

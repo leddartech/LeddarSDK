@@ -33,6 +33,7 @@
 #include "LdSensor.h"
 
 
+
 #include "LdLjrRecorder.h"
 
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
@@ -52,6 +53,7 @@ void _sleep_ms( int sleepMs )
 }
 
 #else
+#include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 void _sleep_ms( int sleepMs )
@@ -295,7 +297,9 @@ PyObject *Connect( sLeddarDevice *self, PyObject *args )
     int lConnectionType = lDeviceType & 0xFFFF0000;
     lDeviceType = lDeviceType & 0x0000FFFF;
 
-    if( CONNECTION_TYPE_SERIAL == lConnectionType ) // LeddarOne, M16, Vu8
+    self->mIP = lConnectionString;
+
+    if( CONNECTION_TYPE_SERIAL == lConnectionType )
     {
         lAdditionalInfo = lAdditionalInfo == 0 ? 1 : lAdditionalInfo;
         lAdditionalInfo2 = lAdditionalInfo2 == 0 ? 115200 : lAdditionalInfo2;
@@ -361,6 +365,7 @@ PyObject *Connect( sLeddarDevice *self, PyObject *args )
             DebugTrace( "Name is not an IP." );
             Py_RETURN_FALSE;
         }
+
 
         lAdditionalInfo = ( lAdditionalInfo == 0 ? 48630 : lAdditionalInfo );
         lAdditionalInfo2 = ( lAdditionalInfo2 == 0 ? 2000 : lAdditionalInfo2 );
@@ -898,6 +903,82 @@ PyObject *SetOversamplingExponent( sLeddarDevice *self, PyObject *args )
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn PyObject *SendJSON( sLeddarDevice *self, PyObject *args )
+///
+/// \brief  Sends a JSON string
+///
+/// \param [in,out] self    If non-null, the class instance that this method operates on.
+/// \param [in,out] args    If non-null, the arguments.
+///
+/// \return the server answer
+///
+/// \author Maxime Lemonnier
+/// \date   June 2019
+////////////////////////////////////////////////////////////////////////////////////////////////////
+PyObject *SendJSON( sLeddarDevice *self, PyObject *args )
+{
+    const char *json = nullptr;
+    int port = 46000;
+    int len = -1;
+
+    if( !PyArg_ParseTuple( args, "s*|ii", &json, &len, &port) )
+        return nullptr;
+
+    if (len < 0)
+        len = strlen(json);
+
+    try
+    {
+        int _socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+        if (_socket < 0)
+            throw std::runtime_error("cannot create socket");
+
+        struct sockaddr_in socketaddr;
+        memset( socketaddr.sin_zero, 0, sizeof( socketaddr.sin_zero ) );
+        socketaddr.sin_family      = AF_INET;
+        socketaddr.sin_port        = htons(port);
+
+        DebugTrace(self->mIP + "@" + std::to_string(port) + ": " + json);
+
+        if ( inet_pton( AF_INET, self->mIP.c_str(), &(socketaddr.sin_addr)) != 1 )
+            throw std::runtime_error("cannot convert address");
+
+#ifdef _WIN_32
+        DWORD tv = 12;
+#else
+        struct timeval tv;
+        tv.tv_sec = 0;
+        tv.tv_usec = 12000;
+#endif
+        setsockopt(_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+
+        if (connect(_socket, (struct sockaddr *)&socketaddr, sizeof(socketaddr)) < 0)
+            throw std::runtime_error("cannot connect to socket");
+
+        ssize_t sentlen = send(_socket, json, strlen(json), 0);
+
+        char buf[512];
+
+        ssize_t rcvlen = recv(_socket, buf, 512, MSG_WAITALL);
+
+        close(_socket);
+
+        char * loc = strrchr(buf, '}');
+
+        if (loc != nullptr)
+            rcvlen = size_t(loc - buf + 1);
+
+        return PyBytes_FromStringAndSize(buf, rcvlen);
+    }
+    catch(const std::exception& e)
+    {
+        PyErr_SetString( PyExc_RuntimeError, e.what() );
+        return nullptr;
+    }
+
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \fn PyObject *GetIPConfig( sLeddarDevice *self, PyObject *args )
 ///
 /// \brief  Gets IP configuration
@@ -1233,6 +1314,7 @@ PyObject *PackageEchoes( LeddarConnection::LdResultEchoes *aResultEchoes )
     if( !lEchoesDict )
         throw std::logic_error( "Unable to allocate memory for Python list" );
 
+    PyDict_SetItemString( lEchoesDict, "scan_direction", PyLong_FromLong( aResultEchoes->GetScanDirection() ) );
     PyDict_SetItemString( lEchoesDict, "timestamp", PyLong_FromLong( aResultEchoes->GetTimestamp() ) );
     PyDict_SetItemString( lEchoesDict, "distance_scale", PyLong_FromLong( aResultEchoes->GetDistanceScale() ) );
     PyDict_SetItemString( lEchoesDict, "amplitude_scale", PyLong_FromLong( aResultEchoes->GetAmplitudeScale() ) );
