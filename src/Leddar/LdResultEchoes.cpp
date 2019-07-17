@@ -32,7 +32,8 @@ LdResultEchoes::LdResultEchoes( void ) :
     mVFOV( 0 ),
     mHChan( 0 ),
     mVChan( 0 ),
-    mCurrentLedPower( LeddarCore::LdProperty::CAT_INFO, LeddarCore::LdProperty::F_SAVE, LeddarCore::LdPropertyIds::ID_CURRENT_LED_INTENSITY, 0, sizeof( uint16_t ), "Current led power", false )
+    mCurrentLedPower( LeddarCore::LdProperty::CAT_INFO, LeddarCore::LdProperty::F_SAVE, LeddarCore::LdPropertyIds::ID_CURRENT_LED_INTENSITY, 0, sizeof( uint16_t ), "Current led power",
+                      false )
 {
     mCurrentLedPower.ForceValue( 0, 0 );
 }
@@ -126,7 +127,7 @@ LdResultEchoes::GetEchoCount( eBuffer aBuffer ) const
         assert( 0 );
     }
 
-    return static_cast< const EchoBuffer * >( aBuffer == B_GET ? mDoubleBuffer.GetConstBuffer( B_GET )->mBuffer : mDoubleBuffer.GetConstBuffer( B_SET )->mBuffer )->mCount;
+    return static_cast< const EchoBuffer * >( mDoubleBuffer.GetConstBuffer( aBuffer )->mBuffer )->mCount;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -149,7 +150,7 @@ LdResultEchoes::GetEchoes( eBuffer aBuffer )
         assert( 0 );
     }
 
-    return &static_cast< EchoBuffer * >( aBuffer == B_GET ? mDoubleBuffer.GetBuffer( B_GET )->mBuffer : mDoubleBuffer.GetBuffer( B_SET )->mBuffer )->mEchoes;
+    return &static_cast< EchoBuffer * >( mDoubleBuffer.GetBuffer( aBuffer )->mBuffer )->mEchoes;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
