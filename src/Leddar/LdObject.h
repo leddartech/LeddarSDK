@@ -11,8 +11,8 @@
 #include "LtDefines.h"
 
 #include <cstddef>
-#include <list>
 #include <map>
+#include <set>
 #include <stdexcept>
 
 namespace LeddarCore
@@ -49,7 +49,7 @@ namespace LeddarCore
     private:
         void DisconnectAll( void );
 
-        std::list< LdObject * > mConnectedObject;
+        std::set< LdObject * > mConnectedObject;
         std::multimap< LdObject *, SIGNALS> mReceiverMap;
     };
 

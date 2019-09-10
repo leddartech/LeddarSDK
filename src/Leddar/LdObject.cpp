@@ -59,7 +59,7 @@ LeddarCore::LdObject::ConnectSignal( LdObject *aSender, const SIGNALS aSignal )
 
     mReceiverMap.insert( std::make_pair( aSender, aSignal ) );
 
-    aSender->mConnectedObject.push_back( this );
+    aSender->mConnectedObject.insert( this );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -95,17 +95,7 @@ LeddarCore::LdObject::DisconnectSignal( LdObject *aSender, const SIGNALS aSignal
     // If there is no aSender object, we need to remove this object in the mConnectedObject
     if( mReceiverMap.find( aSender ) == mReceiverMap.end() )
     {
-        for( std::list< LdObject * >::iterator lConnectedIter = aSender->mConnectedObject.begin(); lConnectedIter != aSender->mConnectedObject.end(); )
-        {
-            if( ( *lConnectedIter ) == this )
-            {
-                lConnectedIter = aSender->mConnectedObject.erase( lConnectedIter );
-            }
-            else
-            {
-                ++lConnectedIter;
-            }
-        }
+        aSender->mConnectedObject.erase( this );
     }
 }
 
@@ -123,21 +113,11 @@ LeddarCore::LdObject::DisconnectAll( void )
     // Delete links between the receiver and this object
     for( std::multimap< LdObject *, SIGNALS>::iterator lIter = mReceiverMap.begin(); lIter != mReceiverMap.end(); ++lIter )
     {
-        for( std::list< LdObject * >::iterator lConnectedIter = ( *lIter ).first->mConnectedObject.begin(); lConnectedIter != ( *lIter ).first->mConnectedObject.end(); )
-        {
-            if( ( *lConnectedIter ) == this )
-            {
-                lConnectedIter = ( *lIter ).first->mConnectedObject.erase( lConnectedIter );
-            }
-            else
-            {
-                ++lConnectedIter;
-            }
-        }
+        ( *lIter ).first->mConnectedObject.erase( this );
     }
 
     // Delete links between this object and receiver
-    for( std::list< LdObject * >::iterator lIter = mConnectedObject.begin(); lIter != mConnectedObject.end(); ++lIter )
+    for( std::set< LdObject * >::iterator lIter = mConnectedObject.begin(); lIter != mConnectedObject.end(); ++lIter )
     {
         ( *lIter )->mReceiverMap.erase( this );
     }
