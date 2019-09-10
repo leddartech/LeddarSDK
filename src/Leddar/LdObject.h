@@ -47,6 +47,9 @@ namespace LeddarCore
         void EmitSignal( const SIGNALS aSignal, void *aExtraData = nullptr );
 
     private:
+		LdObject(const LdObject &aObj);
+		LdObject& operator=(const LdObject &aObj);
+
         void DisconnectAll( void );
 
         std::list< LdObject * > mConnectedObject;
