@@ -71,6 +71,7 @@ if __name__ == '__main__':
     frame_id = rospy.get_param('~frame_id', 'map')
 
     def echoes_callback(echo):
+        echo['data'] = echo['data'][np.bitwise_and(echo['data']['flags'], 0x01).astype(np.bool)] #keep valid echoes only
         indices, flags, distances, amplitudes = [echo['data'][x] for x in ['indices', 'flags', 'distances', 'amplitudes']]
         stamp = rospy.Time.now()
 
