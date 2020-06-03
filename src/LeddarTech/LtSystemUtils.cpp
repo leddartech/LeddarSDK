@@ -13,17 +13,21 @@
 // *****************************************************************************
 
 #include "LtSystemUtils.h"
+
+#include "LtStringUtils.h"
+
 #include <cstdlib>
+#include <string.h>
 
 #ifdef _WIN32
 #include <Windows.h>
-#include "LtStringUtils.h"
 #else
 #include <dirent.h>
 #include <string>
 #include <vector>
-#include <sys/stat.h>
 #endif
+
+#include <sys/stat.h>
 
 
 // *****************************************************************************
@@ -111,7 +115,6 @@ LeddarUtils::LtSystemUtils::IsEnvVariableExist( const std::string &aVariableName
 }
 
 
-#ifndef _WIN32
 // *****************************************************************************
 // Function: LtSystemUtils::DirectoryExists
 //
@@ -129,9 +132,23 @@ LeddarUtils::LtSystemUtils::IsEnvVariableExist( const std::string &aVariableName
 bool
 LeddarUtils::LtSystemUtils::DirectoryExists( const std::string &aPath )
 {
+    std::string lPath = aPath;
+#ifdef _WIN32
+
+    //On windows the path must not end with a \ except if its the root of the drive
+    if( lPath.length() > 0 && lPath.back() == '\\' && std::count( lPath.begin(), lPath.end(), '\\' ) > 1 )
+    {
+        lPath = lPath.substr( 0, lPath.size() - 1 );
+    }
+    else if( lPath.length() > 0 && lPath.back() != '\\' && std::count( lPath.begin(), lPath.end(), '\\' ) == 0 )
+    {
+        lPath.push_back( '\\' );
+    }
+
+#endif
     struct stat lInfo;
 
-    if( stat( aPath.c_str(), &lInfo ) != 0 )
+    if( stat( lPath.c_str(), &lInfo ) != 0 )
     {
         return false;
     }
@@ -144,7 +161,6 @@ LeddarUtils::LtSystemUtils::DirectoryExists( const std::string &aPath )
         return false;
     }
 }
-#endif
 
 // *****************************************************************************
 // Function: LtSystemUtils::GetSerialPorts
@@ -221,4 +237,46 @@ LeddarUtils::LtSystemUtils::GetSerialPorts( void )
 
 #endif
     return lOutputList;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn std::string LeddarUtils::LtSystemUtils::ErrnoToString( int aErrno )
+///
+/// \brief  Convert error into a readable string
+///
+/// \param  aErrno  The error number.
+///
+/// \returns    A std::string.
+///
+/// \author David Lévy
+/// \date   January 2020
+////////////////////////////////////////////////////////////////////////////////////////////////////
+std::string LeddarUtils::LtSystemUtils::ErrnoToString( int aErrno )
+{
+    std::string lError = "";
+
+#ifdef _WIN32
+    char msgbuf [256] = {0};
+    FormatMessage( FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, ///< flags
+                   NULL,                                                       ///< lpsource
+                   aErrno,                                                 ///< message id
+                   MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ),                ///< languageid
+                   msgbuf,                                                     ///< output buffer
+                   sizeof( msgbuf ),                                           ///< size of msgbuf, bytes
+                   NULL );
+
+    if( msgbuf[0] != 0 )
+        lError += ": " + std::string( msgbuf );
+
+#else
+    locale_t locale = newlocale( LC_CTYPE_MASK | LC_NUMERIC_MASK | LC_TIME_MASK | LC_COLLATE_MASK |
+                                 LC_MONETARY_MASK | LC_MESSAGES_MASK, "", ( locale_t )0 );
+    std::string lTemp = std::string( strerror_l( aErrno, locale ) );
+
+    if( lTemp.length() != 0 )
+        lError += ": " + lTemp;
+
+#endif // _WIN32
+
+    return LeddarUtils::LtStringUtils::IntToString( aErrno ) + lError;
 }

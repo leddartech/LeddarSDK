@@ -227,9 +227,10 @@ void LeddarCore::LdBitFieldProperty::SetValueT( size_t aIndex, uint64_t aValue )
 
     T *lValues = reinterpret_cast<T *>( Storage() );
 
-    if( lValues[aIndex] != aValue )
+    if( !IsInitialized() || lValues[aIndex] != aValue )
     {
         lValues[aIndex] = static_cast<T>( aValue );
+        SetInitialized( true );
 
         if( !mDoNotEmitSignal )
         {
@@ -287,9 +288,8 @@ LeddarCore::LdBitFieldProperty::SetStringValue( size_t aIndex, const std::string
     if( Count() == 0 && aIndex == 0 )
     {
         SetCount( 1 );
+        SetValue( 0, 0 );
     }
-
-    uint64_t lValue = ValueT<uint64_t>( aIndex );
 
     if( aValue.length() > UnitSize() * 8 )
     {
@@ -298,6 +298,9 @@ LeddarCore::LdBitFieldProperty::SetStringValue( size_t aIndex, const std::string
 
     // SetBit must not emit a ValueChanged signal
     mDoNotEmitSignal = true;
+
+    if( !IsInitialized() )
+        SetValue( 0, 0 );
 
     uint8_t bitIndex = UnitSize() * 8 - 1;
 
@@ -314,7 +317,8 @@ LeddarCore::LdBitFieldProperty::SetStringValue( size_t aIndex, const std::string
         if( lChar != '0' && lChar != '1' && lChar != 'x' )
         {
             mDoNotEmitSignal = false;
-            throw std::invalid_argument( "Invalid argument. The string can only contains 0, 1 and x characters. Bitfield property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+            throw std::invalid_argument( "Invalid argument. The string can only contains 0, 1 and x characters. Bitfield property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(),
+                                         16 ) );
         }
 
         if( lChar == '1' )
@@ -334,8 +338,9 @@ LeddarCore::LdBitFieldProperty::SetStringValue( size_t aIndex, const std::string
 
     uint64_t lNewValue = ValueT<uint64_t>( aIndex );
 
-    if( lNewValue != lValue )
+    if( !IsInitialized() || lNewValue != ValueT<uint64_t>( aIndex ) )
     {
+        SetInitialized( true );
         EmitSignal( LdObject::VALUE_CHANGED );
     }
 }
@@ -471,6 +476,8 @@ void LeddarCore::LdBitFieldProperty::SetLimit( uint64_t aLimit )
 template<typename T>
 T LeddarCore::LdBitFieldProperty::ValueT( size_t aIndex ) const
 {
+    VerifyInitialization();
+
     if( aIndex >= Count() )
     {
         throw std::out_of_range( "Index not valid, verify property count. Bitfield property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );

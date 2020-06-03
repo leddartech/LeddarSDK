@@ -11,7 +11,7 @@
 
 #include <cerrno>
 #include <climits>
-#include <cstdlib>
+#include <stdlib.h> //TODO use c++ lib when migrating to c++11
 #include <iomanip>
 #include <limits>
 #include <sstream>
@@ -32,7 +32,7 @@
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn int32_t LeddarUtils::LtStringUtils::StringToInt( const std::string &aData, int aBase )
+/// \fn int64_t LeddarUtils::LtStringUtils::StringToInt( const std::string &aData, int aBase )
 ///
 /// \brief  Convert string to int
 ///
@@ -43,26 +43,26 @@
 /// \param  aData   String to convert.
 /// \param  aBase   Base of the number.
 ///
-/// \return The converted value.
+/// \returns    The converted value.
 ///
 /// \author Patrick Boulay
 /// \date   March 2016
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-int32_t
+int64_t
 LeddarUtils::LtStringUtils::StringToInt( const std::string &aData, int aBase )
 {
-    long lResultValue = 0;
+    int64_t lResultValue = 0;
 
     // Use the old C way to convert string to int
     errno = 0;
     char *lEnd;
-    lResultValue = strtol( aData.c_str(), &lEnd, aBase );
+    lResultValue = strtoll( aData.c_str(), &lEnd, aBase );
 
-    if( ( errno == ERANGE && lResultValue == LONG_MAX ) || lResultValue > INT_MAX )
+    if( errno == ERANGE && lResultValue == LLONG_MAX )
     {
         throw std::overflow_error( "Number over maximum possible value." );
     }
-    else if( ( errno == ERANGE && lResultValue == LONG_MIN ) || lResultValue < INT_MIN )
+    else if( errno == ERANGE && lResultValue == LLONG_MIN )
     {
         throw std::underflow_error( "Number under minimum possible value." );
     }
@@ -76,7 +76,7 @@ LeddarUtils::LtStringUtils::StringToInt( const std::string &aData, int aBase )
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn uint32_t LeddarUtils::LtStringUtils::StringToUInt( const std::string &aData, int aBase )
+/// \fn uint64_t LeddarUtils::LtStringUtils::StringToUInt( const std::string &aData, int aBase )
 ///
 /// \brief  Convert string to unsigned int
 ///
@@ -86,22 +86,22 @@ LeddarUtils::LtStringUtils::StringToInt( const std::string &aData, int aBase )
 /// \param  aData   String to convert.
 /// \param  aBase   Base of the number.
 ///
-/// \return The converted value.
+/// \returns    The converted value.
 ///
 /// \author Patrick Boulay
 /// \date   March 2016
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-uint32_t
+uint64_t
 LeddarUtils::LtStringUtils::StringToUInt( const std::string &aData, int aBase )
 {
-    unsigned long lResultValue = 0;
+    uint64_t lResultValue = 0;
 
     // Use the old C way to convert string to int
     errno = 0;
     char *lEnd;
-    lResultValue = strtoul( aData.c_str(), &lEnd, aBase );
+    lResultValue = strtoull( aData.c_str(), &lEnd, aBase );
 
-    if( ( errno == ERANGE && lResultValue == ULONG_MAX ) || lResultValue > UINT_MAX ) //TODO : pas les bonnes valeurs limites
+    if( errno == ERANGE && lResultValue == ULLONG_MAX )
     {
         throw std::overflow_error( "Number over maximum possible value." );
     }
@@ -160,7 +160,7 @@ LeddarUtils::LtStringUtils::HexStringToByteArray( const std::string &aHexString,
 
     for( uint32_t i = 0; i < aHexString.size(); i += 2 )
     {
-        aHexByte[ lFinalIndex - ( i / 2 ) ] = LeddarUtils::LtStringUtils::StringToInt( aHexString.substr( i, 2 ), 16 );
+        aHexByte[ lFinalIndex - ( i / 2 ) ] = static_cast<uint8_t>( LeddarUtils::LtStringUtils::StringToUInt( aHexString.substr( i, 2 ), 16 ) );
     }
 }
 
@@ -184,7 +184,7 @@ LeddarUtils::LtStringUtils::ByteArrayToHexString( const uint8_t *aHexByte, uint3
 
     for( int i = aLength; i > 0; --i )
     {
-        lResult << ( aHexByte[ i - 1 ] < 16 ? "0" : "" ) << std::setbase( 16 ) << static_cast<int>( aHexByte[ i - 1 ] );
+        lResult << std::setfill( '0' ) << std::setw( 2 ) << std::hex << ( uint32_t )aHexByte[i - 1];
     }
 
     return lResult.str();
@@ -267,7 +267,7 @@ LeddarUtils::LtStringUtils::Ip4PortStringToValues( const std::string &aIp4Port, 
     {
         *aIp = aIp4Port.substr( 0, colonPos );
         std::string portPart = aIp4Port.substr( colonPos + 1 );
-        uint32_t lPort = StringToUInt( portPart, 10 );
+        uint64_t lPort = StringToUInt( portPart, 10 );
 
         if( lPort > UINT16_MAX )
             throw std::overflow_error( "Port is too big." );

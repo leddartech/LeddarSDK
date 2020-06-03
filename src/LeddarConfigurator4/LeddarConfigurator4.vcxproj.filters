@@ -234,6 +234,21 @@
     <ClCompile Include="..\Leddar\LdSensorIS16.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\Leddar\LdSensorDTec.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Leddar\LdProtocolLeddartechEthernet.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Leddar\LdProtocolLeddartechEthernetUDP.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Leddar\LdSensorLeddarAuto.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Leddar\LdSensorPixell.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Leddar\LdBitFieldProperty.h">
@@ -516,6 +531,21 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Leddar\LdSensorIS16.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Leddar\LdSensorDTec.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Leddar\LdProtocolLeddartechEthernet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Leddar\LdProtocolLeddartechEthernetUDP.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Leddar\LdSensorLeddarAuto.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Leddar\LdSensorPixell.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -10,11 +10,13 @@
 
 #include "LdPropertyIds.h"
 #include "LtStringUtils.h"
+#include "LtSystemUtils.h"
 
 #include "rapidjson/writer.h"
 
 #include <ctime>
 #include <cerrno>
+#include <iostream>
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \fn LeddarRecord::LdLjrRecorder::LdLjrRecorder( LeddarDevice::LdSensor *aSensor )
@@ -27,6 +29,8 @@
 /// \date   October 2018
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 LeddarRecord::LdLjrRecorder::LdLjrRecorder( LeddarDevice::LdSensor *aSensor ) : LdRecorder( aSensor ),
+    mOutStream( nullptr ),
+    mFile( nullptr ),
     mLastTimestamp( 0 )
 {
     mStringBuffer = new rapidjson::StringBuffer;
@@ -67,7 +71,7 @@ LeddarRecord::LdLjrRecorder::~LdLjrRecorder()
 /// \exception  std::logic_error        Raised when a a recording is already running.
 /// \exception  std::runtime_error      Raised when a the file could not be created.
 ///
-/// \param  aPath   (optional) Pathname of the record.
+/// \param  aPath   (optional) Pathname of the record. - "stdout" to write to standard output
 ///
 /// \return Pathname of the record.
 ///
@@ -83,40 +87,80 @@ std::string LeddarRecord::LdLjrRecorder::StartRecording( const std::string &aPat
         throw std::invalid_argument( "File already exist" );
     }
 
-    if( mFile.is_open() )
+    if( mOutStream != nullptr )
     {
         throw std::logic_error( "Already recording" );
     }
 
-    std::string lPath = "";
+    std::string lPath = aPath;
+    bool lIsDir = LeddarUtils::LtSystemUtils::DirectoryExists( lPath );
 
-    if( aPath == "" )
+    if( lIsDir )
+    {
+#ifdef _WIN32
+
+        if( lPath.back() != '\\' )
+        {
+            lPath.push_back( '\\' );
+        }
+
+#else
+
+        if( lPath.back() != '/' )
+        {
+            lPath.push_back( '/' );
+        }
+
+#endif
+    }
+
+    if( aPath == "" || lIsDir )
     {
         std::time_t lTime = std::time( nullptr );
         char lStr[100];
         std::strftime( lStr, sizeof( lStr ), "%Y-%m-%d_%H-%M-%S", std::localtime( &lTime ) );
 
-        if( mSensor->GetProperties()->FindProperty( LeddarCore::LdPropertyIds::ID_DEVICE_NAME ) != nullptr )
+        if( mSensor->GetProperties()->FindProperty( LeddarCore::LdPropertyIds::ID_DEVICE_NAME ) != nullptr &&
+                mSensor->GetProperties()->FindProperty( LeddarCore::LdPropertyIds::ID_DEVICE_NAME )->Count() > 0 )
             lPath = mSensor->GetProperties()->GetTextProperty( LeddarCore::LdPropertyIds::ID_DEVICE_NAME )->GetStringValue() + "_" + std::string( lStr );
         else
-            lPath = "UnknownDevice_" + std::string( lStr );
-    }
-    else
-    {
-        lPath = aPath;
+            lPath += "UnknownDevice_" + std::string( lStr );
     }
 
-    if( lPath.length() > 4 && LeddarUtils::LtStringUtils::ToLower( lPath ).compare( lPath.length() - 4, 4, ".ljr" ) )
+    if( LeddarUtils::LtStringUtils::ToLower( aPath ) != "stdout" &&
+            ( ( lPath.length() >= 4 && LeddarUtils::LtStringUtils::ToLower( lPath ).compare( lPath.length() - 4, 4, ".ljr" ) ) ||
+              lPath.length() < 4 ) )
     {
         lPath += ".ljr";
     }
 
-    mFile.open( lPath.c_str(), std::ios_base::out ); //c_str for c++98
+    std::streambuf *lStreamBuffer;
 
-    if( !mFile.is_open() )
+    if( LeddarUtils::LtStringUtils::ToLower( aPath ) == "stdout" )
     {
-        throw std::runtime_error( "Could not create file - Error code: " + LeddarUtils::LtStringUtils::IntToString( errno ) );
+        lStreamBuffer = std::cout.rdbuf();
     }
+    else
+    {
+        std::ifstream infile( aPath.c_str() );
+
+        if( infile.good() )
+        {
+            throw std::invalid_argument( "File already exist" );
+        }
+
+        mFile = new std::ofstream;
+        mFile->open( lPath.c_str(), std::ios_base::out ); //c_str for c++98
+
+        if( !mFile->is_open() )
+        {
+            throw std::logic_error( "Could not create file - Error code: " + LeddarUtils::LtSystemUtils::ErrnoToString( errno ) );
+        }
+
+        lStreamBuffer = mFile->rdbuf();
+    }
+
+    mOutStream = new std::ostream( lStreamBuffer );
 
     AddFileHeader();
     AddAllProperties();
@@ -137,12 +181,12 @@ void LeddarRecord::LdLjrRecorder::StopRecording()
     {
         mWriter->EndObject(); //frame
         mWriter->EndObject(); //main object
-        mFile << mStringBuffer->GetString() << std::endl;
+        *mOutStream << mStringBuffer->GetString() << std::endl;
     }
 
-    if( mFile.is_open() )
+    if( mFile->is_open() )
     {
-        mFile.close();
+        mFile->close();
     }
 }
 
@@ -175,7 +219,7 @@ void LeddarRecord::LdLjrRecorder::AddFileHeader()
         throw std::logic_error( "invalid json" );
     }
 
-    mFile << mStringBuffer->GetString() << std::endl;
+    *mOutStream << mStringBuffer->GetString() << std::endl;
     mStringBuffer->Clear();
     mWriter->Reset( *mStringBuffer );
 }
@@ -217,12 +261,23 @@ void LeddarRecord::LdLjrRecorder::AddAllProperties()
         }
         else if( lProp->GetType() == LeddarCore::LdProperty::TYPE_INTEGER )
         {
+
             mWriter->Key( "signed" );
             mWriter->Bool( dynamic_cast<LeddarCore::LdIntegerProperty *>( lProp )->Signed() );
             mWriter->Key( "limits" );
             mWriter->StartArray();
-            mWriter->Int64( dynamic_cast<LeddarCore::LdIntegerProperty *>( lProp )->MinValue() );
-            mWriter->Int64( dynamic_cast<LeddarCore::LdIntegerProperty *>( lProp )->MaxValue() );
+
+            if( dynamic_cast<const LeddarCore::LdIntegerProperty *>( lProp )->Signed() )
+            {
+                mWriter->Int64( dynamic_cast<const LeddarCore::LdIntegerProperty *>( lProp )->MinValue() );
+                mWriter->Int64( dynamic_cast<const LeddarCore::LdIntegerProperty *>( lProp )->MaxValue() );
+            }
+            else
+            {
+                mWriter->Uint64( dynamic_cast<const LeddarCore::LdIntegerProperty *>( lProp )->MinValueT<uint64_t>() );
+                mWriter->Uint64( dynamic_cast<const LeddarCore::LdIntegerProperty *>( lProp )->MaxValueT<uint64_t>() );
+            }
+
             mWriter->EndArray();
         }
         else if( lProp->GetType() == LeddarCore::LdProperty::TYPE_ENUM )
@@ -254,7 +309,7 @@ void LeddarRecord::LdLjrRecorder::AddAllProperties()
         throw std::logic_error( "invalid json" );
     }
 
-    mFile << mStringBuffer->GetString() << std::endl;
+    *mOutStream << mStringBuffer->GetString() << std::endl;
     mStringBuffer->Clear();
     mWriter->Reset( *mStringBuffer );
 }
@@ -326,7 +381,7 @@ void LeddarRecord::LdLjrRecorder::AddPropertyValues( const LeddarCore::LdPropert
                 }
                 else
                 {
-                    mWriter->Uint64( dynamic_cast<const LeddarCore::LdIntegerProperty *>( aProperty )->ValueT<uint32_t>( i ) );
+                    mWriter->Uint64( dynamic_cast<const LeddarCore::LdIntegerProperty *>( aProperty )->ValueT<uint64_t>( i ) );
                 }
             }
 
@@ -394,7 +449,7 @@ void LeddarRecord::LdLjrRecorder::AddProperty( const LeddarCore::LdProperty *aPr
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void LeddarRecord::LdLjrRecorder::Callback( LdObject *aSender, const SIGNALS aSignal, void * )
 {
-    if( !mFile.is_open() )
+    if( mOutStream == nullptr )
         return;
 
     if( aSignal == LeddarCore::LdObject::NEW_DATA )
@@ -473,7 +528,7 @@ void LeddarRecord::LdLjrRecorder::EndFrame()
 {
     mWriter->EndObject(); //frame
     mWriter->EndObject(); //main object
-    mFile << mStringBuffer->GetString() << std::endl;
+    *mOutStream << mStringBuffer->GetString() << std::endl;
     mStringBuffer->Clear();
     mWriter->Reset( *mStringBuffer );
 }
@@ -556,7 +611,7 @@ void LeddarRecord::LdLjrRecorder::PropertyCallback( LeddarCore::LdProperty *aPro
 
     mWriter->EndObject(); //Main object
 
-    mFile << mStringBuffer->GetString() << std::endl;
+    *mOutStream << mStringBuffer->GetString() << std::endl;
     mStringBuffer->Clear();
     mWriter->Reset( *mStringBuffer );
 }

@@ -20,7 +20,9 @@
 #include "LtExceptions.h"
 #include "comm/LtComLeddarTechPublic.h"
 #include "comm/LtComEthernetPublic.h"
+#include "comm/Legacy/DTec/LtComDTec.h"
 #include "LtTimeUtils.h"
+#include "LtSystemUtils.h"
 
 #include <cerrno>
 #include <cstring>
@@ -124,7 +126,7 @@ LeddarConnection::LdEthernet::LdEthernet( const LdConnectionInfoEthernet *aConne
 // *****************************************************************************
 LeddarConnection::LdEthernet::~LdEthernet( void )
 {
-    CloseSocket( mSocket );
+    Disconnect();
 }
 
 // *****************************************************************************
@@ -151,7 +153,7 @@ LeddarConnection::LdEthernet::Connect( void )
     if( getaddrinfo( mConnectionInfoEthernet->GetIP().c_str(), LeddarUtils::LtStringUtils::IntToString( mConnectionInfoEthernet->GetPort() ).c_str(),
                      &lHints, &lResult ) != 0 )
     {
-        throw LeddarException::LtComException( "Failed to initialize socket (getaddrinfo): " + LeddarUtils::LtStringUtils::IntToString( LAST_ERROR ) );
+        throw LeddarException::LtComException( "Failed to initialize socket (getaddrinfo): " + LeddarUtils::LtSystemUtils::ErrnoToString( LAST_ERROR ) );
     }
 
     mSocket = socket( lResult->ai_family, lResult->ai_socktype, lResult->ai_protocol );
@@ -166,7 +168,7 @@ LeddarConnection::LdEthernet::Connect( void )
         if( mSocket < 0 )
 #endif
         {
-            throw LeddarException::LtComException( "Failed to initialize socket (socket): " + LeddarUtils::LtStringUtils::IntToString( LAST_ERROR ) );
+            throw LeddarException::LtComException( "Failed to initialize socket (socket): " + LeddarUtils::LtSystemUtils::ErrnoToString( LAST_ERROR ) );
         }
 
 
@@ -186,7 +188,7 @@ LeddarConnection::LdEthernet::Connect( void )
         if( lSockOptResult < 0 )
 #endif
         {
-            throw LeddarException::LtComException( "Failed to set socket option SO_RCVTIMEO (setsockopt): " + LeddarUtils::LtStringUtils::IntToString( LAST_ERROR ) );
+            throw LeddarException::LtComException( "Failed to set socket option SO_RCVTIMEO (setsockopt): " + LeddarUtils::LtSystemUtils::ErrnoToString( LAST_ERROR ) );
         }
 
         // Set send timeout.
@@ -203,7 +205,7 @@ LeddarConnection::LdEthernet::Connect( void )
         if( lSockOptResult < 0 )
         {
 #endif
-            throw LeddarException::LtComException( "Failed to set socket option SO_SNDTIMEO (setsockopt): " + LeddarUtils::LtStringUtils::IntToString( LAST_ERROR ) );
+            throw LeddarException::LtComException( "Failed to set socket option SO_SNDTIMEO (setsockopt): " + LeddarUtils::LtSystemUtils::ErrnoToString( LAST_ERROR ) );
         }
 
 
@@ -215,7 +217,7 @@ LeddarConnection::LdEthernet::Connect( void )
         if( lConnectResult < 0 )
 #endif
         {
-            throw LeddarException::LtComException( "Failed to initialize socket (connect): " + LeddarUtils::LtStringUtils::IntToString( LAST_ERROR ) );
+            throw LeddarException::LtComException( "Failed to initialize socket (connect): " + LeddarUtils::LtSystemUtils::ErrnoToString( LAST_ERROR ) );
         }
 
         mIsConnected = true;
@@ -226,7 +228,14 @@ LeddarConnection::LdEthernet::Connect( void )
         if( lResult != nullptr )
         {
             freeaddrinfo( lResult );
-            CloseSocket( mSocket );
+
+            try
+            {
+                mSocket = CloseSocket( mSocket );
+            }
+            catch( ... ) //Only throw if it cannot close the socket, we want to throw the first exception as it will be more meaningfull
+            {
+            }
         }
 
         throw;
@@ -245,8 +254,32 @@ LeddarConnection::LdEthernet::Connect( void )
 void
 LeddarConnection::LdEthernet::Disconnect( void )
 {
+#ifdef _WIN32
+
+    if( mSocket != INVALID_SOCKET )
+    {
+        mSocket = CloseSocket( mSocket );
+    }
+
+    if( mUDPSocket != INVALID_SOCKET )
+    {
+        CloseUDPSocket();
+    }
+
+#else
+
+    if( mSocket > 0 )
+    {
+        mSocket = CloseSocket( mSocket );
+    }
+
+    if( mUDPSocket > 0 )
+    {
+        CloseUDPSocket();
+    }
+
+#endif
     mIsConnected = false;
-    CloseSocket( mSocket );
 }
 
 // *****************************************************************************
@@ -302,7 +335,7 @@ LeddarConnection::LdEthernet::Send( uint8_t *aBuffer, uint32_t aSize )
         }
         else
         {
-            throw LeddarException::LtComException( "Error in Send (send): " + LeddarUtils::LtStringUtils::IntToString( LAST_ERROR ) );
+            throw LeddarException::LtComException( "Error in Send (send): " + LeddarUtils::LtSystemUtils::ErrnoToString( LAST_ERROR ) );
         }
     }
 }
@@ -356,29 +389,62 @@ LeddarConnection::LdEthernet::Receive( uint8_t *aBuffer, uint32_t aSize )
         }
         else
         {
-            throw LeddarException::LtComException( "Error in Receive (recv): " + LeddarUtils::LtStringUtils::IntToString( LAST_ERROR ),
-                                                   LeddarException::ERROR_COM_READ );
+            throw LeddarException::LtComException( "Error in Receive (recv): " + LeddarUtils::LtSystemUtils::ErrnoToString( LAST_ERROR ), LeddarException::ERROR_COM_READ );
+        }
+    }
+
+    if( lBytesReceived < aSize )
+    {
+        //Retry once to get all expected data
+        int32_t lBytesReceived2 = recv( mSocket, ( char * )( aBuffer + lBytesReceived ), aSize, MSG_WAITALL );
+        lBytesReceived += lBytesReceived2;
+
+        if( lBytesReceived < aSize )
+        {
+            throw LeddarException::LtComException( "Incomplete data received.", LeddarException::ERROR_COM_READ, false );
+        }
+        else
+        {
+            throw LeddarException::LtComException( "Data reception was too slow (timed out once).", LeddarException::ERROR_COM_READ, false );
         }
     }
 
     return ( uint32_t )lBytesReceived;
 }
 
-// *****************************************************************************
-// Function: LdEthernet::CloseSocket
-//
-/// \brief   Close the socket.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn int LeddarConnection::LdEthernet::CloseSocket( const SOCKET aSocket )
 ///
-/// \author  Patrick Boulay
+/// \brief  Closes a socket
 ///
-/// \since   November 2016
-// *****************************************************************************
-void LeddarConnection::LdEthernet::CloseSocket( const SOCKET aSocket )
+/// \exception  LeddarException::LtComException Thrown when the socket cannot be closed.
+///
+/// \param  aSocket The socket.
+///
+/// \returns    INVALID_SOCKET for windows, else 0.
+///
+/// \author David Levy
+/// \date   May 2019
+////////////////////////////////////////////////////////////////////////////////////////////////////
+uint64_t LeddarConnection::LdEthernet::CloseSocket( const SOCKET aSocket )
 {
+    int lRet = 0;
 #ifdef _WIN32
-    closesocket( aSocket );
+    lRet = closesocket( aSocket );
 #else
-    close( aSocket );
+    errno = 0;
+    lRet = close( aSocket );
+#endif
+
+    if( lRet != 0 )
+    {
+        throw LeddarException::LtComException( "Failed to close socket: " + LeddarUtils::LtSystemUtils::ErrnoToString( LAST_ERROR ) );
+    }
+
+#ifdef _WIN32
+    return INVALID_SOCKET;
+#else
+    return lRet;
 #endif
 }
 
@@ -418,14 +484,14 @@ LeddarConnection::LdEthernet::OpenUDPSocket( uint32_t aPort, uint32_t aTimeout )
 
     if( SOCKET_ERROR == lResult )
     {
-        throw LeddarException::LtComException( "Unable to set option on UDP socket", LAST_ERROR );
+        throw LeddarException::LtComException( "Unable to set option on UDP socket " + LeddarUtils::LtSystemUtils::ErrnoToString( LAST_ERROR ), LAST_ERROR );
     }
 
     lResult = setsockopt( mUDPSocket, SOL_SOCKET, SO_RCVBUF, ( char * )&lSocketBufferSize, sizeof( lSocketBufferSize ) );
 
     if( SOCKET_ERROR == lResult )
     {
-        throw LeddarException::LtComException( "Unable to set option on UDP socket", LAST_ERROR );
+        throw LeddarException::LtComException( "Unable to set option on UDP socket " + LeddarUtils::LtSystemUtils::ErrnoToString( LAST_ERROR ), LAST_ERROR );
     }
 
 #else
@@ -437,14 +503,14 @@ LeddarConnection::LdEthernet::OpenUDPSocket( uint32_t aPort, uint32_t aTimeout )
 
     if( SOCKET_ERROR == lResult )
     {
-        throw LeddarException::LtComException( "Unable to set option on UDP socket", errno );
+        throw LeddarException::LtComException( "Unable to set option on UDP socket" + LeddarUtils::LtSystemUtils::ErrnoToString( LAST_ERROR ), LAST_ERROR );
     }
 
     lResult = setsockopt( mUDPSocket, SOL_SOCKET, SO_RCVBUF, &lSocketBufferSize, sizeof( lSocketBufferSize ) );
 
     if( SOCKET_ERROR == lResult )
     {
-        throw LeddarException::LtComException( "Unable to set option on UDP socket", errno );
+        throw LeddarException::LtComException( "Unable to set option on UDP socket" + LeddarUtils::LtSystemUtils::ErrnoToString( LAST_ERROR ), LAST_ERROR );
     }
 
 #endif
@@ -460,6 +526,7 @@ LeddarConnection::LdEthernet::OpenUDPSocket( uint32_t aPort, uint32_t aTimeout )
         addr.sin_addr.s_addr = INADDR_ANY;
 #endif
         addr.sin_port = htons( aPort );
+        memset( addr.sin_zero, 0, sizeof( addr.sin_zero ) );
 
         if( bind( mUDPSocket, ( const sockaddr * )&addr, sizeof( addr ) ) < 0 )
         {
@@ -481,7 +548,7 @@ LeddarConnection::LdEthernet::OpenUDPSocket( uint32_t aPort, uint32_t aTimeout )
 void
 LeddarConnection::LdEthernet::CloseUDPSocket( void )
 {
-    CloseSocket( mUDPSocket );
+    mUDPSocket = CloseSocket( mUDPSocket );
 }
 
 // *****************************************************************************
@@ -590,7 +657,7 @@ std::vector<std::pair<SOCKET, unsigned long> > LeddarConnection::LdEthernet::Ope
         }
         else
         {
-            CloseSocket( lSocket );
+            lSocket = CloseSocket( lSocket );
         }
     }
 
@@ -746,6 +813,7 @@ std::vector<LeddarConnection::LdConnectionInfo *> LeddarConnection::LdEthernet::
                             }
                             else if( pPtr->mAnswerSize == sizeof( LtComEthernetPublic::sLtIdtAnswerIdentifyLCAuto ) &&
                                      ( reinterpret_cast<LtComEthernetPublic::sLtIdtAnswerIdentifyLCAuto const *>( bufferIn )->mDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_LCA2_REFDESIGN ||
+                                       reinterpret_cast<LtComEthernetPublic::sLtIdtAnswerIdentifyLCAuto const *>( bufferIn )->mDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_PIXELL ||
                                        reinterpret_cast<LtComEthernetPublic::sLtIdtAnswerIdentifyLCAuto const *>( bufferIn )->mDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_LCA3_DISCRETE ) )
                             {
                                 LtComEthernetPublic::sLtIdtAnswerIdentifyLCAuto *lHeader = reinterpret_cast<LtComEthernetPublic::sLtIdtAnswerIdentifyLCAuto *>( bufferIn );
@@ -774,7 +842,7 @@ std::vector<LeddarConnection::LdConnectionInfo *> LeddarConnection::LdEthernet::
                                        reinterpret_cast< LtComEthernetPublic::sLtIdtAnswerIdentifyDtec const * >( bufferIn )->mDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_SIDETEC_M ||
                                        reinterpret_cast< LtComEthernetPublic::sLtIdtAnswerIdentifyDtec const * >( bufferIn )->mDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_TRACKER ||
                                        reinterpret_cast< LtComEthernetPublic::sLtIdtAnswerIdentifyDtec const * >( bufferIn )->mDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_VTEC ||
-                                       reinterpret_cast< LtComEthernetPublic::sLtIdtAnswerIdentifyDtec const * >( bufferIn )->mDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_TRACKER_TRANSCORE ) )
+                                       reinterpret_cast< LtComEthernetPublic::sLtIdtAnswerIdentifyDtec const * >( bufferIn )->mDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_TRACKER_TRANS ) )
                             {
                                 LtComEthernetPublic::sLtIdtAnswerIdentifyDtec *lHeader = reinterpret_cast< LtComEthernetPublic::sLtIdtAnswerIdentifyDtec * >( bufferIn );
                                 lConnectionType = LeddarConnection::LdConnectionInfo::CT_ETHERNET_LEDDARTECH;
@@ -807,7 +875,7 @@ std::vector<LeddarConnection::LdConnectionInfo *> LeddarConnection::LdEthernet::
 
 #endif
                                 lConnecInfo = new LeddarConnection::LdConnectionInfoEthernet(
-                                    lIp, 48620, "", lConnectionType, LeddarConnection::LdConnectionInfoEthernet::PT_TCP, lUsed, 2000, lDeviceName );
+                                    lIp, LtComDTec::DTEC_CONFIG_PORT, "", lConnectionType, LeddarConnection::LdConnectionInfoEthernet::PT_TCP, lUsed, 2000, lDeviceName );
                                 lConnecInfo->SetDeviceType( lHeader->mDeviceType );
 
                             }
@@ -891,13 +959,12 @@ LeddarConnection::LdEthernet::GetDeviceList( uint32_t aTimeoutms, bool aWideBroa
 #else
         if( lInterfaces[i].first >= 0 )
 #endif
-            LeddarConnection::LdEthernet::CloseSocket( lInterfaces[i].first );
+            lInterfaces[i].first = LeddarConnection::LdEthernet::CloseSocket( lInterfaces[i].first );
     }
 
     lInterfaces.clear();
     return lConnectionList;
 }
-
 
 // *****************************************************************************
 // Function: LdEthernet::SendTo
@@ -979,7 +1046,7 @@ LeddarConnection::LdEthernet::ReceiveFrom( std::string &aIpAddress, uint16_t &aP
     {
         throw LeddarException::LtComException( "Error to receive UDP data on address: " + aIpAddress + " on port: "
                                                + LeddarUtils::LtStringUtils::IntToString( aPort ) + " ("
-                                               + LeddarUtils::LtStringUtils::IntToString( lErr ) + ")" );
+                                               + LeddarUtils::LtSystemUtils::ErrnoToString( LAST_ERROR ) + ")" );
     }
     else if( lResult == 0 )
     {
@@ -1020,7 +1087,7 @@ LeddarConnection::LdEthernet::FlushBuffer( void )
     if( lSockOptResult < 0 )
 #endif
     {
-        throw LeddarException::LtComException( "Failed to set socket option SO_RCVTIMEO (setsockopt): " + LeddarUtils::LtStringUtils::IntToString( LAST_ERROR ) );
+        throw LeddarException::LtComException( "Failed to set socket option SO_RCVTIMEO (setsockopt): " + LeddarUtils::LtSystemUtils::ErrnoToString( LAST_ERROR ) );
     }
 
     uint8_t lBuffer[512];
@@ -1042,7 +1109,7 @@ LeddarConnection::LdEthernet::FlushBuffer( void )
     if( lSockOptResult < 0 )
 #endif
     {
-        throw LeddarException::LtComException( "Failed to set socket option SO_RCVTIMEO (setsockopt): " + LeddarUtils::LtStringUtils::IntToString( LAST_ERROR ) );
+        throw LeddarException::LtComException( "Failed to set socket option SO_RCVTIMEO (setsockopt): " + LeddarUtils::LtSystemUtils::ErrnoToString( LAST_ERROR ) );
     }
 }
 

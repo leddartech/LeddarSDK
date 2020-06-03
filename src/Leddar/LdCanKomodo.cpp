@@ -25,7 +25,8 @@ const std::string lEventString = "Event error";
 /// \author David Levy
 /// \date   October 2018
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-LeddarConnection::LdCanKomodo::LdCanKomodo( const LdConnectionInfoCan *aConnectionInfo, LdConnection *aExistingConnection ) : LdInterfaceCan( aConnectionInfo, aExistingConnection ),
+LeddarConnection::LdCanKomodo::LdCanKomodo( const LdConnectionInfoCan *aConnectionInfo, LdConnection *aExistingConnection ) : LdInterfaceCan( aConnectionInfo,
+            aExistingConnection ),
     mHandle( 0 )
 {
 }
@@ -105,7 +106,8 @@ void LeddarConnection::LdCanKomodo::Connect( void )
     if( lInfo->GetSpeed() * 1000 != lRes )
     {
         Disconnect();
-        throw std::runtime_error( "Cant set baudrate. Requested: " + LeddarUtils::LtStringUtils::IntToString( lInfo->GetSpeed() * 1000 ) + "actual: " + LeddarUtils::LtStringUtils::IntToString( lRes ) );
+        throw std::runtime_error( "Cant set baudrate. Requested: " + LeddarUtils::LtStringUtils::IntToString( lInfo->GetSpeed() * 1000 ) + "actual: " +
+                                  LeddarUtils::LtStringUtils::IntToString( lRes ) );
     }
 
     if( km_timeout( mHandle, KM_TIMEOUT_IMMEDIATE ) != KM_OK ) //Non blocking read
@@ -330,7 +332,7 @@ std::vector<LeddarConnection::LdConnectionInfo *> LeddarConnection::LdCanKomodo:
     std::vector<LdConnectionInfo *> lConnecInfo;
     int lNbr = km_find_devices( 0, nullptr );
 
-    if( lNbr < 0 )
+    if( lNbr == KM_UNABLE_TO_LOAD_LIBRARY )
     {
         throw std::runtime_error( "Couldnt load CAN-komodo library" );
     }
@@ -344,12 +346,13 @@ std::vector<LeddarConnection::LdConnectionInfo *> LeddarConnection::LdCanKomodo:
     }
 
     std::vector<uint16_t> lDevices( lNbr + 1 );
-    lNbr = std::min( lNbr, km_find_devices( lNbr, &lDevices[0] ) );
+    lNbr = ( std::min )( lNbr, km_find_devices( lNbr, &lDevices[0] ) );
 
 
     for( int i = 0; i < lNbr; ++i )
     {
-        lConnecInfo.push_back( new LeddarConnection::LdConnectionInfoCan( LeddarConnection::LdConnectionInfo::CT_CAN_KOMODO, "CAN " + LeddarUtils::LtStringUtils::IntToString( lDevices[i] ), lDevices[i] ) );
+        lConnecInfo.push_back( new LeddarConnection::LdConnectionInfoCan( LeddarConnection::LdConnectionInfo::CT_CAN_KOMODO,
+                               "CAN " + LeddarUtils::LtStringUtils::IntToString( lDevices[i] ), lDevices[i] ) );
     }
 
     return lConnecInfo;

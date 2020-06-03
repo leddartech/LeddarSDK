@@ -380,6 +380,22 @@ LdProtocolLeddarTech::GetElementData( void ) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LeddarConnection::LdProtocolLeddarTech::SetDataServer( bool aIsDataServer )
+///
+/// \brief  Configure this protocol as a data server
+///
+/// \param  aIsDataServer   True if is data server, false if not.
+///
+/// \author David Levy
+/// \date   November 2019
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void LeddarConnection::LdProtocolLeddarTech::SetDataServer( bool aIsDataServer )
+{
+    mIsDataServer = aIsDataServer;
+    mProtocolVersion = LT_COMM_DATA_PROT_VERSION;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \fn bool LdProtocolLeddarTech::ReadElementToProperty( LeddarCore::LdPropertiesContainer *aProperties )
 ///
 /// \brief  Read a single element and store it in a property
@@ -534,4 +550,50 @@ LdProtocolLeddarTech::PushElementDataToBuffer( void *aDest, uint16_t aCount, uin
             break;
         }
     }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LdProtocolLeddarTech::AddElementFromProperty( LeddarCore::LdProperty *aProperty )
+///
+/// \brief  Adds an element from property
+///
+/// \param [in,out] aProperty   If non-null, the property.
+///
+/// \author Patrick Boulay
+/// \date   February 2019
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void
+LdProtocolLeddarTech::AddElementFromProperty( LeddarCore::LdProperty *aProperty )
+{
+    AddElement( aProperty->GetId(), static_cast<uint32_t>( aProperty->Count() ), aProperty->UnitSize(), aProperty->CStorage(), static_cast<uint32_t>( aProperty->Stride() ) );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LdProtocolLeddarTech::AddElementFromProperties( LeddarCore::LdPropertiesContainer *aPropertiesContainer, LeddarCore::LdProperty::eCategories aCategory )
+///
+/// \brief  Adds an element from properties to 'aCategory'
+///
+/// \exception  std::invalid_argument   Thrown when an invalid argument error condition occurs.
+///
+/// \param [in,out] aPropertiesContainer    The properties container.
+/// \param          aCategory               The category of the properties, see LdProperty::eCategories.
+///
+/// \author Patrick Boulay
+/// \date   February 2019
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void
+LdProtocolLeddarTech::AddElementFromProperties( LeddarCore::LdPropertiesContainer *aPropertiesContainer, LeddarCore::LdProperty::eCategories aCategory )
+{
+    if( aPropertiesContainer == nullptr )
+    {
+        throw std::invalid_argument( "The properties container is null, please provide a valid LdPropertiesContainer." );
+    }
+
+    std::vector<LeddarCore::LdProperty *> lProperties = aPropertiesContainer->FindPropertiesByCategories( aCategory );
+
+    for( size_t i = 0; i < lProperties.size(); i++ )
+    {
+        AddElementFromProperty( lProperties[i] );
+    }
+
 }

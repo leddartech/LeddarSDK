@@ -61,6 +61,8 @@ namespace LeddarConnection
         virtual sIdentifyInfo   GetInfo( void ) { return mIdentityInfo; }
         virtual uint32_t        GetMessageSize( void ) { return static_cast<uint32_t>( mMessageSize ); }
         virtual void            AddElement( uint16_t aId, uint16_t aCount, uint32_t aSize, const void *aData, uint32_t aStride );
+        virtual void            AddElementFromProperty( LeddarCore::LdProperty *aProperty );
+        virtual void            AddElementFromProperties( LeddarCore::LdPropertiesContainer *aPropertiesContainer, LeddarCore::LdProperty::eCategories aCategory );
         virtual bool            ReadElement( void );
         virtual void            ReadElementToProperties( LeddarCore::LdPropertiesContainer *aProperties );
         virtual void            PushElementDataToBuffer( void *aDest, uint16_t aCount, uint32_t aSize, size_t aStride );
@@ -69,7 +71,7 @@ namespace LeddarConnection
         virtual uint16_t        GetElementCount( void ) const { return mElementCount; }
         virtual uint32_t        GetElementSize( void ) const { return mElementSize; }
         uint16_t                GetAnswerCode( void ) const { return mAnswerCode; }
-        void                    SetDataServer( bool aIsDataServer ) { mIsDataServer = aIsDataServer; }
+        void                    SetDataServer( bool aIsDataServer );
 
     protected:
         virtual void     Write( uint32_t /*aSize*/ ) {};

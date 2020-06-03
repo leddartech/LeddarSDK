@@ -101,6 +101,7 @@ LeddarCore::LdTextProperty::SetValue( size_t aIndex, const std::string &aValue )
     }
 
     EmitSignal( LdObject::VALUE_CHANGED );
+    SetInitialized( true );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -194,6 +195,7 @@ LeddarCore::LdTextProperty::SetValue( size_t aIndex, const std::wstring &aValue 
     }
 
     EmitSignal( LdObject::VALUE_CHANGED );
+    SetInitialized( true );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -231,6 +233,8 @@ LeddarCore::LdTextProperty::ForceValue( size_t aIndex, const std::wstring &aValu
 std::string
 LeddarCore::LdTextProperty::Value( size_t aIndex ) const
 {
+    VerifyInitialization();
+
     if( mType == TYPE_UTF16 )
     {
         throw LeddarException::LtException( "Can not return string on UTF16 text property." );
@@ -252,6 +256,7 @@ LeddarCore::LdTextProperty::Value( size_t aIndex ) const
 std::wstring
 LeddarCore::LdTextProperty::WValue( size_t aIndex ) const
 {
+    VerifyInitialization();
     std::wstring lResult;
 
     if( mType == TYPE_ASCII )

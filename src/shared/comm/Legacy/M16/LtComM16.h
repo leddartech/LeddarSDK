@@ -28,6 +28,7 @@ namespace LtComM16
 #define M16_FILTERED_SCALE                  8192
 
     const int8_t SMOOTHINGLIMITS[2]  = {-16, 16};
+    const uint8_t M16_ZONESDET_NB_NODES_MAX = 64; //Maximum number of expression nodes used for zones detector.
 
 
     //*****************************************************************************
@@ -63,11 +64,16 @@ namespace LtComM16
         M16_ID_CFG_CAN_PORT_RX_MSG_BASE_ID  = M16_ID_COMPUTE( 0x009E ),   ///< (0x109E) {LtUInt32}[Number of CAN port] Rx message base ID.
         M16_ID_CFG_CAN_PORT_FRAME_FORMAT    = M16_ID_COMPUTE( 0x009F ),   ///< (0x109F) {LtUInt8}[Number of CAN port] Tx Rx frame format. 0 standard, 1 extended
 
-        // IDs included from 0x10A0 to 0x10A5 are reserved
+        M16_ID_CFG_ZONESDET_NB_VALID_NODES              = M16_ID_COMPUTE( 0x00A0 ), ///< (0x10A0) {LtUInt8} Number of valid zones detector expression node. Must be <= M16_ZONESDET_NB_NODES_MAX.
+        M16_ID_CFG_ZONESDET_OPTIONS                     = M16_ID_COMPUTE( 0x00A1 ), ///< (0x10A1) {LtUInt8} Zones detector bits field options. See \ref eLtCommM16ZonesDetectorOptions.
+        M16_ID_CFG_ZONESDET_CMP_VALUE                   = M16_ID_COMPUTE( 0x00A2 ), ///< (0x10A2) {LtUInt32}[M16_ZONESDET_NB_NODES_MAX] Value to compare.
+        M16_ID_CFG_ZONESDET_OPERATOR                    = M16_ID_COMPUTE( 0x00A3 ), ///< (0x10A3) {LtUInt16}[M16_ZONESDET_NB_NODES_MAX] Operator. See \ref eLtCommM16OperatorDefinitions.
+        M16_ID_CFG_ZONESDET_OPERAND1                    = M16_ID_COMPUTE( 0x00A4 ), ///< (0x10A4) {LtUInt8}[M16_ZONESDET_NB_NODES_MAX] First operand:  cond = start segment index, logic = index of expression operator to get result.
+        M16_ID_CFG_ZONESDET_OPERAND2                    = M16_ID_COMPUTE( 0x00A5 ), ///< (0x10A5) {LtUInt8}[M16_ZONESDET_NB_NODES_MAX] Second operand: cond = stop segment index,  logic = index of expression operator to get result.
+        M16_ID_DISCRETE_OUTPUTS                         = M16_ID_COMPUTE( 0x00A6 ), ///< (0x10A6) {LtUInt32} Bits fields discrete outputs state.
+        M16_ID_CFG_DISCRETE_OUTPUTS_RISING_DEBOUNCE     = M16_ID_COMPUTE( 0x00A7 ), ///< (0x10A7) {LtUInt8}[number of supported output] Rising debouncing value in number of samples (from deasserted to asserted).
+        M16_ID_CFG_DISCRETE_OUTPUTS_FALLING_DEBOUNCE    = M16_ID_COMPUTE( 0x00A8 ), ///< (0x10A8) {LtUInt8}[number of supported output] Falling debouncing value in number of samples (from asserted to deasserted).
 
-        M16_ID_DISCRETE_OUTPUTS = M16_ID_COMPUTE( 0x00A6 ),   ///< (0x10A6) {LtUInt32} Bits fields discrete outputs state.
-
-        // IDs included from 0x10A7 to 0x10A8 are reserved
 
         M16_ID_CFG_ACQ_OPTIONS                          = M16_ID_COMPUTE( 0x00A9 ),   ///< (0x10A9) {LtUInt16} Bits field of acquisition options. See \ref eLtCommPlatformM16AcqOptions.
         M16_ID_CFG_AUTO_ACQ_AVG_FRM                     = M16_ID_COMPUTE( 0x00AA ),   ///< (0x10AA) {LtUInt16} Number of frame to evaluate new automatic acquisition parameters from M16_DEFAULT_AUTO_AVG_FRM_MIN to M16_DEFAULT_AUTO_AVG_FRM_MAX.
@@ -106,6 +112,8 @@ namespace LtComM16
         M16_ID_CFG_START_TRACE_INDEX                    = M16_ID_COMPUTE( 0x00C9 ),   ///< (0x10C9) {LtUInt32} Index where the peak detector begin.
         M16_ID_LIMIT_START_TRACE_INDEX                  = M16_ID_COMPUTE( 0x00CA ),   ///< (0x10CA) {LtUInt32}[2] Minimum and maximum index where the peak detector start to compute a pulse.
         M16_ID_DATA_LEVEL                               = M16_ID_COMPUTE( 0x00CB ),   ///< (0x10CB) {LtUInt32} See LT_COMM_DATA_LEVEL_...
+        M16_ID_STATIC_THRESHOLD_DISTANCES               = M16_ID_COMPUTE( 0x00CC ),   ///< (0x00CC) {LtFixedPoint}[8] Distances for static threshold
+        M16_ID_STATIC_THRESHOLD_AMPLITUDES              = M16_ID_COMPUTE( 0x00CD ),   ///< (0x00CD) {LtFixedPoint}[8] Amplitudes for static threshold
     } eLtCommPlatformM16ElementIdCodes;
 
     typedef enum eLtCommPlatformIS16ElementIdCodes
@@ -246,13 +254,19 @@ namespace LtComM16
         /// \brief  Bits field acquisition options saved in configuration.
         M16_ACQ_OPTIONS_NONE = 0x0000,           ///< No acquisition options selected.
 
-        M16_ACQ_OPTIONS_AUTO_LED_INTENSITY = 0x0001,        ///< Automatic led intensity.
-        M16_ACQ_OPTIONS_AUTO_TRANSIMP_GAIN = 0x0002,        ///< Automatic transimpedance gain. This is available only if automatic led intensity is enabled.
-        M16_ACQ_OPTIONS_DEMERGE_OBJECTS = 0x0004,           ///< Enable the two object demerge algorithm.
-        M16_ACQ_OPTIONS_XTALK_REMOVAL_DISABLE = 0x0008,     ///< Disable xtalk removal algorithm (logical inverse).
-        M16_ACQ_OPTIONS_TEMP_COMP_DISABLE = 0x0010,         ///< Disable temperature compensation (logical inverse).
+        M16_ACQ_OPTIONS_AUTO_LED_INTENSITY       = 0x0001, ///< Automatic led intensity.
+        M16_ACQ_OPTIONS_AUTO_TRANSIMP_GAIN       = 0x0002, ///< Automatic transimpedance gain. This is available only if automatic led intensity is enabled.
+        M16_ACQ_OPTIONS_DEMERGE_OBJECTS          = 0x0004, ///< Enable the two object demerge algorithm.
+        M16_ACQ_OPTIONS_XTALK_REMOVAL_DISABLE    = 0x0008, ///< DISABLE xtalk removal algorithm (logical inverse : 1 = disabled).
+        M16_ACQ_OPTIONS_TEMP_COMP_DISABLE        = 0x0010, ///< DISABLE temperature compensation (logical inverse : 1 = disabled).
+        M16_ACQ_OPTIONS_XTALK_ECHO_REMOVAL       = 0x0020, ///< Enable the xtalk echo removal algorithm (located in peak detector).
+        M16_ACQ_OPTIONS_OVERSHOOT                = 0x0040, ///< Select the overshoot method. 0=Standard, 1=Specialised (located in peak detector).
+        M16_ACQ_OPTIONS_SATURATION               = 0x0080, ///< Enable the saturation compensation algorithm (located in peak detector).
+        M16_ACQ_OPTIONS_AUTO_LED_INTENSITY2      = 0x0100, ///< Automatic led intensity v2 enabled.
+        M16_ACQ_OPTIONS_STATIC_THRESHOLD_DISABLE = 0x0200, ///< DISABLE the Static detection threshold table usage (logical inverse : 1 = disabled).
+        M16_ACQ_OPTIONS_INTERFERENCE             = 0x0400, ///< Enable the interference algorithm.
 
-        M16_ACQ_OPTIONS_MASK = 0x001F                       ///< Supported option mask.
+        M16_ACQ_OPTIONS_MASK                     = 0x07FF, ///< Supported option mask.
     } eLtCommPlatformM16AcqOptions;
 
     typedef enum eLtCommPlatformM16SerialBaudrateOptionMask
@@ -307,4 +321,48 @@ namespace LtComM16
         IS16_CONFIG_QUICK = 1,      ///< Last config done in quick mode: near and far distances are the same for all segments.
         IS16_CONFIG_ADVANCED = 2,   ///< Last config done in advanced mode: near and far distances can be configured for all segments, and segments can be disabled.
     } eLtCommIS16ConfigMode;
+
+    /// \enum   eLtCommM16ZonesDetectorOptions
+    ///
+    /// \brief  Zones detector bits field options.
+    typedef enum eLtCommM16ZonesDetectorOptions
+    {
+        M16_ZONESDET_OPTIONS_ENABLE             = 0x01,     ///< Enable the zones detector option.
+        M16_ZONESDET_OPTIONS_RS485_TRIGGER      = 0x02,     ///< Enable the RS485 trigger. This disable the corresponding UART.
+    } eLtCommM16ZonesDetectorOptions;
+
+
+    /// \enum   eLtCommM16OperatorDefinitions
+    ///
+    /// \brief  Operator definitions for expression node used for zones detector.
+    typedef enum eLtCommM16OperatorDefinitions
+    {
+        EVALKIT_OPERATOR_TYPE_MASK                  = 0xC000,   /** Mask to get operator type. */
+        EVALKIT_OPERATOR_TYPE_CONDITIONAL           = 0x0000,   /** Conditional operator type. */
+        EVALKIT_OPERATOR_TYPE_LOGIC                 = 0x4000,   /** Logic operator type. */
+
+        EVALKIT_OPERATOR_OPTIONS_MASK               = 0x3F00,   /** Mask to get bit field operator options */
+        EVALKIT_OPERATOR_OPTIONS_COND_ALL_SEGMENTS  = 0x0100,   /** Option used for conditional operator: all segments must encounter condition instead of "at least one". */
+
+        EVALKIT_OPERATOR_VALUE_TYPE_MASK            = 0x00F0,   /** Mask to get value type in case of conditional operator. */
+        EVALKIT_OPERATOR_VALUE_TYPE_DISTANCE        = 0x0000,   /** Distance value type. */
+        EVALKIT_OPERATOR_VALUE_TYPE_AMPLITUDE       = 0x0010,   /** Amplitude value type. */
+
+        EVALKIT_OPERATOR_MASK                       = 0x000F,   /** Mask to get the operator. */
+        /* conditional operator list */
+        EVALKIT_OPERATOR_COND_GREATER               = 0x0000,   /** "Greater than" conditional operator (>). */
+        EVALKIT_OPERATOR_COND_GREATER_EQUAL         = 0x0001,   /** "Greater than or equal" conditional operator (>=). */
+        EVALKIT_OPERATOR_COND_SMALLER               = 0x0002,   /** "Smaller than" conditional operator (<). */
+        EVALKIT_OPERATOR_COND_SMALLER_EQUAL         = 0x0003,   /** "Smaller than or equal" conditional operator (<=). */
+        EVALKIT_OPERATOR_COND_EQUAL                 = 0x0004,   /** "Equal" conditional operator (=). */
+        EVALKIT_OPERATOR_COND_UNEQUAL               = 0x0005,   /** "Unequal" conditional operator (!=). */
+        /* logic operator list */
+        EVALKIT_OPERATOR_LOGIC_AND                  = 0x0000,   /** "AND" logic operator (&&). */
+        EVALKIT_OPERATOR_LOGIC_OR                   = 0x0001,   /** "OR" logic operator (||). */
+        EVALKIT_OPERATOR_LOGIC_XOR                  = 0x0002,   /** Exclusive "OR" logic operator (^). */
+        EVALKIT_OPERATOR_LOGIC_NAND                 = 0x0003,   /** Inverted "AND" logic operator !(&&). */
+        EVALKIT_OPERATOR_LOGIC_NOR                  = 0x0004,   /** Inverted "OR" logic operator !(||). */
+        EVALKIT_OPERATOR_LOGIC_XNOR                 = 0x0005,   /** Inverted exclusive "OR" logic operator !(^). */
+        EVALKIT_OPERATOR_LOGIC_NOT                  = 0x0006,   /** Inversion logic operator (!). */
+    } eLtCommM16OperatorDefinitions;
 }

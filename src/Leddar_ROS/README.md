@@ -12,7 +12,7 @@ Install ```leddar``` and ```leddar_utils``` modules:
 cd [...]LC4/main/src/LeddarPy
 python setup.py install --user
 cd [...]LC4/main/src/Py_leddar_utils
-python setupy.py install --user
+python setup.py install --user
 ```
 
 Follow ROS [installation instructions](http://wiki.ros.org/Installation/Ubuntu) and [catkin workspace instructions](http://wiki.ros.org/catkin/Tutorials/create_a_workspace). Short story:

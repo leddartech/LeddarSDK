@@ -34,6 +34,7 @@ namespace LeddarCore
 
         void AddProperty( LeddarCore::LdProperty *aProperty );
         void AddProperties( LeddarCore::LdPropertiesContainer *aProperties );
+        void AddPropertiesFromFile( std::string aFilename );
         LeddarCore::LdProperty *GetProperty( uint32_t aId );
 
         LdBitFieldProperty *GetBitProperty( uint32_t aId );

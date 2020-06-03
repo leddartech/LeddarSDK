@@ -61,7 +61,7 @@ namespace LeddarCore
         void Restore( void );
         void SetClean( void );
         void SetCount( size_t aValue );
-        size_t Count( void ) const { return mStorage.size() / mStride; }
+        size_t Count( void ) const { return( mStride == 0 ? 0 : mStorage.size() / mStride ); }
         uint32_t UnitSize( void ) const { return mUnitSize; }
         ePropertyType GetType( void ) const { return mPropertyType; }
         uint32_t GetFeatures( void ) const { return mFeatures; }
@@ -97,7 +97,9 @@ namespace LeddarCore
         void VerifyInitialization( void ) const;
         void CanEdit( void ) const;
 
-        bool    mCheckEditable; ///< Check if the property is editable before modifying it - true except when using ForceValue()
+        bool        mCheckEditable; ///< Check if the property is editable before modifying it - true except when using ForceValue()
+        size_t      mStride;
+        uint32_t    mUnitSize;
 
     private:
         LdProperty();
@@ -110,11 +112,8 @@ namespace LeddarCore
         std::string         mDescription;
         uint32_t            mDeviceId;
         bool                mInitialized;
-        size_t              mStride;
-        uint32_t            mUnitSize;
 
         std::vector<uint8_t> mStorage, mBackupStorage;
-
     };
 
 }

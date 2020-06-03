@@ -76,7 +76,7 @@ LdResultEchoes::Init( uint32_t aDistanceScale, uint32_t aAmplitudeScale, uint32_
         mEchoBuffer1.mEchoes.resize( aMaxDetections );
         mEchoBuffer2.mEchoes.resize( aMaxDetections );
 
-        mDoubleBuffer.Init( &mEchoBuffer1, &mEchoBuffer2, LdResultProvider::mTimestamp );
+        mDoubleBuffer.Init( &mEchoBuffer1, &mEchoBuffer2, LdResultProvider::mTimestamp, LdResultProvider::mTimestamp64 );
 
         mDistanceScale = aDistanceScale;
         mAmplitudeScale = aAmplitudeScale;

@@ -13,6 +13,9 @@ if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 elif [[ ${MACHINE_TYPE} =~ arm.* ]]; then
     echo "Building for architecture ARM in folder release";
     make -j4 default LDFLAGS="-Wl,-rpath,'\$\$ORIGIN'/../../libs/FTDI/linux/ARM,-rpath,'\$\$ORIGIN'/../../libs/MPSSE/linux/ARM" builddir=release > compil_out.txt 2>&1
+elif [ ${MACHINE_TYPE} == 'aarch64' ]; then
+    echo "Building for architecture aarch64 in folder release";
+    make -j4 default LDFLAGS="-Wl,-rpath,'\$\$ORIGIN'/../../libs/FTDI/linux/ARM,-rpath,'\$\$ORIGIN'/../../libs/MPSSE/linux/ARM" builddir=release > compil_out.txt 2>&1
 else
     echo "Building for architecture x86 in folder release";
     make -j4 default CXXFLAGS=-m32 CFLAGS=-m32 LDFLAGS="-m32 -Wl,-rpath,'\$\$ORIGIN'/../../libs/FTDI/linux/x86,-rpath,'\$\$ORIGIN'/../../libs/MPSSE/linux/x86" builddir=release > compil_out.txt 2>&1

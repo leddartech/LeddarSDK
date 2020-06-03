@@ -163,23 +163,14 @@ PyObject *GetPropertyIdDict( PyObject *self, PyObject *args )
     PyDict_SetItemString( lPropertyId, "ID_XTALK_OPTIC_ECH_SEG_ENABLE"    , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_XTALK_OPTIC_ECH_SEG_ENABLE ) );
     PyDict_SetItemString( lPropertyId, "ID_XTALK_OPTIC_ECH_LINE_ENABLE"   , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_XTALK_OPTIC_ECH_LINE_ENABLE ) );
 
+    PyDict_SetItemString( lPropertyId, "ID_SYSTEM_TIME"                   , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_SYSTEM_TIME ) );
+    PyDict_SetItemString( lPropertyId, "ID_SYNCHRONIZATION"               , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_SYNCHRONIZATION ) );
+
 
 
     return lPropertyId;
 }
 
-
-PyObject *GetProtocolTypeDict( PyObject *self, PyObject *args )
-{
-    PyObject *lCom = PyDict_New();
-
-    //Comm
-    PyDict_SetItemString( lCom, "LT_COMM_PROTOCOL_INVALID", PyLong_FromLong( LtComLeddarTechPublic::LT_COMM_PROTOCOL_INVALID ) );
-    PyDict_SetItemString( lCom, "LT_COMM_PROTOCOL_TCP", PyLong_FromLong( LtComLeddarTechPublic::LT_COMM_PROTOCOL_TCP ) );
-    PyDict_SetItemString( lCom, "LT_COMM_PROTOCOL_UDP", PyLong_FromLong( LtComLeddarTechPublic::LT_COMM_PROTOCOL_UDP ) );
-
-    return lCom;
-}
 
 PyObject *GetMaskDict( PyObject *self, PyObject *args )
 {
@@ -192,6 +183,18 @@ PyObject *GetMaskDict( PyObject *self, PyObject *args )
     return lMask;
 }
 
+
+PyObject *GetCalibTypeDict( PyObject *self, PyObject *args )
+{
+    PyObject *lCalib = PyDict_New();
+    PyDict_SetItemString( lCalib, "ID_TIMEBASE_DELAY", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_TIMEBASE_DELAY ) );
+    PyDict_SetItemString( lCalib, "ID_STATIC_NOISE", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_STATIC_NOISE ) );
+    PyDict_SetItemString( lCalib, "ID_INTENSITY_COMPENSATIONS", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_INTENSITY_COMPENSATIONS ) );
+    PyDict_SetItemString( lCalib, "ID_CHANNEL_ANGLE_AZIMUT", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_CHANNEL_ANGLE_AZIMUT ) );
+    PyDict_SetItemString( lCalib, "ID_CHANNEL_ANGLE_ELEVATION", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_CHANNEL_ANGLE_ELEVATION ) );
+
+    return lCalib;
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \fn static PyObject *GetDevices( PyObject *self, PyObject *args )
@@ -340,6 +343,7 @@ PyMODINIT_FUNC PyInit_leddar( void )
 PyMODINIT_FUNC initleddar( void )
 #endif
 {
+
     if( PyType_Ready( &LeddarDeviceType ) < 0 ) //Initialize the type
         return RETURN_VALUE( nullptr );
 
@@ -347,6 +351,8 @@ PyMODINIT_FUNC initleddar( void )
     {
         PyEval_InitThreads();
     }
+
+    Py_Initialize();
 
     PyObject *lModule = CREATE_MODULE;
 
@@ -359,7 +365,7 @@ PyMODINIT_FUNC initleddar( void )
     PyModule_AddObject( lModule, "device_types", GetDeviceTypeDict( lModule, nullptr ) );
     PyModule_AddObject( lModule, "property_ids", GetPropertyIdDict( lModule, nullptr ) );
     PyModule_AddObject( lModule, "data_masks", GetMaskDict( lModule, nullptr ) );
-    PyModule_AddObject( lModule, "protocol_types", GetProtocolTypeDict( lModule, nullptr ) );
+    PyModule_AddObject( lModule, "calib_types", GetCalibTypeDict( lModule, nullptr ) );
     Py_INCREF( &LeddarDeviceType );
     PyModule_AddObject( lModule, "Device", ( PyObject * )&LeddarDeviceType );
 

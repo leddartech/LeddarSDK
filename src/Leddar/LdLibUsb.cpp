@@ -241,7 +241,8 @@ LdLibUsb::Connect( void )
         // Device not found, on a reset ad reconnect, the device address has changed, search the new
         if( mHandle == nullptr )
         {
-            std::vector<LdConnectionInfo *> lConnectionInfos = LdLibUsb::GetDeviceList( mConnectionInfoUsb->GetVendorID(), mConnectionInfoUsb->GetProductID(), mConnectionInfoUsb->GetSerialNumber() );
+            std::vector<LdConnectionInfo *> lConnectionInfos =
+                LdLibUsb::GetDeviceList( mConnectionInfoUsb->GetVendorID(), mConnectionInfoUsb->GetProductID(), mConnectionInfoUsb->GetSerialNumber() );
 
             if( lConnectionInfos.size() == 1 )
             {
@@ -401,8 +402,17 @@ LdLibUsb::Read( uint8_t aEndPoint, uint8_t *aData, uint32_t aSize )
 {
     int lLen = 0;
     // Add the direction bit to the endpoint, bit 7: 0 = Write, 1 = Read
-    VerifyError( libusb_bulk_transfer( mHandle, aEndPoint | LIBUSB_ENDPOINT_IN, aData, aSize, &lLen, mReadTimeout ) );
+    // the 0x4000 size is a workaround a bug on the raspberry pi, it shouldnt be necessary
+    libusb_bulk_transfer( mHandle, aEndPoint | LIBUSB_ENDPOINT_IN, aData, aSize > 0x4000 ? 0x4000 : aSize, &lLen, mReadTimeout );
 
+    if( aSize > 0x4000 && lLen == 0x4000 )
+    {
+        libusb_bulk_transfer( mHandle, aEndPoint | LIBUSB_ENDPOINT_IN, aData + 0x4000, aSize - 0x4000, &lLen, mReadTimeout );
+    }
+    else if( lLen == aSize )
+    {
+        throw std::runtime_error( "Receive buffer is too small" );
+    }
 }
 
 // *****************************************************************************

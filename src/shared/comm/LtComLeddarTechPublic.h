@@ -32,6 +32,7 @@
 #define LT_COMM_IDT_STATE_MESSAGE_LENGTH    64                                      ///< Identify server message length in bytes.
 #define LT_COMM_FIRMWARE_VERSION_LENGTH     32                                      ///< Firmware version length (byte)
 #define LT_COMM_LICENSE_KEY_LENGTH          16                                      ///< License key length (byte)
+#define LT_COMM_ALERT_MSG_LENGTH            32                                      ///< Alert message length (byte)
 
 #define LT_COMM_IDT_REQUEST_IP_CONFIG      (0x0001)
 #define LT_COMM_IDT_REQUEST_IDENTIFY       (0x0011)
@@ -49,13 +50,14 @@ namespace LtComLeddarTechPublic
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     typedef enum eLtCommSoftwareType
     {
-        LT_COMM_SOFTWARE_TYPE_INVALID = 0x00,     ///< Invalid software type.
-        LT_COMM_SOFTWARE_TYPE_MAIN = 0x01,        ///< Main application also called the update application.
-        LT_COMM_SOFTWARE_TYPE_FPGA = 0x02,        ///< FPGA firmware.
-        LT_COMM_SOFTWARE_TYPE_FACTORY = 0x03,     ///< Factory application.
-        LT_COMM_SOFTWARE_TYPE_BL = 0x04,          ///< Bootloader application.
-        LT_COMM_SOFTWARE_TYPE_ASIC_PATCH = 0x05,  ///< Asic patch.
-        LT_COMM_SOFTWARE_TYPE_CARRIER = 0x06      ///< Carrier board commercial firmware
+        LT_COMM_SOFTWARE_TYPE_INVALID    = 0x00,    ///< Invalid software type.
+        LT_COMM_SOFTWARE_TYPE_MAIN       = 0x01,    ///< Main application also called the update application.
+        LT_COMM_SOFTWARE_TYPE_FPGA       = 0x02,    ///< FPGA firmware.
+        LT_COMM_SOFTWARE_TYPE_FACTORY    = 0x03,    ///< Factory application.
+        LT_COMM_SOFTWARE_TYPE_BL         = 0x04,    ///< Bootloader application.
+        LT_COMM_SOFTWARE_TYPE_ASIC_PATCH = 0x05,    ///< Asic patch.
+        LT_COMM_SOFTWARE_TYPE_CARRIER    = 0x06,    ///< Carrier board commercial firmware
+        LT_COMM_SOFTWARE_TYPE_OS         = 0x07     ///< Various data used by the OS, script, driver, etc...
     } eLtCommSoftwareType;
 
     typedef enum eLtCommDataLevel
@@ -99,6 +101,7 @@ namespace LtComLeddarTechPublic
         LT_COMM_ID_FIRMWARE_VERSION = 0x00F0,                        ///< (0x00F0) {uint16_t} - Firmware version build number
         LT_COMM_ID_FIRMWARE_VERSION_V2 = 0x00F1,                     ///< (0x00F1) {uint16_t}[4] - Full firmware version: major.minor.release.build
         LT_COMM_ID_FPGA_VERSION = 0x00F2,                            ///< (0x00F2) {char[LT_COMM_FPGA_VERSION_LENGTH]} - FPGA Version
+        LT_COMM_ID_FIRMWARE_VERSION_V3 = 0x00F3,                     ///< (0x00F1) {sFirmwareVersion} - Full firmware version: major.minor.release.build. See \ref LtComLeddarTechPublic::sFirmwareVersion
         LT_COMM_ID_PROTOCOL_VERSION = 0x0100,                        ///< (0x0100) {uint16_t} - See PROTOCOL_PROTOCOL_VERSION_...
         LT_COMM_ID_SOFTWARE_VERSION = 0x0110,                        ///< (0x0110) {uint16_t} - Software version
         /* Codes between 0x0120 to 0x013F are reserved */
@@ -150,6 +153,8 @@ namespace LtComLeddarTechPublic
         LT_COMM_ID_DEMERGING_ENABLE = 0x01D9,                        ///< (0x01D9) {bool} Enable demerging
         LT_COMM_ID_STATIC_NOISE_REMOVAL_ENABLE = 0x01DA,             ///< (0x01DA) {bool} Enable static noise removal
         LT_COMM_ID_STATIC_NOISE_TEMP_COMP_ENABLE = 0x01DB,           ///< (0x01DB) {BOOL} Enable static noise temperature compensation removal
+        LT_COMM_ID_ECHOES_TEMPERATURE_CRRCTN_SLOPE = 0x01DD,         ///< (0x01DD) {float}SET/GET ECHOES TEMPERATURE CORRECTION SLOPE
+        LT_COMM_ID_TIMEBASE_CALIB_TEMPERATURE = 0x01DE,              ///< (0x01DE) {float}SET/GET The temperature at which the Time base delay got calibrated
         LT_COMM_ID_STATIC_NOISE_CALIB_TEMPERATURE = 0x01DF,          ///< (0x01DF) {LtFloat32[LT_COMM_ID_LED_POWER_COUNT]}SET/GET The temperature at which the static noise got calibrated
         LT_COMM_ID_LED_POWER = 0x01E0,                               ///< (0x01E0) {uint8_t} Led power in percent
         LT_COMM_ID_LED_POWER_COUNT = 0x01E1,                         ///< (0x01E1) {uint8_t} Number of different led power available
@@ -159,13 +164,15 @@ namespace LtComLeddarTechPublic
         LT_COMM_ID_VFOV = 0x01F1,                                    ///< (0x01F1) {float} Vertical field of view of the sensor
         LT_COMM_ID_TIMEBASE_DELAYS = 0x01FA,                         ///< (0x01FA) {float[channelCount]} Timebase delay for each channel
         LT_COMM_ID_COMPENSATIONS = 0x01FB,                           ///< (0x01FB) {float[LT_COMM_ID_LED_POWER_COUNT]} Led power compensation for each channel
+        LT_COMM_ID_STATIC_NOISE = 0x01FC,                            ///< (0x01FC) Raw data sent through write memory - Or array of trace received through GetCalib
         LT_COMM_ID_LICENSE_INFO = 0x01FD,                            ///< (0x01FD) {uint32_t} Info about license on sensor (bit 0-15: Access rights of the license, bit 16-17: License type).
         LT_COMM_ID_VOLATILE_LICENSE_INFO = 0x01FE,                   ///< (0x01FE) {uint32_t} Info about license on sensor (bit 0-15: Access rights of the license, bit 16-17: License type).
         LT_COMM_ID_THREHSOLD_OFFSET = 0x0200,                        ///< (0x0200) {LtFixedPoint} Threshold table offset in \ref LT_COMM_ID_AMPLITUDE_SCALE
         LT_COMM_ID_THREHSOLD_OFFSET_LIMITS = 0x0201,                 ///< (0x0201) {LtFixedPoint[2]} Min and max value of \ref LT_COMM_ID_THREHSOLD_OFFSET
         LT_COMM_ID_PULSE_RATE = 0x0202,                              ///< (0x0202) {uint32_t} Number of pulses per second, to compute theoretical frame rate versus ACC/OVR
         LT_COMM_ID_ELEC_XTALK_RMV_ENABLE = 0x0204,                   ///< (0x0204) {bool} Enable electronic xtalk removal
-        LT_COMM_ID_FILTER_ENABLE = 0x0205,                           ///< (0x0205) {BOOL} Enable the digital filter
+        LT_COMM_ID_FILTER_ENABLE = 0x0205,                           ///< (0x0205) {bool} Enable the digital filter
+        LT_COMM_ID_STATIC_THRESHOLD_ENABLE = 0x0206,                 ///<          {BOOL} Enable static threshold dependent on position in trace
         //*********************************************************************************************************************************************************************************************
         LT_COMM_ID_PLATFORM_SPECIFIC_BASE = 0x1000,                  ///< (0x1000) Platform specific element ids starting base. Ids defined in a separate header file.
         LT_COMM_ID_DISTANCE_SCALE = 0x1004,                          ///<          {uint32_t} Distance scale for fixed-point value
@@ -177,6 +184,8 @@ namespace LtComLeddarTechPublic
         LT_COMM_ID_CURRENT_TIME_MS = 0x100F,                         ///<          {uint32_t} - System time in ms since last reset
         LT_COMM_ID_CURRENT_TIME_S = 0x1010,                          ///<          {uint32_t} - System time in seconds since last power cycle
         LT_COMM_ID_SYS_TEMP = 0x1011,                                ///<          {LtFixedPoint} - System temperature in temperature scale (get \ref LT_COMM_ID_TEMPERATURE_SCALE).
+        LT_COMM_ID_CPU_TEMP = 0x1012,                                ///< (0x1012) {LtFixedPoint} - CPU temperature in temperature scale (get \ref LT_COMM_ID_TEMPERATURE_SCALE).
+
         LT_COMM_ID_MEMORY_ACCESS = 0x1035,                           ///<          {sLtCommElementMemoryAccess}
         LT_COMM_ID_TRACE_LENGTH_ELEMENT = 0x1036,                    ///<          {uint16_t} - Trace buffer length sent in data server
         LT_COMM_ID_MAX_TRACE_LENGTH = 0x1037,                        ///<          {LtUInt16} - Maximum trace buffer length sent in data server
@@ -198,10 +207,29 @@ namespace LtComLeddarTechPublic
         LT_COMM_ID_ECHO_AMPLITUDE_MAX = 0x108C,                      ///<          {uint32_t} - Max possible echo amplitude value
         LT_COMM_ID_VERTICAL_SEGMENT_SELECT = 0x108D,                 ///<          {uint32_t} - Enable or disable vertical line index
         LT_COMM_ID_DISABLED_CHANNELS = 0x108E,                       ///<          {uint32_t} Bitfield representing the list of disabled channels
+        LT_COMM_ID_FRAME_ID = 0x1092,                                ///< (0x1092) {uint64_t} Id of the frame
+
+        LT_COMM_ID_INTERF_ENABLE = 0x10A0,                           ///<          {bool} Enable interference algorithm
+        LT_COMM_ID_INTERF_SAWTOOTH_CORRECTION_ENABLE = 0x10A1,       ///<          {bool} Trigger interference sawtooth correction algorithm
+        LT_COMM_ID_INTERF_DELTA_THRESHOLD = 0x10A2,                  ///<          {int32_t} Set interference delta threshold value
+        LT_COMM_ID_INTERF_DELTA_THRESHOLD_LIMITS = 0x10A3,           ///<          {int32_t[2]} Interference delta threshold limits
+        LT_COMM_ID_INTERF_UNDERSHOOT_THRESHOLD = 0x10A4,             ///<          {int32_t} Set interference delta undershoot value
+        LT_COMM_ID_INTERF_UNDERSHOOT_THRESHOLD_LIMITS = 0x10A5,      ///<          {int32_t[2]} Interference delta undershoot limits
+
+        LT_COMM_ID_STATUS_ALERT = 0x10A6,                            ///< (0x10A6) {sLtCommElementAlert} Status flags.
+
+        LT_COMM_ID_ENABLE_RANDOM_LINES_SEQ = 0x10AF,                 ///<          {uint8_t} Enable / Disable Random Lines sequence
+        LT_COMM_ID_PEAK_THRESHOLD_TYPE = 0x10B0,                     ///<          {uint8_t}  Select the peak threshold type. 0 = Single Thr, 1 = Table Thr
+        LT_COMM_ID_TRIGGER_MODE = 0x10B1,                            ///<          {uint8_t} Acquisition mode, 0 = Running, 1 = Trigger, 2 = Stop
+        LT_COMM_ID_CROSSTALK_FILTER_SCALE = 0x10C1,                  ///< (0x10C1) {LtUint32} Optical Crosstalk Filter scale for fixed-point value
+        LT_COMM_ID_INTER_TILE_CROSSTALK_FILTER_SCALE = 0x10C2,       ///< (0x10C2) {LtUint32} Inter-tile Crosstalk Filter scale for fixed-point value
 
         // CONSTANTS
         LT_COMM_ID_AUTO_CHANNEL_NUMBER_HORIZONTAL = 0x2001,          ///< (0x2001) {uint16_t} Number of horizontal channels
         LT_COMM_ID_AUTO_CHANNEL_NUMBER_VERTICAL = 0x2002,            ///< (0x2002) {uint16_t} Number of vertical channels
+        LT_COMM_ID_AUTO_CHANNEL_SUB_NUMBER_HORIZONTAL = 0x2003,      ///< (0x2003) {uint16_t}[Number of sub zone] Number of horizontal channels
+        LT_COMM_ID_AUTO_SUB_HFOV = 0x2004,                           ///< (0x2004) {LtFloat32}[Number of zones] Horizontal field of views of the sensor
+        LT_COMM_ID_AUTO_SUB_POSITION = 0x2006,                       ///< (0x2006) {LtFloat32}[Number of zones] Horizontal position of each zone, relative to the center of the sensor
 
         LT_COMM_ID_AUTO_LED_AUTO_FRAME_AVG_LIMITS = 0x2020,          ///< (0x2020) {uint16_t[2]} Minimum and maximum number of auto acq avg frame permitted
         LT_COMM_ID_AUTO_LED_AUTO_ECHO_AVG_LIMITS = 0x2021,           ///< (0x2021) {uint16_t[2]} Minimum and maximum number of auto acq avg echo permitted
@@ -240,12 +268,29 @@ namespace LtComLeddarTechPublic
         LT_COMM_ID_AUTO_THRESH_GAUSS_SENSIB = 0x2565,                ///< (0x2565) {LtFixedPoint} - sensibility of the gaussian correction used by the echoes xtalk algorithm
         LT_COMM_ID_AUTO_THRESH_M_PEAK = 0x2566,                      ///< (0x2566) {LtFixedPoint} - detection threshold used by the Mpeaklight function
 
+        LT_COMM_ID_AUTO_PDLT_TRIANGLE_THREHSOLD         = 0x2570,    ///< (0x2570) {LtFixedPoint} Threshold table offset in \ref LT_COMM_ID_AMPLITUDE_SCALE
+        LT_COMM_ID_AUTO_PDLT_TRIANGLE_THREHSOLD_LIMITS  = 0x2571,    ///< (0x2571) {LtFixedPoint[2]} Min and max value of \ref LT_COMM_ID_AUTO_PDLT_TRIANGLE_THREHSOLD
+        LT_COMM_ID_AUTO_PDLT_TRIANGLE_THR_DIST_END      = 0x2572,    ///< (0x2572) {LtFixedPoint} Meter distance value in \ref LT_COMM_ID_DISTANCE_SCALE
+        LT_COMM_ID_AUTO_PDLT_TRIANGLE_THR_DIST_END_LIMITS = 0x2573,  ///< (0x2573) {LtFixedPoint[2]} Min and max value of \ref LT_COMM_ID_AUTO_PDLT_TRIANGLE_THR_DIST_END
 
+        LT_COMM_ID_AUTO_CHANNEL_ANGLES_AZIMUT           = 0x2580,    ///< (0x2580) {LtFloat32[NumberOfChannels]} Azimut angles in degrees from the center of the FoV to the center of each channel
+        LT_COMM_ID_AUTO_CHANNEL_ANGLES_ELEVATION        = 0x2581,    ///< (0x2581) {LtFloat32[NumberOfChannels]} Elevation angles in degrees from the center of the FoV to the center of each channel
+
+        LT_COMM_ID_AUTO_SYSTEM_TIME                     = 0x259B,    ///< (0x259B) {uint64_t} Timestamp in microseconds since 1970/01/01
+        LT_COMM_ID_AUTO_TIME_SYNC_METHOD                = 0x259C,    ///< (0x259C) {uint8_t} Time synchronization method to be used: 0 = none, 1 = PTP, 2 = PPS
+
+        LT_COMM_ID_AUTO_XTALK_INTER_TILE_ENABLE         = 0x25B0,    ///< (0x25B0) {BOOL} Inter tile xtalk algorithm enable
+        LT_COMM_ID_AUTO_SPACIAL_FILTER_ENABLE           = 0x25B1,    ///< (0x25B1) {BOOL} Spacial filtering algorithm enable
+
+
+        //LT_COMM_ID_AUTO_ACQUISITION_MODE = 0x9876,
+        //LT_COMM_ID_AUTO_ACQUISITION_MODE_LIMITS = 0x9877,
         //DATA
         LT_COMM_ID_AUTO_ECHOES_CHANNEL_INDEX = 0x2700,               ///< (0x2700) {uint16_t} - Index of the echo channel for 3D sensors.
         LT_COMM_ID_AUTO_ECHOES_VALID = 0x2701,                       ///< (0x2701) {uint16_t} - Bitfield with verious information
         LT_COMM_ID_AUTO_ECHOES_AMPLITUDE = 0x2702,                   ///< (0x2702) {int16_t} - Echo amplitude
         LT_COMM_ID_AUTO_ECHOES_DISTANCE = 0x2703,                    ///< (0x2703) {uint16_t} - Echo distance
+        LT_COMM_ID_AUTO_ECHOES_TIMESTAMP_UTC = 0x2704,               ///< (0x2704) {uint64_t} - Echo UTC timestamp
 
         LT_COMM_ID_AUTO_APD_TEMP        = 0x2710,                    ///< (0x2710) {LtFixedPoint} - Temperature of the APD (photodiode)
         LT_COMM_ID_AUTO_APD_TEMP_SCALE  = 0x2711,                    ///< (0x2711) {LtUInt32} - Temperature scale of the APD (photodiode)
@@ -254,6 +299,8 @@ namespace LtComLeddarTechPublic
         LT_COMM_ID_AUTO_PMIC_TEMP = 0x2720,                         ///< (0x2720) {LtFixedPoint} - Temperature of the PMIC without scaling
         LT_COMM_ID_AUTO_TIMESTAMP64 = 0x2721,                       ///< (0x2721) {LtUInt64} - TimeStamp with 64 bits resolution for PTP
 
+        // Command parameters
+        LT_COM_ID_PARAM_GROUP_CATEGORY = 0x3000,                    ///< (0x3000) {uint32_t} - Parameter for the command LT_COMM_CFGSRV_REQUEST_RESET_CONFIG see eLtResetCategoryGroup
         //*********************************************************************************************************************************************************************************************
 
         //*********************************************************************************************************************************************************************************************
@@ -279,6 +326,7 @@ namespace LtComLeddarTechPublic
         LT_COMM_CFGSRV_REQUEST_RESET = 0x0005,                                                          ///< (0x0005) System reset request (soft reset).
         LT_COMM_CFGSRV_REQUEST_ECHO,                                                                    ///< (0x0006) Return echo request.
         LT_COMM_CFGSRV_REQUEST_UPDATE,                                                                  ///< (0x0007) Firmware update request.
+        LT_COMM_CFGSRV_REQUEST_STATUS,                                                                  ///< (0x0008) Request status
 
         //*********************************************************************************************************************************************************************************************
         LT_COMM_CFGSRV_REQUEST_PLATFORM_SPECIFIC_BASE = 0x1000,                                         ///< (0x1000) Configuration server start base of platform specific request. Used for platform specific usage (tests, R&D advanced commands, etc.)
@@ -413,6 +461,21 @@ namespace LtComLeddarTechPublic
         uint8_t   mDirection;         ///< Direction of request.
         uint8_t   mReserved0[ 1 ];    ///< Reserved field for padding.
     } sLtCommElementRequestInfo;
+
+    /** @struct sLtCommElementAlert
+    *  @brief  Element structure used for alert.
+    */
+    typedef struct sLtCommElementAlert
+    {
+        uint64_t mCode;                                /** Alert code */
+        uint64_t mStamp;                               /** Alert time stamp */
+        uint8_t  mMsg[LT_COMM_ALERT_MSG_LENGTH];       /** Alert default message */
+        uint8_t  mCustomMsg[LT_COMM_ALERT_MSG_LENGTH]; /** Alert custom message */
+        uint8_t  mUid;                                 /** Alert unique ID */
+        uint8_t  mReserved0[15];                       /** Reserved field for padding. */
+    } sLtCommElementAlert;
+
+
 #pragma pack(pop)
 
 #define LEDDARTECH_ID_COMPUTE(_offset)                   (LtComLeddarTechPublic::LT_COMM_CFGSRV_REQUEST_PLATFORM_SPECIFIC_BASE + (_offset))
@@ -438,8 +501,9 @@ namespace LtComLeddarTechPublic
         LT_COMM_DEVICE_TYPE_VU8                 = 0x000D,   ///< Vu8 platform
         LT_COMM_DEVICE_TYPE_M16_LASER           = 0x000E,   ///< M16 laser
         LT_COMM_DEVICE_TYPE_LCA3_DISCRETE       = 0x000F,   ///< LCA3 Discrete
-        LT_COMM_DEVICE_TYPE_TRACKER_TRANSCORE   = 0x0010,   ///< Tracker product with updated algorithm Transcore hardcoded tuning
+        LT_COMM_DEVICE_TYPE_TRACKER_TRANS       = 0x0010,   ///< Tracker product with updated algorithm and specific hardcoded tuning
         LT_COMM_DEVICE_TYPE_LCA2_REFDESIGN      = 0x0011,   ///< LCA2 RefDesign
+        LT_COMM_DEVICE_TYPE_PIXELL              = 0x0012,   ///< Pixell
 
         LT_COMM_DEVICE_TYPE_AUTO_FAMILY         = 0x0100,   ///< LeddarAuto product family
 
@@ -461,8 +525,34 @@ namespace LtComLeddarTechPublic
     {
         LT_COMM_RT_INVALID = 0, /** Invalid */
         LT_COMM_RT_DAILY = 0x01, /** Daily / nightly build */
+        LT_COMM_RT_INTERNAL = 0x02, /** LeddarTech internal version */
         LT_COMM_RT_BETA = 0x03, /** Beta version */
         LT_COMM_RT_RELEASE = 0x04, /** Release (candidate) */
         //Maximum value         0xFF
     } eLtReleaseType;
+#ifndef STRUCT_FWVERSION
+#define STRUCT_FWVERSION
+#define VERSION_BUILD_NUMBER_LENGTH 14
+    /// \struct sFirmwareVersion
+    /// \brief Structure which indicated the library software version.
+#pragma pack(push,1)
+    typedef struct sFirmwareVersion
+    {
+        uint16_t mMajor;
+        uint16_t mMinor;
+        uint16_t mRelease;              //** eLtReleaseType */
+        uint8_t  mBuild[VERSION_BUILD_NUMBER_LENGTH];
+    } sFirmwareVersion;
+#pragma pack(pop)
+#endif /* STRUCT_FWVERSION */
+
+    // Parameters value for command LT_COMM_CFGSRV_REQUEST_RESET_CONFIG
+    typedef enum eLtResetCategoryGroup
+    {
+        LT_COMM_RESET_FLAG_NONE         = 0x0,
+        LT_COMM_RESET_FLAG_DEFAULT      = 0x1,
+        LT_COMM_RESET_FLAG_CALIB        = 0x2,
+        LT_COMM_RESET_FLAG_PRODUCT_INFO = 0x3,
+        LT_COMM_RESET_FLAG_ALL          = 0xFFFFFFFF
+    } eLtResetCategoryGroup;
 }

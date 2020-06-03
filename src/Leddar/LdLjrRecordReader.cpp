@@ -436,7 +436,8 @@ void LeddarRecord::LdLjrRecordReader::ReadProperties( const std::string &aLine, 
 
             case LeddarCore::LdProperty::TYPE_FLOAT:
                 if( lPropArray[i].HasMember( "limits" ) )
-                    dynamic_cast<LeddarCore::LdFloatProperty *>( lProp )->SetLimits( static_cast<float>( lPropArray[i]["limits"][0].GetDouble() ), static_cast<float>( lPropArray[i]["limits"][1].GetDouble() ) );
+                    dynamic_cast<LeddarCore::LdFloatProperty *>( lProp )->SetLimits( static_cast<float>( lPropArray[i]["limits"][0].GetDouble() ),
+                            static_cast<float>( lPropArray[i]["limits"][1].GetDouble() ) );
 
                 if( lPropArray[i]["val"].IsArray() )
                 {
@@ -541,13 +542,13 @@ void LeddarRecord::LdLjrRecordReader::ReadProperties( const std::string &aLine, 
 
                     for( unsigned j = 0; j < lPropArray[i]["val"].GetArray().Size(); ++j )
                     {
-                        lProp->SetStringValue( j, lPropArray[i]["val"].GetArray()[j].GetString() );
+                        lProp->ForceStringValue( j, lPropArray[i]["val"].GetArray()[j].GetString() );
                     }
                 }
                 else
                 {
                     lProp->SetCount( 1 );
-                    lProp->SetStringValue( 0, lPropArray[i]["val"].GetString() );
+                    lProp->ForceStringValue( 0, lPropArray[i]["val"].GetString() );
                 }
 
                 lProp->SetClean();

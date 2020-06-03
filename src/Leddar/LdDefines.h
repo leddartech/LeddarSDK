@@ -26,9 +26,9 @@ namespace LeddarDefines
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     enum eResetType
     {
-        RT_SOFT_RESET,
-        RT_HARD_RESET,
-        RT_CONFIG_RESET
+        RT_SOFT_RESET,  ///< Software reset
+        RT_HARD_RESET,  ///< Hardware reset
+        RT_CONFIG_RESET ///< Reset to factory default configuration
     };
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -39,8 +39,8 @@ namespace LeddarDefines
     enum eResetOptions
     {
         RO_NO_OPTION,
-        RO_MAIN,
-        RO_FACTORY
+        RO_MAIN,        ///< Reset the sensor to the standard firmware
+        RO_FACTORY      ///< Reset the sensor to the backup factory firmware
     };
 
     struct sLicense

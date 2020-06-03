@@ -10,8 +10,8 @@ import os
 
 if platform.system() == 'Windows':
     extra_compile_args = []
-    library_dirs = ['../LeddarConfigurator4_Private/x64/Release']
-    libraries = ['LeddarConfigurator4_Private']
+    library_dirs = ['../LeddarConfigurator4/x64/Release']
+    libraries = ['LeddarConfigurator4']
 else:
     extra_compile_args = ['-std=c++11', '-Wno-write-strings', '-Wno-unused-function', '-Wno-unused-variable']
     library_dirs = ['../release']
@@ -40,7 +40,7 @@ debug = ['-g', '-DPy_DEBUG'] if os.environ.get('LEDDAR_DEBUG', 0) == "1" else []
 # Run!
 
 module1 = Extension('leddar',
-                    include_dirs = ['./','../LeddarPrototypes','../LeddarPrivate','../Leddar','../LeddarTech','../shared/','../shared/comm','../../libs/RapidJson', np.get_include()],
+                    include_dirs = ['./','../Leddar','../LeddarTech','../shared/','../shared/comm','../../libs/RapidJson', np.get_include()],
                     libraries = libraries,
                     library_dirs = library_dirs,
                     sources = ['./LeddarPy.cpp', './LeddarPyDevice.cpp', './Connecters.cpp'],

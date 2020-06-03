@@ -8,13 +8,11 @@
 
 #include "LdSensorIS16.h"
 
+#if defined(BUILD_M16) && defined(BUILD_USB)
+
 #include "comm/LtComLeddarTechPublic.h"
 #include "comm/Legacy/M16/LtComM16.h"
 #include "LdPropertyIds.h"
-
-#if defined(BUILD_M16) && defined(BUILD_USB)
-
-#endif
 
 LeddarDevice::LdSensorIS16::LdSensorIS16( LeddarConnection::LdConnection *aConnection ) :
     LdSensorM16( aConnection )
@@ -161,3 +159,5 @@ void LeddarDevice::LdSensorIS16::UpdateParamsForTargetRefreshRate( float aTarget
     mProtocolConfig->ReadAnswer();
     mProtocolConfig->ReadElementToProperties( GetProperties() );
 }
+
+#endif

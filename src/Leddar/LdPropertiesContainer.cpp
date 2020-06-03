@@ -18,6 +18,11 @@
 #include "LtStringUtils.h"
 #include "LdBufferProperty.h"
 
+#include <rapidjson/document.h>
+#include "rapidjson/error/en.h"
+#include <rapidjson/istreamwrapper.h>
+#include <fstream>
+
 #include <typeinfo>
 
 // *****************************************************************************
@@ -520,4 +525,215 @@ LeddarCore::LdPropertiesContainer::AddProperties( LeddarCore::LdPropertiesContai
 
         aProperties->SetPropertiesOwnership( false );
     }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LeddarCore::LdPropertiesContainer::AddPropertiesFromFile( std::string aFilename )
+///
+/// \brief  Adds the properties from JSON file
+///
+/// \exception  std::runtime_error  Raised when a runtime error condition occurs.
+///
+/// \param  aFilename   Filename of the JSON file.
+///
+/// \author Patrick Boulay
+/// \date   February 2019
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void
+LeddarCore::LdPropertiesContainer::AddPropertiesFromFile( std::string aFilename )
+{
+    std::ifstream lInputFileStream( aFilename.c_str() );
+    rapidjson::IStreamWrapper lStreamWrapper( lInputFileStream );
+    rapidjson::Document lDocument;
+    lDocument.ParseStream( lStreamWrapper );
+
+    if( lDocument.HasParseError() )
+    {
+        throw std::runtime_error( "Error parsing: " + std::string( rapidjson::GetParseError_En( lDocument.GetParseError() ) ) );
+    }
+
+    // First element must be "properties"
+    if( !lDocument.HasMember( "properties" ) )
+    {
+        throw std::runtime_error( "JSON format error, no element properties." );
+    }
+
+    const rapidjson::Value &lPropertiesDescription = lDocument["properties"];
+
+    const rapidjson::GenericArray<false, rapidjson::Value::ValueType> lPropArray = lDocument["properties"].GetArray();
+
+
+    for( uint32_t i = 0; i < lPropArray.Size(); i++ )
+    {
+        if( lPropArray[i].IsObject() )
+        {
+            // Verify for valid object
+            if( !lPropArray[i].HasMember( "id" ) ||
+                    !lPropArray[i]["id"].IsString() ||
+                    !lPropArray[i].HasMember( "size" ) ||
+                    !lPropArray[i]["size"].IsInt() ||
+                    !lPropArray[i].HasMember( "count" ) ||
+                    !lPropArray[i]["count"].IsInt() ||
+                    !lPropArray[i].HasMember( "type" ) ||
+                    !lPropArray[i]["type"].IsString() ||
+                    !lPropArray[i].HasMember( "category" ) ||
+                    !lPropArray[i]["category"].IsString() )
+
+            {
+                continue;
+            }
+
+            uint32_t lId = static_cast<uint32_t>( LeddarUtils::LtStringUtils::StringToUInt( lPropArray[i]["deviceid"].GetString(), 16 ) );
+
+            if( lId == 0 )
+            {
+                throw std::runtime_error( "Error, the device id is 0x0." );
+            }
+
+            std::string lType = lPropArray[i]["type"].GetString();
+
+            try
+            {
+                LdProperty *lNewProperty = nullptr;
+                std::string lCategoryStr = lPropArray[i]["category"].GetString();
+                LdProperty::eCategories lCategory = LdProperty::CAT_OTHER;
+
+                if( lCategoryStr == "CAT_OTHER" )
+                    lCategory = LdProperty::CAT_OTHER;
+                else if( lCategoryStr == "CAT_INFO" )
+                    lCategory = LdProperty::CAT_INFO;
+                else if( lCategoryStr == "CAT_CALIBRATION" )
+                    lCategory = LdProperty::CAT_CALIBRATION;
+                else if( lCategoryStr == "CAT_CONFIGURATION" )
+                    lCategory = LdProperty::CAT_CONFIGURATION;
+                else if( lCategoryStr == "CAT_CONSTANT" )
+                    lCategory = LdProperty::CAT_CONSTANT;
+                else
+                    throw std::runtime_error( "Invalid category: " + lCategoryStr );
+
+
+
+                // Set property editable or not
+                bool lFeature = LdProperty::F_EDITABLE;
+
+                if( lPropArray[i].HasMember( "editable" ) && lPropArray[i]["editable"].IsBool() )
+                {
+                    lFeature = lPropArray[i]["editable"].GetBool() ? LdProperty::F_EDITABLE : LdProperty::F_NONE;
+                }
+
+                if( lType == "bit" )
+                {
+                    lNewProperty = new LdBitFieldProperty( lCategory, lFeature, lId, lId, lPropArray[i]["size"].GetInt() );
+                }
+                else if( lType == "bool" )
+                {
+                    lNewProperty = new LdBoolProperty( lCategory, lFeature, lId, lId );
+                }
+                else if( lType == "buffer" )
+                {
+                    lNewProperty = new LdBufferProperty( lCategory, lFeature, lId, lId, lPropArray[i]["size"].GetInt() );
+                }
+                else if( lType == "enum" )
+                {
+                    if( !lPropArray[i].HasMember( "values" ) || !lPropArray[i]["values"].IsObject() )
+                    {
+                        throw std::runtime_error( "Invalid enum property values" );
+                    }
+
+                    lNewProperty = new LdEnumProperty( lCategory, lFeature, lId, lId, lPropArray[i]["size"].GetInt() );
+                    LdEnumProperty *lEnumProperty = dynamic_cast<LdEnumProperty *>( lNewProperty );
+
+                    // Add enum possible values
+                    for( rapidjson::Value::ConstMemberIterator itrValues = lPropArray[i]["values"].GetObject().MemberBegin();
+                            itrValues != lPropArray[i]["values"].GetObject().MemberEnd(); ++itrValues )
+                    {
+                        lEnumProperty->AddEnumPair( itrValues->value.GetInt(), itrValues->name.GetString() );
+                    }
+
+                }
+                else if( lType == "float" )
+                {
+                    if( !lPropArray[i].HasMember( "scale" ) || !lPropArray[i]["scale"].IsInt() )
+                    {
+                        throw std::runtime_error( "Invalid property scale: " + lType );
+                    }
+
+                    uint32_t lDecimals = 3;
+
+                    if( lPropArray[i].HasMember( "decimals" ) && lPropArray[i]["decimals"].IsInt() )
+                    {
+                        lDecimals = lPropArray[i]["decimals"].GetInt();
+                    }
+
+                    lNewProperty = new LdFloatProperty( lCategory, lFeature, lId, lId, lPropArray[i]["size"].GetInt(),
+                                                        lPropArray[i]["scale"].GetInt(), lDecimals );
+                }
+                else if( lType == "int" )
+                {
+                    bool lSigned = false;
+
+                    if( lPropArray[i].HasMember( "signed" ) && lPropArray[i]["signed"].IsBool() )
+                    {
+                        lSigned = lPropArray[i]["signed"].GetBool();
+                    }
+
+                    lNewProperty = new LdIntegerProperty( lCategory, lFeature, lId, lId, lPropArray[i]["size"].GetInt(), "", lSigned );
+                    LdIntegerProperty *lIntProperty = dynamic_cast<LdIntegerProperty *>( lNewProperty );
+
+                    if( lPropArray[i].HasMember( "limits" ) && lPropArray[i]["limits"].IsArray() )
+                    {
+                        lIntProperty->SetLimits( lPropArray[i]["limits"].GetArray()[0].GetInt(), lPropArray[i]["limits"].GetArray()[1].GetInt() );
+                    }
+                }
+                else if( lType == "text" )
+                {
+                    lNewProperty = new LdTextProperty( lCategory, lFeature, lId, lId, lPropArray[i]["size"].GetInt() );
+                }
+                else
+                {
+                    throw std::runtime_error( "Invalid property type: " + lType );
+                }
+
+
+                // Set all values for each count
+                if( lPropArray[i]["count"].GetInt() != 0 )
+                {
+                    lNewProperty->SetCount( lPropArray[i]["count"].GetInt() );
+                }
+
+                if( lPropArray[i]["value"].IsString() )
+                {
+                    std::string lValue = lPropArray[i]["value"].GetString();
+
+                    if( lValue == "" && ( lType == "int" || lType == "float" ) )
+                    {
+                        lValue = "0";
+                    }
+
+                    // If the property has a count > 1 and only one value is specified, fill the value for all count
+                    for( uint32_t i = 0; i < lNewProperty->Count(); ++i )
+                    {
+                        lNewProperty->ForceStringValue( i, lValue );
+                    }
+                }
+                else //Array
+                {
+                    for( unsigned int j = 0; j < lPropArray[i]["value"].GetArray().Size(); ++j )
+                    {
+                        lNewProperty->ForceStringValue( j, lPropArray[i]["value"].GetArray()[j].GetString() );
+                    }
+                }
+
+                lNewProperty->SetClean();
+                AddProperty( lNewProperty );
+            }
+            catch( std::exception &e )
+            {
+                throw std::runtime_error( "Error on property id: " + LeddarUtils::LtStringUtils::IntToString( lId, 16 ) + ": " + e.what() );
+            }
+
+        }
+    }
+
+    lInputFileStream.close();
 }

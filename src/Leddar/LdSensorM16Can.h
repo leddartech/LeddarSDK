@@ -38,7 +38,7 @@ namespace LeddarDevice
         virtual bool    GetData( void ) override;
         virtual bool    GetEchoes( void ) override;
         virtual void    GetStates( void ) override;
-        virtual void    Reset( LeddarDefines::eResetType, LeddarDefines::eResetOptions = LeddarDefines::RO_NO_OPTION ) override {throw std::logic_error( "Reset not available in CANbus" );};
+        virtual void    Reset( LeddarDefines::eResetType, LeddarDefines::eResetOptions = LeddarDefines::RO_NO_OPTION, uint32_t = 0 ) override {throw std::logic_error( "Reset not available in CANbus" );};
 
         void            EnableStreamingDetections( bool aEnable );
 

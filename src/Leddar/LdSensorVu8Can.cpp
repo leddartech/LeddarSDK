@@ -45,7 +45,6 @@ void LeddarDevice::LdSensorVu8Can::InitProperties()
     using namespace LeddarCore;
 
     //Constants
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_DEVICE_TYPE, 0, 2, "Device type" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONSTANT, LdProperty::F_SAVE, LdPropertyIds::ID_RSEGMENT, 0, 2, "Number of reference segment" ) );
     mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_OPTIONS, 0, 4, "Device option - Internal use" ) );
     mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_FIRMWARE_VERSION_STR, 0, LtComCanBus::VU_FIRMWARE_VERSION_SIZE, LdTextProperty::TYPE_ASCII,

@@ -37,7 +37,7 @@ namespace LeddarDevice
         virtual void        UpdateConstants( void ) override;
         virtual bool        GetEchoes( void ) override {return mUse0x6A ? GetEchoes0x6A() : GetEchoes0x41(); }
         virtual void        GetStates( void ) override;
-        virtual void        Reset( LeddarDefines::eResetType /*aType*/, LeddarDefines::eResetOptions = LeddarDefines::RO_NO_OPTION ) override {};
+        virtual void        Reset( LeddarDefines::eResetType /*aType*/, LeddarDefines::eResetOptions = LeddarDefines::RO_NO_OPTION, uint32_t = 0 ) override {};
         bool                GetUse0x6A( void ) const { return mUse0x6A; }
         void                SetUse0x6A( bool use0x6A ) { mUse0x6A = use0x6A; }
 

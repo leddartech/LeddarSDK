@@ -47,8 +47,8 @@
 using namespace LeddarCore;
 using namespace LeddarConnection;
 
-#define LICENSE_USER_SIZE 32
-#define LICENSE_NUMBER 3
+const uint8_t LICENSE_USER_SIZE = 2 * REGMAP_KEY_LENGTH;
+const uint8_t LICENSE_NUMBER = 3;
 
 using namespace LeddarDevice;
 
@@ -111,9 +111,9 @@ LdSensorVu::~LdSensorVu()
 void
 LdSensorVu::InitProperties( void )
 {
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_DEVICE_TYPE, 0, 2, "Device Type" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONSTANT, LdProperty::F_SAVE, LdPropertyIds::ID_RSEGMENT, 0, 2, "Number of reference segment" ) );
-    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_DEVICE_NAME, 0, REGMAP_PRODUCT_NAME_LENGTH,
+    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_DEVICE_NAME, 0,
+                              REGMAP_PRODUCT_NAME_LENGTH,
                               LdTextProperty::TYPE_ASCII, "Device Name" ) );
     mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_PART_NUMBER, 0, REGMAP_PRODUCT_ID_LENGTH, LdTextProperty::TYPE_ASCII,
                               "Part Number" ) );
@@ -143,7 +143,8 @@ LdSensorVu::InitProperties( void )
                               "Accumulation Exponent" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_OVERSAMPLING_EXP, 0, 1,
                               "Oversampling Exponent" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_BASE_POINT_COUNT, 0, 1, "Base Point Count" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_BASE_POINT_COUNT, 0, 1,
+                              "Base Point Count" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONSTANT, LdProperty::F_SAVE, LdPropertyIds::ID_NB_SAMPLE_MAX, 0, 2, "Number Sample Max" ) );
     mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONSTANT, LdProperty::F_SAVE, LdPropertyIds::ID_REF_SEG_MASK, 0, 4, "Reference Segment Mask" ) );
     mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CONSTANT, LdProperty::F_SAVE, LdPropertyIds::ID_BASE_SAMPLE_DISTANCE, 0, 4, 0, 3, "Base Sample Distance" ) );
@@ -153,9 +154,12 @@ LdSensorVu::InitProperties( void )
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONSTANT, LdProperty::F_SAVE, LdPropertyIds::ID_RAW_AMP_SCALE, 0, 4, "Raw Amplitude Scale" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONSTANT, LdProperty::F_SAVE, LdPropertyIds::ID_FILTERED_AMP_SCALE, 0, 4, "Filtered Amplitude Scale" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONSTANT, LdProperty::F_NONE, LdPropertyIds::ID_FILTERED_AMP_SCALE_BITS, 0, 1, "Filtered Amplitude Scale Bits" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_PRECISION, 0, 1, "Smoothing", true ) );
-    mProperties->AddProperty( new LdBoolProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_PRECISION_ENABLE, 0, "Smoothing Enable" ) );
-    mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_SEGMENT_ENABLE, 0, 4, "Segment Enable" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_PRECISION, 0, 1, "Smoothing",
+                              true ) );
+    mProperties->AddProperty( new LdBoolProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_PRECISION_ENABLE, 0,
+                              "Smoothing Enable" ) );
+    mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_SEGMENT_ENABLE, 0, 4,
+                              "Segment Enable" ) );
     mProperties->AddProperty( new LdBoolProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_XTALK_ECHO_REMOVAL_ENABLE, 0,
                               "Crosstalk Echo Removal Enable" ) );
     mProperties->AddProperty( new LdBoolProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_XTALK_REMOVAL_ENABLE, 0,
@@ -167,8 +171,10 @@ LdSensorVu::InitProperties( void )
                               "Saturation Compensation Enable" ) );
     mProperties->AddProperty( new LdBoolProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_OVERSHOOT_MNG_ENABLE, 0,
                               "Overshoot Management Enable" ) );
-    mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_SENSIVITY, 0, 4, 0, 2, "Threshold Offset" ) );
-    mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_LED_INTENSITY, 0, 2, true, "Led Intensity %" ) );
+    mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_SENSIVITY, 0, 4, 0, 2,
+                              "Threshold Offset" ) );
+    mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_LED_INTENSITY, 0, 2, true,
+                              "Led Intensity %" ) );
     mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_LED_AUTO_PWR_ENABLE, 0, 1,
                               "Auto Led Power Enable" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_LED_AUTO_FRAME_AVG, 0, 2,
@@ -177,7 +183,8 @@ LdSensorVu::InitProperties( void )
                               "Change Delay (Channel)" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_LEARNED_TRACE_OPTIONS, 0, 1, "Learned Trace Options" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_NONE, LdPropertyIds::ID_LED_USR_PWR_COUNT, 0, 1, "Led Power Count" ) );
-    mProperties->AddProperty( new LdBoolProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_DEMERGING_ENABLE, 0, "Demerging Enable" ) );
+    mProperties->AddProperty( new LdBoolProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_DEMERGING_ENABLE, 0,
+                              "Demerging Enable" ) );
     mProperties->AddProperty( new LdBoolProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_STATIC_NOISE_REMOVAL_ENABLE, 0,
                               "Static Noise Removal Enable" ) );
     mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CONSTANT, LdProperty::F_SAVE, LdPropertyIds::ID_REAL_DISTANCE_OFFSET, 0, 4, 0, 3, "Real Distance Offset" ) );
@@ -185,11 +192,19 @@ LdSensorVu::InitProperties( void )
     mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_ORIGIN_Y, 0, 4, 0, 3, "Y Position" ) );
     mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_ORIGIN_Z, 0, 4, 0, 3, "Z Position" ) );
     mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_YAW, 0, 4, 0, 3, "Yaw Rotation" ) );
-    mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_PITCH, 0, 4, 0, 3, "Pitch Rotation" ) );
+    mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_PITCH, 0, 4, 0, 3,
+                              "Pitch Rotation" ) );
     mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_ROLL, 0, 4, 0, 3, "Roll Rotation" ) );
     mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_TEMP_COMP, 0, 1,
                               "Temperature compensation. Possible value are 0 (no compensation), 1 (reference pulse), 2( compensation table) - Require integrator license to change" ) );
     mProperties->GetBitProperty( LeddarCore::LdPropertyIds::ID_TEMP_COMP )->SetExclusivityMask( 3 ); //0000 0011
+
+    mProperties->AddProperty( new LdBufferProperty( LdProperty::CAT_OTHER, LdProperty::F_EDITABLE, LdPropertyIds::ID_LICENSE, 0, REGMAP_KEY_LENGTH, "License key" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_OTHER, LdProperty::F_NONE, LdPropertyIds::ID_LICENSE_INFO, 0, 4, "License type / subtype" ) );
+    mProperties->AddProperty( new LdBufferProperty( LdProperty::CAT_OTHER, LdProperty::F_EDITABLE, LdPropertyIds::ID_VOLATILE_LICENSE, 0, REGMAP_KEY_LENGTH,
+                              "Temporary license key - internal use" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_OTHER, LdProperty::F_NONE, LdPropertyIds::ID_VOLATILE_LICENSE_INFO, 0, 4,
+                              "Volatile license type / subtype - internal use" ) );
 
     GetProperties()->AddProperty( new LdFloatProperty( LdProperty::CAT_CALIBRATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_TIMEBASE_DELAY, 0, 4, 0, 3,
                                   "Time base delays - Require integrator licence to edit" ) );
@@ -205,7 +220,8 @@ LdSensorVu::InitProperties( void )
     GetResultStates()->GetProperties()->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_RS_BACKUP, 0, 4, "Calibration Backup Flag" ) );
 
 
-    mProperties->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_CONNECTION_TYPE )->ForceValue( 0, P_SPI ); //We set it as SPI here. SetCarrier function will change it to modbus if needed
+    mProperties->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_CONNECTION_TYPE )->ForceValue( 0,
+            P_SPI ); //We set it as SPI here. SetCarrier function will change it to modbus if needed
     mProperties->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_CONNECTION_TYPE )->SetClean();
 }
 
@@ -822,7 +838,8 @@ LdSensorVu::UpdateConstants()
     GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_BASE_SAMPLE_DISTANCE )->SetScale( GetProperties()->GetIntegerProperty(
                 LeddarCore::LdPropertyIds::ID_DISTANCE_SCALE )->ValueT<uint32_t>() );
 
-    GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_SENSIVITY )->SetScale( GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_RAW_AMP_SCALE )->ValueT<uint32_t>() );
+    GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_SENSIVITY )->SetScale( GetProperties()->GetIntegerProperty(
+                LeddarCore::LdPropertyIds::ID_RAW_AMP_SCALE )->ValueT<uint32_t>() );
 
     GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_REAL_DISTANCE_OFFSET )->SetScale( GetProperties()->GetIntegerProperty(
                 LeddarCore::LdPropertyIds::ID_DISTANCE_SCALE )->ValueT<uint32_t>() );
@@ -830,7 +847,8 @@ LdSensorVu::UpdateConstants()
     GetResultStates()->GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_RS_CPU_LOAD )->SetScale( GetProperties()->GetIntegerProperty(
                 LeddarCore::LdPropertyIds::ID_CPU_LOAD_SCALE )->ValueT<uint32_t>() );
 
-    GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_HFOV )->SetScale( GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_DISTANCE_SCALE )->ValueT<uint32_t>() );
+    GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_HFOV )->SetScale( GetProperties()->GetIntegerProperty(
+                LeddarCore::LdPropertyIds::ID_DISTANCE_SCALE )->ValueT<uint32_t>() );
 
     GetProperties()->GetBitProperty( LdPropertyIds::ID_SEGMENT_ENABLE )->SetLimit( ( 1 << ( GetProperties()->GetIntegerProperty( LdPropertyIds::ID_HSEGMENT )->Value() + 1 ) ) - 1 );
 }
@@ -1103,7 +1121,7 @@ LdSensorVu::GetStates()
 ///
 /// \brief  Get the licenses on the device.
 ///
-/// \return Vector of sLicense.
+/// \return Vector of permanent licenses on the device.
 ///
 /// \author Patrick Boulay
 /// \date   May 2016
@@ -1112,34 +1130,54 @@ std::vector<LeddarDefines::sLicense>
 LdSensorVu::GetLicenses( void )
 {
     std::vector<LeddarDefines::sLicense> lLicenses;
+    LdIntegerProperty *lLicenseInfoProp = GetProperties()->GetIntegerProperty( LdPropertyIds::ID_LICENSE_INFO );
+    LdBufferProperty *lLicenseProp = GetProperties()->GetBufferProperty( LdPropertyIds::ID_LICENSE );
+    lLicenseInfoProp->SetCount( LICENSE_NUMBER );
+    lLicenseProp->SetCount( LICENSE_NUMBER );
 
-    try
+    // Read license and info
+    uint8_t lLicenseKey[ 3 ][ REGMAP_KEY_LENGTH ];
+    uint32_t lLicenseInfo[ 3 ];
+    mConnectionUniversal->ReadRegister( GetBankAddress( REGMAP_LICENSE_KEYS ), ( uint8_t * )lLicenseKey, REGMAP_KEY_LENGTH * LICENSE_NUMBER, 1 );
+    mConnectionUniversal->ReadRegister( GetBankAddress( REGMAP_CMD_LIST ) + offsetof( sCmdList, mLicenceInfo ), ( uint8_t * )lLicenseInfo, sizeof( uint32_t )* LICENSE_NUMBER, 1 );
+
+    for( uint8_t i = 0; i < LICENSE_NUMBER; ++i )
     {
-        // Read license and info
-        uint8_t lLicenseKey[ 3 ][ 16 ];
-        uint32_t lLicenseInfo[ 3 ];
-        mConnectionUniversal->ReadRegister( GetBankAddress( REGMAP_LICENSE_KEYS ), ( uint8_t * )lLicenseKey, REGMAP_KEY_LENGTH * LICENSE_NUMBER, 1 );
-        mConnectionUniversal->ReadRegister( GetBankAddress( REGMAP_CMD_LIST ) + offsetof( sCmdList, mLicenceInfo ), ( uint8_t * )lLicenseInfo, sizeof( uint32_t )* LICENSE_NUMBER, 1 );
+        LeddarDefines::sLicense lLicense;
+        lLicense.mType = lLicenseInfo[ i ] & 0xFFFF;
+        lLicense.mSubType = lLicenseInfo[ i ] >> 16;
+        std::reverse( lLicenseKey[i], lLicenseKey[i] + REGMAP_KEY_LENGTH );
+        lLicense.mLicense = LeddarUtils::LtStringUtils::ByteArrayToHexString( lLicenseKey[i], REGMAP_KEY_LENGTH );
 
-        for( uint8_t i = 0; i < LICENSE_NUMBER; ++i )
-        {
-            LeddarDefines::sLicense lLicense;
-            lLicense.mType = lLicenseInfo[ i ] & 0xFFFF;
-            lLicense.mSubType = lLicenseInfo[ i ] >> 16;
+        //Update the property
+        lLicenseInfoProp->ForceValue( i, lLicenseInfo[ i ] );
+        lLicenseProp->ForceValue( i, lLicenseKey[i], REGMAP_KEY_LENGTH );
 
-            for( uint8_t j = 0; j < REGMAP_KEY_LENGTH; ++j )
-            {
-                std::stringstream lStream;
-                lStream << std::setfill( '0' ) << std::setw( 2 ) << std::hex << ( uint32_t )lLicenseKey[ i ][ j ];
-                lLicense.mLicense += lStream.str();
-            }
-
-            lLicenses.push_back( lLicense );
-        }
+        lLicenses.push_back( lLicense );
     }
-    catch( ... )
+
+    //And update volatile license property
+    LdIntegerProperty *lVolLicenseInfoProp = GetProperties()->GetIntegerProperty( LdPropertyIds::ID_VOLATILE_LICENSE_INFO );
+    LdBufferProperty *lVolLicenseProp = GetProperties()->GetBufferProperty( LdPropertyIds::ID_VOLATILE_LICENSE );
+    lVolLicenseInfoProp->SetCount( 0 );
+    lVolLicenseProp->SetCount( 0 );
+
+    LeddarDefines::sLicense lLicense;
+    uint32_t lResultLicenseInfo;
+    mConnectionUniversal->ReadRegister( GetBankAddress( REGMAP_CMD_LIST ) + offsetof( sCmdList, mLicenceInfoVolatile ), ( uint8_t * )&lResultLicenseInfo, sizeof( uint32_t ), 5 );
+    lLicense.mType = lResultLicenseInfo & 0xFFFF;
+    lLicense.mSubType = lResultLicenseInfo >> 16;
+
+    uint8_t lVolatileLicenseKey[ REGMAP_KEY_LENGTH ];
+    mConnectionUniversal->ReadRegister( GetBankAddress( REGMAP_VOLATILE_LICENSE_KEYS ), ( uint8_t * )lVolatileLicenseKey, REGMAP_KEY_LENGTH, 1 );
+
+    //Update the property
+    if( lLicense.mType < LeddarDefines::LT_COUNT )
     {
-        throw;
+        lVolLicenseInfoProp->SetCount( 1 );
+        lVolLicenseInfoProp->ForceValue( 0, lResultLicenseInfo );
+        lVolLicenseProp->SetCount( 1 );
+        lVolLicenseProp->ForceValue( 0, lVolatileLicenseKey, REGMAP_KEY_LENGTH );
     }
 
     return lLicenses;
@@ -1160,37 +1198,14 @@ LdSensorVu::GetLicenses( void )
 /// \date   May 2016
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 LeddarDefines::sLicense
-LdSensorVu::SendLicense( const std::string &aLicense )
+LdSensorVu::SendLicense( const std::string &aLicense, bool aVolatile )
 {
-
     // Get licences from device
-    if( aLicense.length() != LICENSE_USER_SIZE )
-        throw std::runtime_error( "Invalid license." );
+    if( aLicense.length() != LICENSE_USER_SIZE && aLicense.length() != 0 )
+        throw std::runtime_error( "Invalid license length." );
 
     LeddarDefines::sLicense lResultLicense;
-    std::vector<LeddarDefines::sLicense> lLicenses = GetLicenses();
-
-    // Looking for empty slot
     uint8_t lBuffer[ 16 ];
-    uint32_t lEmptySlotIndex = 0;
-
-    for( lEmptySlotIndex = 0; lEmptySlotIndex < lLicenses.size(); ++lEmptySlotIndex )
-    {
-        if( lLicenses[ lEmptySlotIndex ].mType != 0 && lLicenses[ lEmptySlotIndex ].mLicense == LeddarUtils::LtStringUtils::ToLower( aLicense ) )
-        {
-            throw std::runtime_error( "License already on the device." );
-        }
-
-        if( lLicenses[ lEmptySlotIndex ].mType == 0 )
-        {
-            break;
-        }
-    }
-
-    if( lEmptySlotIndex == LICENSE_NUMBER )
-    {
-        throw std::runtime_error( "No empty license slot available on the device." );
-    }
 
     // Convert the user string to 16 bytes license
     for( size_t i = 0; i < aLicense.length(); i += 2 )
@@ -1198,35 +1213,90 @@ LdSensorVu::SendLicense( const std::string &aLicense )
         lBuffer[ i / 2 ] = ( uint8_t )strtoul( aLicense.substr( i, 2 ).c_str(), nullptr, 16 );
     }
 
-    mConnectionUniversal->SetWriteEnable( true );
+    if( aVolatile )
+    {
+        mConnectionUniversal->SetWriteEnable( true );
 
-    // Write the license on the device
-    try
-    {
-        mConnectionUniversal->WriteRegister( GetBankAddress( REGMAP_LICENSE_KEYS ) + ( lEmptySlotIndex * REGMAP_KEY_LENGTH ), lBuffer, sizeof( uint8_t )* REGMAP_KEY_LENGTH );
-    }
-    catch( ... )
-    {
+        // Write the license on the device
+        try
+        {
+            mConnectionUniversal->WriteRegister( GetBankAddress( REGMAP_VOLATILE_LICENSE_KEYS ), lBuffer, sizeof( uint8_t )* REGMAP_KEY_LENGTH );
+        }
+        catch( ... )
+        {
+            mConnectionUniversal->SetWriteEnable( false );
+            throw;
+        }
+
         mConnectionUniversal->SetWriteEnable( false );
-        throw;
+
+        // Read info about the license. This info is needed to know if the license is valid
+        lResultLicense.mLicense = aLicense;
+        uint32_t lResultLicenseInfo;
+
+        mConnectionUniversal->ReadRegister( GetBankAddress( REGMAP_CMD_LIST ) + offsetof( sCmdList, mLicenceInfoVolatile ), ( uint8_t * )&lResultLicenseInfo, sizeof( uint32_t ), 5 );
+        lResultLicense.mType = lResultLicenseInfo & 0xFFFF;
+
+        if( lResultLicense.mType == 0 )
+        {
+            throw std::runtime_error( "Invalid license." );
+        }
     }
-
-    mConnectionUniversal->SetWriteEnable( false );
-
-
-    // Read info about the license. This infor is needed to know if the license is valid
-    lResultLicense.mLicense = aLicense;
-    uint32_t lResultLicenseInfo;
-
-    mConnectionUniversal->ReadRegister( GetBankAddress( REGMAP_CMD_LIST ) + offsetof( sCmdList, mLicenceInfo ) + ( lEmptySlotIndex * sizeof( uint32_t ) ),
-                                        ( uint8_t * )&lResultLicenseInfo,
-                                        sizeof( uint32_t ), 5 );
-    lResultLicense.mType = lResultLicenseInfo & 0xFFFF;
-    lResultLicense.mSubType = lResultLicenseInfo >> 16;
-
-    if( lResultLicense.mType == 0 )
+    else
     {
-        throw std::runtime_error( "Invalid license." );
+        std::vector<LeddarDefines::sLicense> lLicenses = GetLicenses();
+
+        // Looking for empty slot
+        uint32_t lEmptySlotIndex = 0;
+
+        for( lEmptySlotIndex = 0; lEmptySlotIndex < lLicenses.size(); ++lEmptySlotIndex )
+        {
+            if( lLicenses[ lEmptySlotIndex ].mType != 0 && lLicenses[ lEmptySlotIndex ].mLicense == LeddarUtils::LtStringUtils::ToLower( aLicense ) )
+            {
+                throw std::runtime_error( "License already on the device." );
+            }
+
+            if( lLicenses[ lEmptySlotIndex ].mType == LeddarDefines::LT_NO || lLicenses[ lEmptySlotIndex ].mType > LeddarDefines::LT_COUNT )
+            {
+                break;
+            }
+        }
+
+        if( lEmptySlotIndex == LICENSE_NUMBER )
+        {
+            throw std::runtime_error( "No empty license slot available on the device." );
+        }
+
+        mConnectionUniversal->SetWriteEnable( true );
+
+        // Write the license on the device
+        try
+        {
+            mConnectionUniversal->WriteRegister( GetBankAddress( REGMAP_LICENSE_KEYS ) + ( lEmptySlotIndex * REGMAP_KEY_LENGTH ), lBuffer, sizeof( uint8_t )* REGMAP_KEY_LENGTH );
+        }
+        catch( ... )
+        {
+            mConnectionUniversal->SetWriteEnable( false );
+            throw;
+        }
+
+        mConnectionUniversal->SetWriteEnable( false );
+
+
+        // Read info about the license. This infor is needed to know if the license is valid
+        lResultLicense.mLicense = aLicense;
+        uint32_t lResultLicenseInfo;
+
+        mConnectionUniversal->ReadRegister( GetBankAddress( REGMAP_CMD_LIST ) + offsetof( sCmdList, mLicenceInfo ) + ( lEmptySlotIndex * sizeof( uint32_t ) ),
+                                            ( uint8_t * )&lResultLicenseInfo,
+                                            sizeof( uint32_t ), 5 );
+        lResultLicense.mType = lResultLicenseInfo & 0xFFFF;
+        lResultLicense.mSubType = lResultLicenseInfo >> 16;
+
+        if( lResultLicense.mType == 0 )
+        {
+            throw std::runtime_error( "Invalid license." );
+        }
     }
 
     return lResultLicense;
@@ -1378,7 +1448,7 @@ LdSensorVu::ResetToDefault()
 /// \date   April 2016
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void
-LdSensorVu::Reset( LeddarDefines::eResetType aType, LeddarDefines::eResetOptions )
+LdSensorVu::Reset( LeddarDefines::eResetType aType, LeddarDefines::eResetOptions, uint32_t )
 {
     mConnectionUniversal->Reset( aType, 0 );
 }

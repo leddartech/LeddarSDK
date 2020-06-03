@@ -38,28 +38,32 @@ namespace LeddarRecord
     class LdRecorder;
 }
 
-typedef struct sSharedData
+struct sSharedDataBase
 {
-    bool mStop;             // Request to stop thread
-    uint32_t mDelay;        // Delay between two request (in microseconds)
-} sSharedData;
+    std::mutex mMutex;
+    std::thread mThread;
+    bool mStop = true; // Request to stop thread
+};
+struct sSharedData : public sSharedDataBase
+{
+    uint32_t mDelay = 5000u;        // Delay between two request (in microseconds)
+    PyObject *mCallBackState = nullptr;
+    PyObject *mCallBackEcho = nullptr;
+    bool mGetDataLocked = false;                //reserved for use of DataThread()
+};
+
 
 typedef struct sLeddarDevice
 {
     PyObject_HEAD
 
-    PyObject *mCallBackState;
-    PyObject *mCallBackEcho;
-    PyObject *mCallBackRawTrace;
-    PyObject *mCallBackFilteredTrace;
-    LeddarDevice::LdSensor *mSensor;    //Pointer to the sensor
-    LeddarRecord::LdRecorder *mRecorder;
-    bool mStream;                       //if the sensor is streaming (M16 and LCA3 UDP) we need to set data mask and start thread
-    uint32_t mDataMask;                 //Current Datamask requested by user
-    std::thread mDataThread;
-    std::mutex mDataThreadMutex;
-    bool mGetDataLocked;                //reserved for use of DataThread()
+    LeddarDevice::LdSensor *mSensor = nullptr;    //Pointer to the sensor
+    LeddarRecord::LdRecorder *mRecorder = nullptr;
+    bool mStream = false;                       //if the sensor is streaming (M16 and LCA3 UDP) we need to set data mask and start thread
+    uint32_t mDataMask = 0;                 //Current Datamask requested by user
+
     sSharedData mDataThreadSharedData;  //Data shared between thread. Need to use mutex to read / write
+
     size_t v, h;
     float v_fov, h_fov;
     std::string mIP;
@@ -80,13 +84,13 @@ PyObject *GetPropertyAvailableValues( sLeddarDevice *self, PyObject *args );
 PyObject *SetPropertyValue( sLeddarDevice *self, PyObject *args );
 PyObject *SetAccumulationExponent( sLeddarDevice *self, PyObject *args );
 PyObject *SetOversamplingExponent( sLeddarDevice *self, PyObject *args );
-PyObject *SendJSON( sLeddarDevice *self, PyObject *args );
 PyObject *SetIPConfig( sLeddarDevice *self, PyObject *args );
 PyObject *GetIPConfig( sLeddarDevice *self, PyObject *args );
 PyObject *GetDataMask( sLeddarDevice *self, PyObject *args );
 PyObject *SetDataMask( sLeddarDevice *self, PyObject *args );
 PyObject *GetStates( sLeddarDevice *self, PyObject *args );
 PyObject *GetEchoes( sLeddarDevice *self, PyObject *args );
+PyObject *GetCalibValues( sLeddarDevice *self, PyObject *args );
 
 PyObject *SetCallBackState( sLeddarDevice *self, PyObject *args );
 PyObject *SetCallBackEcho( sLeddarDevice *self, PyObject *args );
@@ -150,14 +154,6 @@ static PyMethodDef Device_methods[] =
         "Returns: True on success"
     },
     {
-        "send_JSON", ( PyCFunction )SendJSON, METH_VARARGS, "send a json command.\n"
-        "param1: (str) the json command (use b-strings) "
-        "Example: {\"cmd\":\"runMode\", \"action\": \"wr\", \"mode\": 1} puts an LCA2 in trig mode, refer to your manual\n"
-        "param2: (int, optional) the json command string's length, will use strlen if not provided  \n"
-        "param3: (int, optional) the port, defaults to 46000 \n"
-        "Returns: (str) the server's answer"
-    },
-    {
         "get_IP_config", ( PyCFunction )GetIPConfig, METH_NOARGS, "Get IP address configuration.\n"
         "Returns: (string) either \"Dynamic\" or the static ip"
     },
@@ -200,6 +196,11 @@ static PyMethodDef Device_methods[] =
         "'amplitudes' : (ndarray with shape (n_echoes, ) and dtype 'float32') the amplitude for each echo\n"
         "'timestamps' : (ndarray with shape (n_echoes, ) and dtype 'uint16') the timestamp offset for each echo\n"
         "'flags' : (ndarray with shape (n_echoes, ) and dtype 'uint16') the flag for each echo\n"
+    },
+    {
+        "get_calib_values", ( PyCFunction )GetCalibValues, METH_VARARGS, "returns the calibration values"
+        "param1: (int) the type of calibration (see leddar.calib_types) \n"
+        "Returns: the calibration"
     },
     {
         "set_callback_state", ( PyCFunction )SetCallBackState, METH_VARARGS, "Set a python function as a callback when new states are received.\n"

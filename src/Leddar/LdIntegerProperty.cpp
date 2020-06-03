@@ -153,7 +153,7 @@ T LeddarCore::LdIntegerProperty::MinValueT( void ) const
         {
             if( static_cast<uint64_t>( mMinValueS ) > static_cast<uint64_t>( std::numeric_limits<T>::max() ) )
             {
-                throw std::out_of_range( "Return type is not big enough for the value. Use MaxValueT<type> with a type big enough. Property id: " +
+                throw std::out_of_range( "Return type is not big enough for the value. Use MinValueT<type> with a type big enough. Property id: " +
                                          LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
             }
         }
@@ -161,7 +161,7 @@ T LeddarCore::LdIntegerProperty::MinValueT( void ) const
         {
             if( mMinValueS > static_cast<int64_t>( std::numeric_limits<T>::max() ) || mMinValueS < static_cast<int64_t>( std::numeric_limits<T>::min() ) )
             {
-                throw std::out_of_range( "Return type is not big enough for the value. Use MaxValueT<type> with a type big enough. Property id: " +
+                throw std::out_of_range( "Return type is not big enough for the value. Use MinValueT<type> with a type big enough. Property id: " +
                                          LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
             }
         }
@@ -172,7 +172,7 @@ T LeddarCore::LdIntegerProperty::MinValueT( void ) const
     {
         if( mMinValueU > static_cast<uint64_t>( std::numeric_limits<T>::max() ) )
         {
-            throw std::out_of_range( "Return type is not big enough for the value. Use MaxValueT<type> with a type big enough. Property id: " +
+            throw std::out_of_range( "Return type is not big enough for the value. Use MinValueT<type> with a type big enough. Property id: " +
                                      LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
         }
 
@@ -295,7 +295,10 @@ LeddarCore::LdIntegerProperty::SetLimits( int64_t aMin, int64_t aMax )
 {
     if( aMin > aMax )
     {
-        throw std::invalid_argument( "Invalid min value is higher than the max value. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::invalid_argument( "SetLimits(): Invalid min value is higher than the max value. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 )
+                                     + "(" + GetDescription() + ")"
+                                     + " min: " + LeddarUtils::LtStringUtils::IntToString( aMin, 10 )
+                                     + +" max: " + LeddarUtils::LtStringUtils::IntToString( aMax, 10 ) );
     }
 
     if( !mSigned && UnitSize() == 8 )
@@ -365,7 +368,10 @@ void LeddarCore::LdIntegerProperty::SetLimitsUnsigned( uint64_t aMin, uint64_t a
 {
     if( aMin > aMax )
     {
-        throw std::invalid_argument( "Invalid min value is higher than the max value. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::invalid_argument( "SetLimits(): Invalid min value is higher than the max value. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 )
+                                     + "(" + GetDescription() + ")"
+                                     + " min: " + LeddarUtils::LtStringUtils::IntToString( aMin, 10 )
+                                     + +" max: " + LeddarUtils::LtStringUtils::IntToString( aMax, 10 ) );
     }
 
     if( mSigned )
@@ -733,7 +739,7 @@ LeddarCore::LdIntegerProperty::SetStringValue( size_t aIndex, const std::string 
 
     if( !IsInitialized() || lCurrent != aValue )
     {
-        SetValue( aIndex, static_cast<int32_t>( LeddarUtils::LtStringUtils::StringToInt( aValue, aBase ) ) );
+        SetValue( aIndex, LeddarUtils::LtStringUtils::StringToInt( aValue, aBase ) );
     }
 }
 
@@ -897,7 +903,7 @@ T LeddarCore::LdIntegerProperty::ValueT( size_t aIndex ) const
         if( lValue > static_cast<uint64_t>( std::numeric_limits<T>::max() ) )
         {
             throw std::out_of_range( "Value is bigger than what the return type can hold. Use ValueT<TYPE> with a TYPE big enough. Property id: "
-                                     + LeddarUtils::LtStringUtils::IntToString( GetId() ) );
+                                     + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
         }
 
         return static_cast<T>( lValue );

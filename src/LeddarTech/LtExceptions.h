@@ -43,7 +43,12 @@ namespace LeddarException
         std::string GetExtraInformation( void ) const { return mExtraInformation; }
 
     protected:
-        void UpdateDisplayInformation( void ) { mDisplayInformation = mInformation + " " + mExtraInformation; }
+        void UpdateDisplayInformation( void ) {
+            mDisplayInformation = mInformation;
+
+            if( mExtraInformation.length() > 0 )
+                mDisplayInformation += " " + mExtraInformation;
+        }
         std::string mInformation;
         std::string mExtraInformation;
         std::string mDisplayInformation;

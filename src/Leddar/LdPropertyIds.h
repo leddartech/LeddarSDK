@@ -25,74 +25,94 @@ namespace LeddarCore
         typedef enum eLdPropertyIds
         {
             // Sensor's properties
-            ID_DEVICE_TYPE                  = 0x610018,
-            ID_CONNECTION_TYPE              = 0x610019,
-            ID_DEVICE_NAME                  = 0x000022,
-            ID_PART_NUMBER                  = 0x000F03,
-            ID_SOFTWARE_PART_NUMBER         = 0x0010FC,
-            ID_MANUFACTURER_NAME            = 0x610021,
-            ID_SERIAL_NUMBER                = 0x000F00,
-            ID_BUILD_DATE                   = 0x610022,
-            ID_FIRMWARE_VERSION_STR         = 0x610013, //a sensor can have str, int or both
-            ID_FIRMWARE_VERSION_INT         = 0x0010fd, //should be the same as ID_FIRMWARE_VERSION_STR - but kept for retro-compatibility
-            ID_BOOTLOADER_VERSION           = 0x610014,
-            ID_ASIC_VERSION                 = 0x610015,
-            ID_FPGA_VERSION                 = 0x610016,
-            ID_GROUP_ID_NUMBER              = 0x610020,
-            ID_CARRIER_FIRMWARE_VERSION     = 0x610033,
-            ID_CARRIER_FIRMWARE_PART_NUMBER = 0x610037,
-            ID_CARRIER_PART_NUMBER          = 0x610034,
-            ID_CARRIER_SERIAL_NUMBER        = 0x610035,
-            ID_CARRIER_OPTIONS              = 0x610036,
-            ID_MAC_ADDRESS                  = 0x610038, //Mac address in text format
-            ID_IP_ADDRESS                   = 0x000F01,
-            ID_IP_MODE                      = 0x000F04, //DHCP Mode
-            ID_DATA_SERVER_PORT             = 0x000098,
-            ID_DATA_SERVER_PROTOCOL         = 0x001F01,
-            ID_OPTIONS                      = 0x000F02,
-            ID_ACQ_OPTIONS                  = 0x0000BC,
-            ID_TEMPERATURE_SCALE            = 0x001017,
-            ID_CPU_LOAD_SCALE               = 0x500102,
-            ID_APD_TEMPERATURE_SCALE        = 0x00101A,
-            ID_CRC32                        = 0x0010FE,
-            ID_ANGLE_OVR                    = 0x001025,
-            ID_TEST_MODE                    = 0x0000DC,
-            ID_APD_VBIAS_VOLTAGE_T0         = 0x001141,
-            ID_APD_VBIAS_MULTI_FACTOR       = 0x001142,
-            ID_APD_VBIAS_T0                 = 0x001143,
-            ID_APD_OPTIONS                  = 0x001144,
-            ID_MEMS_PHASE                   = 0x001145,
-            ID_BUFFER_SIZE_TCP              = 0x001F02,
-            ID_BUFFER_SIZE_UDP              = 0x001F03,
-            ID_SATURATION_PROC_EN           = 0x001162,
-            ID_XTALK_OPTIC_SEG_ENABLE       = 0x001146,
-            ID_XTALK_OPTIC_LINE_ENABLE      = 0x001147,
-            ID_XTALK_OPTIC_ECH_SEG_ENABLE   = 0x00115A,
-            ID_XTALK_OPTIC_ECH_LINE_ENABLE  = 0x00115B,
-            ID_APD_TRACK_TEMP_COMP_ENABLE   = 0x001149,
-            ID_ACC_DIST_ENABLE              = 0x001150,
-            ID_ACC_DIST_POSITION            = 0x001151,
-            ID_ACC_DIST_EXP                 = 0x001152,
-            ID_LIMIT_ACC_DIST_POS           = 0x000118,
-            ID_LIMIT_ACC_DIST_EXP           = 0x000119,
-            ID_THRESHOLD_OPTIONS            = 0x00011A,
-            ID_AUTOMATIC_THRESHOLD_SENSI    = 0x00011B,
+            ID_DEVICE_TYPE                      = 0x610018,
+            ID_CONNECTION_TYPE                  = 0x610019,
+            ID_DEVICE_NAME                      = 0x000022,
+            ID_PART_NUMBER                      = 0x000F03,
+            ID_SOFTWARE_PART_NUMBER             = 0x0010FC,
+            ID_MANUFACTURER_NAME                = 0x610021,
+            ID_SERIAL_NUMBER                    = 0x000F00,
+            ID_BUILD_DATE                       = 0x610022,
+            ID_FIRMWARE_VERSION_STR             = 0x610013, //a sensor can have str, int or both
+            ID_FIRMWARE_VERSION_INT             = 0x0010FD, //should be the same as ID_FIRMWARE_VERSION_STR - but kept for retro-compatibility
+            ID_FIRMWARE_VERSION_STRUCT          = 0x0010EF, //see struct sFirmwareVersion in LtComLeddarTechPublic.h
+            ID_BOOTLOADER_VERSION               = 0x610014,
+            ID_BOOTLOADER_PART_NUMBER           = 0x61003C,
+            ID_RECEIVER_BOARD_VERSION           = 0x00100D,
+            ID_ASIC_VERSION                     = 0x610015,
+            ID_FPGA_VERSION                     = 0x610016,
+            ID_GROUP_ID_NUMBER                  = 0x610020,
+            ID_CARRIER_FIRMWARE_VERSION         = 0x610033,
+            ID_CARRIER_FIRMWARE_PART_NUMBER     = 0x610037,
+            ID_CARRIER_PART_NUMBER              = 0x610034,
+            ID_CARRIER_SERIAL_NUMBER            = 0x610035,
+            ID_CARRIER_OPTIONS                  = 0x610036,
+            ID_MAC_ADDRESS                      = 0x610038, //Mac address in text format
+            ID_IP_ADDRESS                       = 0x000F01,
+            ID_IP_MODE                          = 0x000F04, //DHCP Mode
+            ID_INTERFACE_GATEWAY_ADDRESS        = 0x00F004,
+            ID_INTERFACE_SUBNET_MASK            = 0x00F005,
+            ID_PHYSICAL_NEGOTIATION_MODE        = 0x000F05,
+            ID_DATA_SERVER_PORT                 = 0x000098,
+            ID_DATA_SERVER_PROTOCOL             = 0x001F01,
+            ID_OPTIONS                          = 0x000F02,
+            ID_CONDITION_COUNT                  = 0x0000B4,  ///< M16 detections zones
+            ID_CONDITION_OPTIONS                = 0x0000B5,  ///< M16 detections zones
+            ID_CONDITION_VALUE                  = 0x0000B6,  ///< M16 detections zones
+            ID_CONDITION_OPERATION              = 0x0000B7,  ///< M16 detections zones
+            ID_CONDITION_INDEX1                 = 0x0000B8,  ///< M16 detections zones
+            ID_CONDITION_INDEX2                 = 0x0000B9,  ///< M16 detections zones
+            ID_CONDITION_RISING_DB              = 0x0000BA,  ///< M16 detections zones
+            ID_CONDITION_FALLING_DB             = 0x0000BB,  ///< M16 detections zones
+            ID_ACQ_OPTIONS                      = 0x0000BC,
+            ID_TEMPERATURE_SCALE                = 0x001017,
+            ID_CPU_LOAD_SCALE                   = 0x500102,
+            ID_APD_TEMPERATURE_SCALE            = 0x00101A,
+            ID_CRC32                            = 0x0010FE,
+            ID_ANGLE_OVR                        = 0x001025,
+            ID_TEST_MODE                        = 0x0000DC,
+            ID_APD_VBIAS_VOLTAGE_T0             = 0x001141,
+            ID_APD_VBIAS_MULTI_FACTOR           = 0x001142,
+            ID_APD_VBIAS_T0                     = 0x001143,
+            ID_APD_OPTIONS                      = 0x001144,
+            ID_MEMS_PHASE                       = 0x001145,
+            ID_BUFFER_SIZE_TCP                  = 0x001F02,
+            ID_BUFFER_SIZE_UDP                  = 0x001F03,
+            ID_SATURATION_PROC_EN               = 0x001162,
+            ID_XTALK_OPTIC_SEG_ENABLE           = 0x001146,
+            ID_XTALK_OPTIC_LINE_ENABLE          = 0x001147,
+            ID_XTALK_OPTIC_ECH_SEG_ENABLE       = 0x00115A,
+            ID_XTALK_OPTIC_ECH_LINE_ENABLE      = 0x00115B,
+            ID_APD_TRACK_TEMP_COMP_ENABLE       = 0x001149,
+            ID_ACC_DIST_ENABLE                  = 0x001150,
+            ID_ACC_DIST_POSITION                = 0x001151,
+            ID_ACC_DIST_EXP                     = 0x001152,
+            ID_LIMIT_ACC_DIST_POS               = 0x000118,
+            ID_LIMIT_ACC_DIST_EXP               = 0x000119,
+            ID_THRESHOLD_OPTIONS                = 0x00011A,
+            ID_AUTOMATIC_THRESHOLD_SENSI        = 0x00011B,
             ID_AUTOMATIC_THRESHOLD_SENSI_LIMITS = 0x00011E,
-            ID_THREHSOLD_POS_OFFSET         = 0x610039, //Position of the threshold, different from usual sensitivity / threshold
-            ID_LIMIT_THREHSOLD_POS_OFFSET   = 0x00011D,
-            ID_TEMP_COMP                    = 0x001148,
-            ID_AUTO_HYSTERISIS_WIDTH        = 0x00115C,
-            ID_AUTO_HOR_DISTRIBUTION_WIDTH  = 0x00115D,
-            ID_AUTO_VER_DISTRIBUTION_WIDTH  = 0x00115E,
-            ID_AUTO_CONTROLLER_DELAY        = 0x00115F,
-            ID_AUTO_CONTROLLER_STEP         = 0x001160,
-            ID_DIGITAL_FILTER_ENABLE        = 0x001161,
-            ID_RELEASE_TYPE                 = 0x0010FA,
+            ID_THREHSOLD_POS_OFFSET             = 0x610039, //Position of the threshold, different from usual sensitivity / threshold
+            ID_LIMIT_THREHSOLD_POS_OFFSET       = 0x00011D,
+            ID_TEMP_COMP                        = 0x001148,
+            ID_TEMP_COMP_SLOPE                  = 0x00114A,
+            ID_AUTO_HYSTERISIS_WIDTH            = 0x00115C,
+            ID_AUTO_HOR_DISTRIBUTION_WIDTH      = 0x00115D,
+            ID_AUTO_VER_DISTRIBUTION_WIDTH      = 0x00115E,
+            ID_AUTO_CONTROLLER_DELAY            = 0x00115F,
+            ID_AUTO_CONTROLLER_STEP             = 0x001160,
+            ID_DIGITAL_FILTER_ENABLE            = 0x001161,
+            ID_RELEASE_TYPE                     = 0x0010FA,
+            ID_XTALK_INTER_TILE_ENABLE          = 0x001169,
+            ID_SPACIAL_FILTER_ENABLE            = 0x00116A,
+            ID_SYSTEM_TIME                      = 0x00116B,
+            ID_SYNCHRONIZATION                  = 0x00116C,
 
             ID_VSEGMENT                     = 0x001021,
             ID_HSEGMENT                     = 0x001020,
             ID_RSEGMENT                     = 0x001023,
             ID_REF_SEG_MASK                 = 0x610026,
+            ID_SUB_HSEGMENT                 = 0x001028,
 
             ID_BASE_SAMPLE_DISTANCE         = 0x0000E0,
             ID_DETECTION_LENGTH             = 0x00100F,
@@ -102,6 +122,8 @@ namespace LeddarCore
             ID_FILTERED_AMP_SCALE_BITS      = 0xAA0027,
             ID_FILTERED_AMP_SCALE           = 0x001004,
             ID_NB_SAMPLE_MAX                = 0x00100E, //Max trace length
+            ID_CROSSTALK_SCALE              = 0x00101C,
+            ID_CROSSTALK_INTERHEAD_SCALE    = 0x00101D,
 
             ID_ACCUMULATION_EXP             = 0x0000A0,
             ID_ACCUMULATION_LIMITS          = 0x001011,
@@ -122,12 +144,15 @@ namespace LeddarCore
             ID_SENSIVITY                    = 0x610007, //Sensitivity = threshold offset
             ID_SENSIVITY_OLD                = 0x0000A3, //Sensitivity = threshold offset - used in M16 sensors
             ID_SENSIVITY_LIMITS             = 0x001018,
+            ID_ACQUISITION_OPTION_MASK      = 0x001019,
+            ID_STATIC_SENSITIVITY_ENABLE    = 0x001168,
             ID_PULSE_RATE                   = 0x610024,
             ID_CHANGE_DELAY                 = 0x0000BD,
             ID_CHANGE_DELAY_LIMITS          = 0x001014,
             ID_GAIN_ENABLE                  = 0x0000A4,
             ID_REFRESH_RATE                 = 0x001008,
             ID_REFRESH_RATE_LIST            = 0x0010FB, // IS16
+            ID_TRACE_LENGTH                 = 0x001001,
             ID_TRACE_POINT_STEP             = 0x001009, //Distance between two trace points
             ID_START_TRACE                  = 0x0000E1,
             ID_START_TRACE_LIMITS           = 0x0000E2,
@@ -135,6 +160,8 @@ namespace LeddarCore
             ID_TRACE_TYPE                   = 0x00FFFE, //Trace type (M16 only)
             ID_DISTANCE_RESOLUTION          = 0x0000D8,
             ID_ECHO_AMPLITUDE_MAX           = 0x001026,
+            ID_TRIGGER_MODE                 = 0x0000E4,
+            ID_ACQUISITION_MODE             = 0x0000E5,
 
             ID_LED_INTENSITY                = 0x00002A,
             ID_LED_INTENSITY_LIST           = 0xAA0013,
@@ -158,20 +185,40 @@ namespace LeddarCore
             ID_ALGO_REQUESTS                = 0x001709,
             ID_ALGO_RIPPLE_CLEANER          = 0x61003A,
 
-            ID_THRESH_AGG_AMP               = 0x1153,
-            ID_THRESH_VICTIM_DIST           = 0x1154,
-            ID_THRESH_ELEC_AGG_AMP          = 0x1155,
-            ID_THRESH_ECH_VICTIM_LEFT       = 0x1156,
-            ID_THRESH_ECH_VICTIM_RIGHT      = 0x1157,
-            ID_THRESH_GAUSS_SENSIB          = 0x1158,
-            ID_THRESH_M_PEAK                = 0x1159,
+            ID_THRESH_AGG_AMP                          = 0x1153,
+            ID_THRESH_VICTIM_DIST                      = 0x1154,
+            ID_THRESH_ELEC_AGG_AMP                     = 0x1155,
+            ID_THRESH_ECH_VICTIM_LEFT                  = 0x1156,
+            ID_THRESH_ECH_VICTIM_RIGHT                 = 0x1157,
+            ID_THRESH_GAUSS_SENSIB                     = 0x1158,
+            ID_THRESH_M_PEAK                           = 0x1159,
+            ID_PDLT_TRIANGLE_THRESHOLD                 = 0x1163,
+            ID_PDLT_TRIANGLE_THRESHOLD_LIMITS          = 0x1164,
+            ID_PDLT_TRIANGLE_THRESHOLD_DISTANCE        = 0x1165,
+            ID_PDLT_TRIANGLE_THRESHOLD_DISTANCE_LIMITS = 0x1166,
+            ID_GRADUAL_THRESHOLD_ENABLE                = 0x1167,
+            ID_STATIC_THRESHOLD_DISTANCES              = 0x1168,
+            ID_STATIC_THRESHOLD_AMPLITUDES             = 0x1169,
+
+            ID_INTERF_ENABLE                      = 0x610040,
+            ID_SAWTOOTH_CORRECTION_ENABLE         = 0x61003A,
+            ID_LINE_RANDOM_ENABLE                 = 0x61003B,
+
+            ID_DIST_VS_AMP_COMP_ENABLE            = 0x610047,
+            ID_TEMP_DISTANCE_COMP_ENABLE          = 0x610048,
+            ID_TIMEBASEDELAY_ENABLE               = 0x610049,
+            ID_FRAME_TO_FRAME_ENABLE              = 0x61004A,
+            ID_TIMEBASEDELAY_CALIB_TEMP           = 0x61004B,
+
+            ID_STATUS_ALERT                       = 0x610046,
 
             ID_TIMEBASE_DELAY               = 0x00012A,
+            ID_STATIC_NOISE                 = 0x00012C,
+            ID_CHANNEL_ANGLE_AZIMUT         = 0x00012D,
+            ID_CHANNEL_ANGLE_ELEVATION      = 0x00012E,
             ID_INTENSITY_COMPENSATIONS      = 0x000132,
             ID_REAL_DISTANCE_OFFSET         = 0x001006,
             ID_MAX_ECHOES_PER_CHANNEL       = 0x001024,
-            ID_CHANNEL_AREA                 = 0x001027,
-
 
             ID_ORIGIN_X                     = 0x0000A5,
             ID_ORIGIN_Y                     = 0x0000A6,
@@ -181,6 +228,8 @@ namespace LeddarCore
             ID_ROLL                         = 0x0000AA,
             ID_HFOV                         = 0x200003,
             ID_VFOV                         = 0x200004,
+            ID_SUB_HFOV                     = 0x200006,
+            ID_SUB_HPOSITION                = 0x200008,
 
             ID_LICENSE                      = 0x000104,
             ID_LICENSE_INFO                 = 0x000105,
@@ -226,25 +275,46 @@ namespace LeddarCore
             ID_IS16_LCD_CONTRAST                = 0x0000CD,
             ID_IS16_LCD_BRIGHTNESS              = 0x0000CE,
 
+            //DTec
+            ID_CHANNEL_AREA                 = 0x011000,
+            ID_CAL_APD                      = 0x011001,
+            ID_CAL_AMP                      = 0x011002,
+            ID_CAL_IMG                      = 0x011003,
+            ID_PAN_TILT                     = 0x011004,
+            ID_ACTIVE_ZONES                 = 0x011005,
+            ID_PULSE_WIDTH_COMPENSATION     = 0x011006,
+
+
 
             // Result State's properties
-            ID_RS_CPU_LOAD                      = 0x500100,
-            ID_CURRENT_LED_INTENSITY            = 0x500103,
-            ID_RS_BACKUP                        = 0x500104, // Calibration backup: 0=invalid backup, 1=factory backup, 2=user backup
-            ID_RS_TIMESTAMP                     = 0x001A01,
-            ID_RS_SYSTEM_TEMP                   = 0x001A03,
-            ID_RS_DISCRETE_OUTPUTS              = 0x001A0F, // Flag to know if there is something in the detection zone (IS16 & evalkit)
-            ID_RS_ACQ_CURRENT_PARAMS            = 0x001A10, // Sent with every trace, contains led power and several flags (M16)
-            ID_RS_PREDICT_TEMP                  = 0x001A13,
-            ID_RS_APD_TEMP                      = 0x001A14,
-            ID_RS_APD_GAIN                      = 0x001A15,
-            ID_RS_NOISE_LEVEL                   = 0x001A16,
-            ID_RS_ADC_RSSI                      = 0x001A17,
-            ID_RS_SNR                           = 0x001A18,
-            ID_RS_V3M_TEMP                      = 0x001A19,
-            ID_RS_TIMESTAMP64                   = 0x001A1A,
-            ID_RS_PMIC_TEMP                     = 0x001A20
-        } eLdPropertyIds;
+            ID_RS_CPU_LOAD           = 0x500100,
+            ID_CURRENT_LED_INTENSITY = 0x500103,
+            ID_RS_BACKUP             = 0x500104, // Calibration backup: 0=invalid backup, 1=factory backup, 2=user backup
+            ID_RS_TIMESTAMP          = 0x001A01,
+            ID_RS_CURRENT_TIMES_MS   = 0x011A01,
+            ID_RS_SYSTEM_TEMP        = 0x001A03,
+            ID_RS_POSITION           = 0x001A04, // DTec
+            ID_RS_SOURCE_CURRENT     = 0x001A05,
+            ID_RS_SOURCE_VOLTAGE     = 0x001A06,
+            ID_RS_ECHO_COUNT         = 0x001A07, // DTec
+            ID_RS_DISTANCES          = 0x001A08, // DTec
+            ID_RS_AMPLITUDES         = 0x001A09, // DTec
+            ID_RS_PRESENCE_COUNTS    = 0x001A0B, // DTec
+            ID_RS_STATES_V2          = 0x001A0C, // DTec
+            ID_RS_DISCRETE_OUTPUTS   = 0x001A0F, // Flag to know if there is something in the detection zone (IS16 & evalkit)
+            ID_RS_ACQ_CURRENT_PARAMS = 0x001A10, // Sent with every trace, contains led power and several flags (M16)
+            ID_RS_PREDICT_TEMP       = 0x001A13,
+            ID_RS_APD_TEMP           = 0x001A14,
+            ID_RS_APD_GAIN           = 0x001A15,
+            ID_RS_NOISE_LEVEL        = 0x001A16,
+            ID_RS_ADC_RSSI           = 0x001A17,
+            ID_RS_SNR                = 0x001A18,
+            ID_RS_V3M_TEMP           = 0x001A19,
+            ID_RS_TIMESTAMP64        = 0x001A1A,
+            ID_STATE_CPU_TEMP        = 0x001A1B,
+            ID_RS_FRAME_ID           = 0x001A1C,
+            ID_RS_PMIC_TEMP          = 0x001A20
+        } eLdPropertyIds             ;
     }
 
 }

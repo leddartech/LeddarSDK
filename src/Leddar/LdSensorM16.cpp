@@ -83,6 +83,7 @@ LeddarDevice::LdSensorM16::~LdSensorM16( void )
 void
 LeddarDevice::LdSensorM16::InitProperties( void )
 {
+    //Constants
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_FPGA_VERSION, 0, 2, "FPGA version" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_FIRMWARE_VERSION_INT, 0, 4, "Firmware version" ) );
     mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_CONSTANT, LdProperty::F_SAVE, LdPropertyIds::ID_SERIAL_NUMBER, LtComLeddarTechPublic::LT_COMM_ID_SERIAL_NUMBER,
@@ -92,44 +93,66 @@ LeddarDevice::LdSensorM16::InitProperties( void )
     mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_PART_NUMBER, LtComLeddarTechPublic::LT_COMM_ID_HW_PART_NUMBER,
                               LT_COMM_PART_NUMBER_LENGTH, LdTextProperty::TYPE_ASCII, "Hardware part number" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_CRC32, 0, 4, "Firmware checksum" ) );
-    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_DEVICE_NAME,
-                              LtComLeddarTechPublic::LT_COMM_ID_DEVICE_NAME, LT_COMM_DEVICE_NAME_LENGTH, LdTextProperty::TYPE_UTF16, "Device name" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_NONE, LdPropertyIds::ID_DEVICE_TYPE, 0, 2, "Device type" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_ACCUMULATION_EXP,
-                              LtComLeddarTechPublic::LT_COMM_ID_CFG_ACCUMULATION_EXPONENT, 4, "Accumulation exponent" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_NONE, LdPropertyIds::ID_ACCUMULATION_LIMITS,
                               LtComLeddarTechPublic::LT_COMM_ID_LIMIT_CFG_ACCUMULATION_EXPONENT, 4, "Accumulation exponent limits" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_OVERSAMPLING_EXP,
-                              LtComLeddarTechPublic::LT_COMM_ID_CFG_OVERSAMPLING_EXPONENT, 4, "Oversampling exponent" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_NONE, LdPropertyIds::ID_OVERSAMPLING_LIMITS,
                               LtComLeddarTechPublic::LT_COMM_ID_LIMIT_CFG_OVERSAMPLING_EXPONENT, 4, "Oversampling exponent limits" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_BASE_POINT_COUNT,
-                              LtComLeddarTechPublic::LT_COMM_ID_CFG_BASE_SAMPLE_COUNT, 4, "Base point count, impact max detection distance" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_NONE, LdPropertyIds::ID_BASE_POINT_COUNT_LIMITS,
                               LtComLeddarTechPublic::LT_COMM_ID_LIMIT_CFG_BASE_SAMPLE_COUNT, 4, "Limits of base point count" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_PRECISION,
-                              LtComM16::M16_ID_CFG_BAYES_PRECISION, 1, "Smoothing", true ) );
-    mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_LED_INTENSITY,
-                              LtComM16::M16_ID_CFG_LED_INTENSITY, 1, true, "Led power %, stored as index. Use GetStringValue and SetStringValue for easier use" ) );
     mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONSTANT, LdProperty::F_SAVE, LdPropertyIds::ID_OPTIONS,
                               LtComLeddarTechPublic::LT_COMM_ID_DEVICE_OPTIONS, 4, "Device options" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE, LdPropertyIds::ID_CHANGE_DELAY,
-                              LtComM16::M16_ID_CFG_AUTO_ACQ_AVG_FRM, 2, "Change delay (in frame) for automatic led power" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_NONE, LdPropertyIds::ID_CHANGE_DELAY_LIMITS,
                               LtComM16::M16_ID_LIMIT_CFG_AUTO_ACQ_AVG_FRM, 2, "Change delay (in frame) limits" ) );
-    mProperties->AddProperty( new LdBoolProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE, LdPropertyIds::ID_GAIN_ENABLE,
-                              LtComM16::M16_ID_CFG_TRANS_IMP_GAIN, "Enable transimpedance gain (internal use)" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_DISTANCE_SCALE,
                               LtComLeddarTechPublic::LT_COMM_ID_DISTANCE_SCALE, 4, "Distance scaling between received value and distance in meter" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_FILTERED_AMP_SCALE,
                               LtComLeddarTechPublic::LT_COMM_ID_FILTERED_SCALE, 4, "Amplitude scaling" ) );
     mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_DETECTION_LENGTH,
                               LtComM16::M16_ID_BEAM_RANGE, 4, 0, 1, "Theoretical maximum range" ) );
-    mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_SENSIVITY_OLD,
-                              LtComM16::M16_ID_CFG_THRESHOLD_TABLE_OFFSET, 4, 1000, 2, "Threshold offset" ) );
     mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_INFO, LdProperty::F_NONE, LdPropertyIds::ID_SENSIVITY_LIMITS,
                               LtComM16::M16_ID_LIMIT_CFG_THRESHOLD_TABLE_OFFSET, 4, 0, 1, "Threshold offset limits" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_COM_SERIAL_PORT_BAUDRATE_OPTIONS,
+                              LtComM16::M16_ID_SERIAL_PORT_BAUDRATE_OPTIONS_MASK, 2, "Modbus available baud rates - 2 Values, one for each serial port. See \\ref eLtCommPlatformM16SerialBaudrateOptionMask" ) );
+    mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE,
+                              LdPropertyIds::ID_COM_CAN_PORT_OPTIONS_MASK, LtComM16::M16_ID_CAN_PORT_OPTIONS_MASK, 2, "CAN port options mask availability, see \\ref eLtCommPlatformM16CanOptions" ) );
+    mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_REAL_DISTANCE_OFFSET,
+                              LtComLeddarTechPublic::LT_COMM_ID_REAL_DIST_OFFSET, 4, 65536, 2, "Distance between trace start and actual 0" ) );
+    mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_TRACE_POINT_STEP,
+                              LtComLeddarTechPublic::LT_COMM_ID_TRACE_POINT_STEP, 4, 0, 3, "Distance between two points in the trace (ID_BASE_SAMPLE_DISTANCE*oversampling)" ) );
+    mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_BASE_SAMPLE_DISTANCE,
+                              LtComLeddarTechPublic::LT_COMM_ID_BASE_SAMPLE_DISTANCE, 4, 0, 3, "Distance between two base points" ) );
+    mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_REFRESH_RATE,
+                              LtComLeddarTechPublic::LT_COMM_ID_REFRESH_RATE, 4, 0, 2, "Theoretical refresh rate" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_MAX_ECHOES_PER_CHANNEL, 0, 1, "Max Detection per Segment" ) );
+    mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONSTANT, LdProperty::F_SAVE, LdPropertyIds::ID_ACQUISITION_OPTION_MASK,
+                              LtComM16::M16_ID_ACQUISITION_OPTION_MASK, 2, "Mask of available bits of acquisition options" ) );
 
+
+    //Config
+    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_DEVICE_NAME,
+                              LtComLeddarTechPublic::LT_COMM_ID_DEVICE_NAME, LT_COMM_DEVICE_NAME_LENGTH, LdTextProperty::TYPE_UTF16, "Device name" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_ACCUMULATION_EXP,
+                              LtComLeddarTechPublic::LT_COMM_ID_CFG_ACCUMULATION_EXPONENT, 4, "Accumulation exponent" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_OVERSAMPLING_EXP,
+                              LtComLeddarTechPublic::LT_COMM_ID_CFG_OVERSAMPLING_EXPONENT, 4, "Oversampling exponent" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_BASE_POINT_COUNT,
+                              LtComLeddarTechPublic::LT_COMM_ID_CFG_BASE_SAMPLE_COUNT, 4, "Base point count, impact max detection distance" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_PRECISION,
+                              LtComM16::M16_ID_CFG_BAYES_PRECISION, 1, "Smoothing", true ) );
+    mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_LED_INTENSITY,
+                              LtComM16::M16_ID_CFG_LED_INTENSITY, 1, true, "Led power %, stored as index. Use GetStringValue and SetStringValue for easier use" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE, LdPropertyIds::ID_CHANGE_DELAY,
+                              LtComM16::M16_ID_CFG_AUTO_ACQ_AVG_FRM, 2, "Change delay (in frame) for automatic led power" ) );
+    mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_ACQ_OPTIONS,
+                              LtComM16::M16_ID_CFG_ACQ_OPTIONS, 2, "Bit field of acquisition options see \\ref eLtCommPlatformM16AcqOptions. Available bits defined in ID_ACQUISITION_OPTION_MASK" ) );
+    mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_SEGMENT_ENABLE,
+                              LtComLeddarTechPublic::LT_COMM_ID_DISABLED_CHANNELS, 4, "Enable / disable selected channels pair on the device (enable = 0)" ) );
+    mProperties->AddProperty( new LdBoolProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE, LdPropertyIds::ID_GAIN_ENABLE,
+                              LtComM16::M16_ID_CFG_TRANS_IMP_GAIN, "Enable transimpedance gain (internal use)" ) );
+    mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_SENSIVITY_OLD,
+                              LtComM16::M16_ID_CFG_THRESHOLD_TABLE_OFFSET, 4, 1000, 2, "Threshold offset" ) );
+    mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_DISTANCE_RESOLUTION,
+                              LtComM16::M16_ID_CFG_LWECHOES_DIST_RES, 2, true, "Distance resolution" ) );
     mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_ORIGIN_X,
                               LtComM16::M16_ID_CFG_SENSOR_POSITION_X, 4, 2, 1, "Position of the sensor (X)" ) );
     mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_ORIGIN_Y,
@@ -142,6 +165,30 @@ LeddarDevice::LdSensorM16::InitProperties( void )
                               LtComM16::M16_ID_CFG_SENSOR_ORIENTATION_PITCH, 4, 0, 1, "Position of the sensor (Pitch)" ) );
     mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_ROLL,
                               LtComM16::M16_ID_CFG_SENSOR_ORIENTATION_ROLL, 4, 0, 1, "Position of the sensor (Roll)" ) );
+    mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_STATIC_THRESHOLD_DISTANCES,
+                              LtComM16::M16_ID_STATIC_THRESHOLD_DISTANCES, 4, 0, 2, "Static threshold distances" ) );
+    mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_STATIC_THRESHOLD_AMPLITUDES,
+                              LtComM16::M16_ID_STATIC_THRESHOLD_AMPLITUDES, 4, 0, 3, "Static threshold amplitudes" ) );
+
+    //Config - detections zones
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_CONDITION_COUNT,
+                              LtComM16::M16_ID_CFG_ZONESDET_NB_VALID_NODES, 2, "Number of valid zones detector expression node. Must be <= EVALKIT_ZONESDET_NB_NODES_MAX." ) );
+    mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_CONDITION_OPTIONS,
+                              LtComM16::M16_ID_CFG_ZONESDET_OPTIONS, 1, "Zones detector bits field options. See \\ref eLtCommM16ZonesDetectorOptions." ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_CONDITION_VALUE,
+                              LtComM16::M16_ID_CFG_ZONESDET_CMP_VALUE, 4, "Value to compare" ) );
+    mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_CONDITION_OPERATION,
+                              LtComM16::M16_ID_CFG_ZONESDET_OPERATOR, 2, "Operator. See \\ref eLtCommM16OperatorDefinitions" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_CONDITION_INDEX1,
+                              LtComM16::M16_ID_CFG_ZONESDET_OPERAND1, 1, "First operand:  cond = start segment index, logic = index of expression operator to get result." ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_CONDITION_INDEX2,
+                              LtComM16::M16_ID_CFG_ZONESDET_OPERAND2, 1, "Second operand: cond = stop segment index,  logic = index of expression operator to get result." ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_CONDITION_RISING_DB,
+                              LtComM16::M16_ID_CFG_DISCRETE_OUTPUTS_RISING_DEBOUNCE, 1, "Rising debouncing value in number of samples (from deasserted to asserted)." ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_CONDITION_FALLING_DB,
+                              LtComM16::M16_ID_CFG_DISCRETE_OUTPUTS_FALLING_DEBOUNCE, 1, "Falling debouncing value in number of samples (from asserted to deasserted)." ) );
+
+    //Config - serial port
     mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_COM_SERIAL_PORT_BAUDRATE,
                               LtComM16::M16_ID_CFG_SERIAL_PORT_BAUDRATE, 4, true, "Modbus baudrate - Check availability with ID_COM_SERIAL_PORT_BAUDRATE_OPTIONS property" ) );
     mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_COM_SERIAL_PORT_DATA_BITS,
@@ -156,8 +203,8 @@ LeddarDevice::LdSensorM16::InitProperties( void )
                               LtComM16::M16_ID_CFG_SERIAL_PORT_MAX_ECHOES, 1, "Modbus maximum detections returned by command 0x41" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_COM_SERIAL_PORT_FLOW_CONTROL,
                               LtComM16::M16_ID_CFG_SERIAL_PORT_FLOW_CONTROL, 1, "Modbus flow control" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_COM_SERIAL_PORT_BAUDRATE_OPTIONS,
-                              LtComM16::M16_ID_SERIAL_PORT_BAUDRATE_OPTIONS_MASK, 2, "Modbus available baud rates - 2 Values, one for each serial port. See \\ref eLtCommPlatformM16SerialBaudrateOptionMask" ) );
+
+    //Config - CANbus
     mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_COM_CAN_PORT_BAUDRATE,
                               LtComM16::M16_ID_CFG_CAN_PORT_BAUDRATE, 4, true,  "CAN port baudrate" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_COM_CAN_PORT_TX_MSG_BASE_ID,
@@ -174,34 +221,22 @@ LeddarDevice::LdSensorM16::InitProperties( void )
                               LdPropertyIds::ID_COM_CAN_PORT_PORT_ACQCYCLE_DELAY, LtComM16::M16_ID_CFG_CAN_PORT_ACQCYCLE_DELAY, 2, "CAN Port acquisition delay" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE,
                               LdPropertyIds::ID_COM_CAN_PORT_MAX_ECHOES, LtComM16::M16_ID_CFG_CAN_PORT_MAX_ECHOES, 1, "CAN port max echoes" ) );
-    mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE,
-                              LdPropertyIds::ID_COM_CAN_PORT_OPTIONS_MASK, LtComM16::M16_ID_CAN_PORT_OPTIONS_MASK, 2, "CAN port options mask availability, see \\ref eLtCommPlatformM16CanOptions" ) );
 
-    mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_ACQ_OPTIONS,
-                              LtComM16::M16_ID_CFG_ACQ_OPTIONS, 2, "Bit field of acquisition options" ) );
-    mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_SEGMENT_ENABLE,
-                              LtComLeddarTechPublic::LT_COMM_ID_DISABLED_CHANNELS, 4, "Enable / disable selected channels pair on the device (enable = 0)" ) );
-    mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_REAL_DISTANCE_OFFSET,
-                              LtComLeddarTechPublic::LT_COMM_ID_REAL_DIST_OFFSET, 4, 65536, 2, "Distance between trace start and actual 0" ) );
-    mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_TRACE_POINT_STEP,
-                              LtComLeddarTechPublic::LT_COMM_ID_TRACE_POINT_STEP, 4, 0, 3, "Distance between two points in the trace (ID_BASE_SAMPLE_DISTANCE*oversampling)" ) );
-    mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_BASE_SAMPLE_DISTANCE,
-                              LtComLeddarTechPublic::LT_COMM_ID_BASE_SAMPLE_DISTANCE, 4, 0, 3, "Distance between two base points" ) );
-    mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_REFRESH_RATE,
-                              LtComLeddarTechPublic::LT_COMM_ID_REFRESH_RATE, 4, 0, 2, "Theoretical refresh rate" ) );
-
+    //License
     mProperties->AddProperty( new LdBufferProperty( LdProperty::CAT_OTHER, LdProperty::F_EDITABLE, LdPropertyIds::ID_LICENSE,
                               LtComLeddarTechPublic::LT_COMM_ID_LICENSE, LT_COMM_LICENSE_KEY_LENGTH, "License key" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_OTHER, LdProperty::F_NONE, LdPropertyIds::ID_LICENSE_INFO,
                               LtComLeddarTechPublic::LT_COMM_ID_LICENSE_INFO, 4, "License type / subtype" ) );
+    mProperties->AddProperty( new LdBufferProperty( LdProperty::CAT_OTHER, LdProperty::F_EDITABLE, LdPropertyIds::ID_VOLATILE_LICENSE,
+                              LtComLeddarTechPublic::LT_COMM_ID_VOLATILE_LICENSE, LT_COMM_LICENSE_KEY_LENGTH, "Temporary license key - internal use" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_OTHER, LdProperty::F_NONE, LdPropertyIds::ID_VOLATILE_LICENSE_INFO,
+                              LtComLeddarTechPublic::LT_COMM_ID_VOLATILE_LICENSE_INFO, 4, "Volatile license type / subtype - internal use" ) );
 
+    //Calib
     mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CALIBRATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_TIMEBASE_DELAY,
                               LtComM16::M16_ID_CAL_CHAN_TIMEBASE_DELAY, 4, 65536, 2, "Timebase delay - Require integrator license to change" ) );
     mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CALIBRATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_INTENSITY_COMPENSATIONS,
                               LtComM16::M16_ID_CAL_LED_INTENSITY, 4, 65536, 2, "Led power compensations - Require integrator license to change" ) );
-    mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_DISTANCE_RESOLUTION,
-                              LtComM16::M16_ID_CFG_LWECHOES_DIST_RES, 2, true, "Distance resolution" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_MAX_ECHOES_PER_CHANNEL, 0, 1, "Max Detection per Segment" ) );
 
     GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_SERIAL_PORT_ADDRESS )->SetLimits( 1, MODBUS_MAX_ADDR );
 
@@ -750,6 +785,10 @@ LeddarDevice::LdSensorM16::UpdateConstants( void )
     uint32_t lDistanceScale = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_DISTANCE_SCALE )->ValueT<uint32_t>();
     LeddarCore::LdFloatProperty *lDetectionLength = GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_DETECTION_LENGTH );
     lDetectionLength->SetScale( lDistanceScale );
+
+    GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_STATIC_THRESHOLD_DISTANCES )->SetScale( lDistanceScale );
+    GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_STATIC_THRESHOLD_AMPLITUDES )->SetScale( GetProperties()->GetIntegerProperty(
+                LeddarCore::LdPropertyIds::ID_FILTERED_AMP_SCALE )->ValueT<uint32_t>() );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -939,7 +978,7 @@ LeddarDevice::LdSensorM16::ProcessEchoes( void )
 /// \date   August 2018
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void
-LeddarDevice::LdSensorM16::Reset( LeddarDefines::eResetType aType, LeddarDefines::eResetOptions aOptions )
+LeddarDevice::LdSensorM16::Reset( LeddarDefines::eResetType aType, LeddarDefines::eResetOptions aOptions, uint32_t )
 {
     if( aType == LeddarDefines::RT_CONFIG_RESET )
     {
@@ -1069,8 +1108,7 @@ LeddarDevice::LdSensorM16::SetProperties( LeddarCore::LdPropertiesContainer *aPr
 void
 LeddarDevice::LdSensorM16::RemoveLicense( const std::string &aLicense )
 {
-    LdBufferProperty *lLicenseProp = GetProperties()->GetBufferProperty( LdPropertyIds::ID_LICENSE );
-    std::string lCurrentLicense = lLicenseProp->GetStringValue();
+    std::string lCurrentLicense = GetProperties()->GetBufferProperty( LdPropertyIds::ID_LICENSE )->GetStringValue();
     std::transform( lCurrentLicense.begin(), lCurrentLicense.end(), lCurrentLicense.begin(), ::toupper );
 
     std::string lToRemove = aLicense;
@@ -1120,28 +1158,17 @@ LeddarDevice::LdSensorM16::RemoveAllLicenses( void )
         if( strcmp( e.what(), "Invalid license." ) != 0 )
             throw;
     }
-}
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn LeddarDevice::sLicense LeddarDevice::LdSensorM16::SendLicense( const std::string &aLicense )
-///
-/// \brief  Sends a license to the sensor
-///
-/// \exception  std::length_error               Raised when license length is invalid.
-/// \exception  LeddarException::LtComException Thrown when the device answer code indicate an error.
-/// \exception  std::runtime_error              If the license sent is invalid.
-///
-/// \param  aLicense    The license to set.
-///
-/// \return A LeddarDevice::sLicense containing the license string and the authorisation level.
-///
-/// \author David Levy
-/// \date   August 2018
-////////////////////////////////////////////////////////////////////////////////////////////////////
-LeddarDefines::sLicense
-LeddarDevice::LdSensorM16::SendLicense( const std::string &aLicense )
-{
-    return SendLicense( aLicense, false );
+    try
+    {
+        SendLicense( lEmptyLicense, true );
+    }
+    catch( std::runtime_error &e )
+    {
+        //Invalid license sent on purpose to remove the real license
+        if( strcmp( e.what(), "Invalid license." ) != 0 )
+            throw;
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1164,7 +1191,7 @@ LeddarDevice::LdSensorM16::SendLicense( const std::string &aLicense )
 LeddarDefines::sLicense
 LeddarDevice::LdSensorM16::SendLicense( const std::string &aLicense, bool aVolatile )
 {
-    if( aLicense.length() != LT_COMM_LICENSE_KEY_LENGTH * 2 )
+    if( aLicense.length() != LT_COMM_LICENSE_KEY_LENGTH * 2 && aLicense.length() != 0 )
         throw std::length_error( "Invalid license length." );
 
     // Convert the user string to 16 bytes license
@@ -1217,7 +1244,6 @@ LeddarDevice::LdSensorM16::SendLicense( const uint8_t *aLicense, bool aVolatile 
         throw LeddarException::LtComException( "Wrong answer code : " + LeddarUtils::LtStringUtils::IntToString( mProtocolConfig->GetAnswerCode() ) );
     }
 
-
     lDeviceIds.push_back( aVolatile ? LtComLeddarTechPublic::LT_COMM_ID_VOLATILE_LICENSE_INFO : LtComLeddarTechPublic::LT_COMM_ID_LICENSE_INFO );
     RequestProperties( GetProperties(), lDeviceIds );
 
@@ -1244,7 +1270,7 @@ LeddarDevice::LdSensorM16::SendLicense( const uint8_t *aLicense, bool aVolatile 
 ///
 /// \brief  Gets the licenses on the sensor
 ///
-/// \return The licenses on the sensor.
+/// \return The permanent licenses on the sensor.
 ///
 /// \author David Levy
 /// \date   August 2018
@@ -1256,6 +1282,8 @@ LeddarDevice::LdSensorM16::GetLicenses( void )
     std::vector<uint16_t> lDeviceIds;
     lDeviceIds.push_back( LtComLeddarTechPublic::LT_COMM_ID_LICENSE );
     lDeviceIds.push_back( LtComLeddarTechPublic::LT_COMM_ID_LICENSE_INFO );
+    lDeviceIds.push_back( LtComLeddarTechPublic::LT_COMM_ID_VOLATILE_LICENSE );
+    lDeviceIds.push_back( LtComLeddarTechPublic::LT_COMM_ID_VOLATILE_LICENSE_INFO );
     RequestProperties( GetProperties(), lDeviceIds );
 
     if( mProtocolConfig->GetAnswerCode() != LtComLeddarTechPublic::LT_COMM_ANSWER_OK )

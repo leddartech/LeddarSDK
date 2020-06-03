@@ -37,18 +37,15 @@ namespace LeddarDevice
         virtual bool GetEchoes( void ) override { return false; }; //Dont use this function, use GetData
         virtual void GetStates( void ) override {}; //Dont use this function, use GetData
 
-        virtual void    Reset( LeddarDefines::eResetType aType, LeddarDefines::eResetOptions aOptions = LeddarDefines::RO_NO_OPTION ) override;
+        virtual void    Reset( LeddarDefines::eResetType aType, LeddarDefines::eResetOptions aOptions = LeddarDefines::RO_NO_OPTION, uint32_t = 0 ) override;
         void            RequestProperties( LeddarCore::LdPropertiesContainer *aProperties, std::vector<uint16_t> aDeviceIds );
         void            SetProperties( LeddarCore::LdPropertiesContainer *aProperties, std::vector<uint16_t> aDeviceIds, unsigned int aRetryNbr = 0 );
 
-        virtual void                    RemoveLicense( const std::string &aLicense ) override;
-        virtual void                    RemoveAllLicenses( void ) override;
-        virtual LeddarDefines::sLicense SendLicense( const std::string &aLicense ) override;
-        LeddarDefines::sLicense         SendLicense( const std::string &aLicense, bool aVolatile );
-        LeddarDefines::sLicense         SendLicense( const uint8_t *aLicense, bool aVolatile = false );
+        virtual void                        RemoveLicense( const std::string &aLicense ) override;
+        virtual void                        RemoveAllLicenses( void ) override;
+        virtual LeddarDefines::sLicense     SendLicense( const std::string &aLicense, bool aVolatile = false ) override;
+        LeddarDefines::sLicense             SendLicense( const uint8_t *aLicense, bool aVolatile = false );
         virtual std::vector<LeddarDefines::sLicense> GetLicenses( void ) override;
-
-        //For IS16
 
     protected:
         LeddarConnection::LdProtocolLeddartechUSB    *mProtocolConfig;

@@ -35,7 +35,11 @@ namespace LeddarCore
         void SetValue( const size_t aIndex, const uint8_t *aBuffer, const uint32_t aBufferSize );
         void ForceValue( const size_t aIndex, const uint8_t *aBuffer, const uint32_t aBufferSize );
         virtual void SetRawStorage( uint8_t *aBuffer, size_t aCount, uint32_t aBufferSize ) override;
+        virtual void SetRawStorageOffset( uint8_t *aBuffer, uint32_t aOffset, uint32_t aSize );
         virtual void ForceRawStorage( uint8_t *aBuffer, size_t aCount, uint32_t aBufferSize ) override;
+        virtual void ForceRawStorageOffset( uint8_t *aBuffer, uint32_t aOffset, uint32_t aSize );
 
+    private:
+        void Resize( uint32_t aNewSize );
     };
 }

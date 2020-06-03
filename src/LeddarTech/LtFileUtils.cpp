@@ -14,8 +14,10 @@
 
 #include "LtFileUtils.h"
 #include "LtExceptions.h"
+#include "LtStringUtils.h"
 
 #include <fstream>
+#include <cerrno>
 
 /// *****************************************************************************
 /// Function: ReadFileToBuffer
@@ -88,4 +90,97 @@ LeddarUtils::LtFileUtils::FileExtension( const std::string &aFilename )
         return "";
     else
         return aFilename.substr( aFilename.find_last_of( "." ) + 1 );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn LeddarUtils::LtFileUtils::LtLtbReader::LtLtbReader( const std::string& aFileName )
+///
+/// \brief  Constructor. Open the file and check that it has the right signature
+///
+/// \param  aFileName   Filename of the file.
+///
+/// \author David Levy
+/// \date   July 2019
+////////////////////////////////////////////////////////////////////////////////////////////////////
+LeddarUtils::LtFileUtils::LtLtbReader::LtLtbReader( const std::string &aFileName ) :
+    mFile(),
+    mDeviceType( 0 )
+{
+    std::string lExtension = LeddarUtils::LtStringUtils::ToLower( LeddarUtils::LtFileUtils::FileExtension( aFileName ) );
+
+    if( lExtension != "ltb" )
+    {
+        throw std::logic_error( "Firmware upgrade file must be a LeddarTech Binary file (ltb)" );
+    }
+
+    mFile.exceptions( mFile.failbit );
+    mFile.open( aFileName.c_str(), std::ios_base::in | std::ios_base::binary );
+
+    if( !mFile.is_open() )
+    {
+        throw std::logic_error( "Could not open file - Error code: " + LeddarUtils::LtStringUtils::IntToString( errno ) );
+    }
+
+    //File headers
+    uint32_t lValue;
+    mFile.read( reinterpret_cast<char *>( &lValue ), sizeof( lValue ) );
+
+    if( lValue != LTB_SIGNATURE )
+    {
+        throw std::logic_error( "Wrong signature file." );
+    }
+
+    mFile.read( reinterpret_cast<char *>( &lValue ), sizeof( lValue ) );
+
+    if( lValue != LT_DOCUMENT_VERSION && lValue != LT_DOCUMENT_VERSION_SDK )
+    {
+        throw std::logic_error( "Wrong document version." );
+    }
+
+    //First section
+    LtElementHeader lHeader;
+    mFile.read( reinterpret_cast<char *>( &lHeader ), sizeof( lHeader ) );
+
+    // The header just read must be that of a section.
+    if( ( ( lHeader.mFlags & LTDF_SECTION ) == 0 ) || ( lHeader.mCount != 1 ) )
+    {
+        throw std::logic_error( "Error reading main section from file" );
+    }
+
+    if( lHeader.mId != ID_LTB_FIRMWARE_SECTION )
+    {
+        throw std::logic_error( "File does not contain firmware data." );
+    }
+
+    int64_t lSizeToRead = lHeader.mUnitSize;
+
+    lSizeToRead -= Read( reinterpret_cast<char *>( &lHeader ), sizeof( lHeader ) );
+
+    if( lHeader.mId != ID_LTB_DEVICE_TYPE || sizeof( mDeviceType ) != lHeader.mUnitSize )
+    {
+        throw std::logic_error( "File does not contain firmware data." );
+    }
+
+    lSizeToRead -= Read( reinterpret_cast<char *>( &mDeviceType ), sizeof( mDeviceType ) );
+
+    //Loop through all the firmware data
+    while( lSizeToRead > 0 )
+    {
+        lSizeToRead -= Read( reinterpret_cast<char *>( &lHeader ), sizeof( lHeader ) );
+        mFirmwares.push_back( std::make_pair( lHeader.mId, std::vector<uint8_t>( lHeader.mCount ) ) );
+        lSizeToRead -= Read( reinterpret_cast<char *>( mFirmwares.back().second.data() ), lHeader.mCount );
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn LeddarUtils::LtFileUtils::LtLtbReader::~LtLtbReader()
+///
+/// \brief  Destructor.
+///
+/// \author David Levy
+/// \date   July 2019
+////////////////////////////////////////////////////////////////////////////////////////////////////
+LeddarUtils::LtFileUtils::LtLtbReader::~LtLtbReader()
+{
+    //mFile.close();
 }

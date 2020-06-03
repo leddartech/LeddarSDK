@@ -3,11 +3,24 @@ dev = leddar.Device()
 
 ##Use one of this connection method
 
-sensor_list = leddar.get_devices("Usb")
-dev.connect(sensor_list[0]['name'], leddar.device_types["Usb"])
+#Ethernet
+sensor_list = leddar.get_devices("Ethernet")
+print(leddar.device_types["Ethernet"])
+dev.connect('192.168.0.2', leddar.device_types["Ethernet"], 48630)
+connection = dev.connect('192.168.0.2', leddar.device_types["Ethernet"], 48630)
 
-#dev.connect("\\\.\\COM11", leddar.device_types["Serial"] )
+#M16 Usb
+# sensor_list = leddar.get_devices("Usb")
+# dev.connect(sensor_list[0]['name'], leddar.device_types["Usb"])
 
+##For any sensors with modbus serial communication (LeddarOne, Vu8 or M16)
+# sensor_list = leddar.get_devices("Serial")
+# dev.connect(sensor_list[0]['name'], leddar.device_types["Serial"])
+
+##For Vu8/M16 sensors with CAN BUS communication
+# dev.connect(Baud rate (kbps), Type of sensor, Tx ID (optionnal), Rx ID (optionnal))
+# dev.connect('1000', leddar.device_types["M16Komodo"])
+# dev.connect('1000', leddar.device_types["Vu8Komodo"])
 
 echoes = dev.get_echoes()
 

@@ -61,6 +61,8 @@ LeddarCore::LdBufferProperty::LdBufferProperty( LdProperty::eCategories aCategor
 const uint8_t *
 LeddarCore::LdBufferProperty::Value( size_t aIndex ) const
 {
+    VerifyInitialization();
+
     if( aIndex >= Count() )
         throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
 
@@ -136,7 +138,6 @@ LeddarCore::LdBufferProperty::SetStringValue( size_t aIndex, const std::string &
     else if( ( aValue.size() / 2 ) > Size() )
         throw std::out_of_range( "String too long. Verify property size. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
 
-
     std::vector<uint8_t> lBuffer( Size(), 0 );
 
     for( size_t i = 0; i < aValue.size(); i += 2 )
@@ -191,6 +192,11 @@ LeddarCore::LdBufferProperty::SetValue( const size_t aIndex, const uint8_t *aBuf
 {
     CanEdit();
 
+    if( !IsInitialized() && Size() == 0 )
+    {
+        Resize( aBufferSize );
+    }
+
     // Initialize the count to 1 on the fist SetValue if not done before.
     if( Count() == 0 && aIndex == 0 )
     {
@@ -203,7 +209,8 @@ LeddarCore::LdBufferProperty::SetValue( const size_t aIndex, const uint8_t *aBuf
         throw std::out_of_range( "Buffer too large. Verify property size. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
 
     memcpy( Storage() + Size()*aIndex, aBuffer, aBufferSize );
-
+    EmitSignal( LdObject::VALUE_CHANGED );
+    SetInitialized( true );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -244,8 +251,13 @@ LeddarCore::LdBufferProperty::SetRawStorage( uint8_t *aBuffer, size_t aCount, ui
 {
     CanEdit();
 
+    if( !IsInitialized() && Size() == 0 )
+    {
+        Resize( aBufferSize );
+    }
+
     if( aBufferSize > Size() )
-        throw std::out_of_range( "Buffer too large. Verify property size." );
+        throw std::out_of_range( "Buffer too large. Verify property size. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
     else if( Size() == aBufferSize )
         LdProperty::SetRawStorage( aBuffer, aCount, aBufferSize );
     else //Input buffers are too small, we must pad them with 0 before passing them to base function
@@ -259,6 +271,38 @@ LeddarCore::LdBufferProperty::SetRawStorage( uint8_t *aBuffer, size_t aCount, ui
 
         LdProperty::SetRawStorage( &lNewBuffer[0], aCount, static_cast<uint32_t>( Size() ) );
     }
+
+    SetInitialized( true );
+}
+
+// *****************************************************************************
+// Function: LdBufferProperty::SetRawStorageOffset
+//
+/// \brief   Set storage directly in memory with an offset
+///
+/// param[in] aBuffer : Buffer to copy
+/// param[in] aCount : Number of element in the buffer
+/// param[in] aSizeaBufferSize :  Size of each buffer (they all must have the same size)
+///
+/// \author  David Levy
+///
+/// \since   November 2017
+// *****************************************************************************
+void
+LeddarCore::LdBufferProperty::SetRawStorageOffset( uint8_t *aBuffer, uint32_t aOffset, uint32_t aSize )
+{
+    CanEdit();
+
+    if( aOffset > Count()*Size() )
+    {
+        throw std::out_of_range( "Offset is over the property size. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+    }
+    else if( ( aOffset + aSize ) > ( Count()*Size() ) )
+    {
+        throw std::out_of_range( "Offset and size is over the property size. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+    }
+
+    memcpy( static_cast<uint8_t *>( &Storage()[aOffset] ), aBuffer, aSize );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -279,4 +323,47 @@ LeddarCore::LdBufferProperty::ForceRawStorage( uint8_t *aBuffer, size_t aCount, 
     LeddarUtils::LtScope<bool> lForceEdit( &mCheckEditable, true );
     mCheckEditable = false;
     SetRawStorage( aBuffer, aCount, aBufferSize );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn LeddarCore::LdBufferProperty::ForceRawStorageOffset( uint8_t *aBuffer, uint32_t aOffset, uint32_t aSize )
+///
+/// \brief  Force storage directly in memory with an offset
+///
+/// param[in] aBuffer : Buffer to copy
+/// param[in] aCount : Number of element in the buffer
+/// param[in] aSizeaBufferSize :  Size of each buffer (they all must have the same size)
+///
+/// \author David Levy
+/// \date   March 2019
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void
+LeddarCore::LdBufferProperty::ForceRawStorageOffset( uint8_t *aBuffer, uint32_t aOffset, uint32_t aSize )
+{
+    LeddarUtils::LtScope<bool> lForceEdit( &mCheckEditable, true );
+    mCheckEditable = false;
+    SetRawStorageOffset( aBuffer, aOffset, aSize );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LeddarCore::LdBufferProperty::Resize( uint32_t aNewSize )
+///
+/// \brief  Resizes the buffer
+///
+/// \exception  std::logic_error    Raised when the property is not empty.
+///
+/// \param  aNewSize    New size of the buffer.
+///
+/// \author David Levy
+/// \date   August 2019
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void LeddarCore::LdBufferProperty::Resize( uint32_t aNewSize )
+{
+    if( Size() != 0 && Count() != 0 )
+    {
+        throw std::logic_error( "Cannot resize buffer if its not empy. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+    }
+
+    mStride = aNewSize;
+    mUnitSize = aNewSize;
 }

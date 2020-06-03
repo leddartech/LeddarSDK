@@ -41,11 +41,18 @@
 #include "LdSensorM16Can.h"
 #include "LdSensorVu8Can.h"
 
+//Ethernet
+#include "LdConnectionInfoEthernet.h"
+#include "LdEthernet.h"
+#include "LdSensorPixell.h"
+#include "LdSensorDTec.h"
+
 //Utils
 #include "LtExceptions.h"
 #include "LtKeyboardUtils.h"
 #include "LtStringUtils.h"
 #include "LtTimeUtils.h"
+#include "comm/LtComLeddarTechPublic.h"
 
 /// Example class that show how to use callback
 /// Class must inherit from LdObject and override the
@@ -80,7 +87,11 @@ private:
         if( aSender == mStates ) {
             static uint32_t lLastTimeStamp = 0;
             LeddarConnection::LdResultStates *lResultStates = mSensor->GetResultStates();
-            std::cout << "Cpuload: " << lResultStates->GetProperties()->FindProperty( LeddarCore::LdPropertyIds::ID_RS_CPU_LOAD )->GetStringValue();
+
+            if( lResultStates->GetProperties()->FindProperty( LeddarCore::LdPropertyIds::ID_RS_CPU_LOAD ) &&
+                    lResultStates->GetProperties()->FindProperty( LeddarCore::LdPropertyIds::ID_RS_CPU_LOAD )->Count() > 0 ) {
+                std::cout << "Cpuload: " << lResultStates->GetProperties()->FindProperty( LeddarCore::LdPropertyIds::ID_RS_CPU_LOAD )->GetStringValue();
+            }
 
             if( lResultStates->GetProperties()->FindProperty( LeddarCore::LdPropertyIds::ID_RS_SYSTEM_TEMP ) ) {
                 std::cout << "Temp = " << lResultStates->GetProperties()->FindProperty( LeddarCore::LdPropertyIds::ID_RS_SYSTEM_TEMP )->GetStringValue() << " C";
@@ -107,7 +118,12 @@ private:
             for( uint32_t i = 0; i < mEchoes->GetEchoCount(); i = i + lIncrement ) {
                 std::cout << lEchoes[i].mChannelIndex;
                 std::cout << "\t" << std::setprecision( 3 ) << ( ( float )lEchoes[i].mDistance / ( float )mDistanceScale );
-                std::cout << "\t\t" << std::setprecision( 3 ) << ( ( float )lEchoes[i].mAmplitude / ( float )mAmplitudeScale ) << std::endl;
+                std::cout << "\t\t" << std::setprecision( 3 ) << ( ( float )lEchoes[i].mAmplitude / ( float )mAmplitudeScale );
+
+                if( lEchoes[i].mTimestamp != 0 )
+                    std::cout << "\t@" << lEchoes[i].mTimestamp << std::endl;
+
+                std::cout << std::endl;
             }
 
             mEchoes->UnLock( LeddarConnection::B_GET );
@@ -134,7 +150,35 @@ void displayListConnections( std::vector<LeddarConnection::LdConnectionInfo *> &
 
     for( size_t i = 0; i < aConnections.size(); ++i )
     {
-        std::cout << i + 1 << " - " << aConnections[ i ]->GetDisplayName() << std::endl;
+        std::cout << i + 1 << " - " << aConnections[ i ]->GetDisplayName();
+
+        if( aConnections[i]->GetType() == LeddarConnection::LdConnectionInfo::CT_ETHERNET_UNIVERSAL ||
+                aConnections[i]->GetType() == LeddarConnection::LdConnectionInfo::CT_ETHERNET_LEDDARTECH )
+        {
+            LeddarConnection::LdConnectionInfoEthernet *lInfo = dynamic_cast< LeddarConnection::LdConnectionInfoEthernet * >( aConnections[i] );
+
+            if( lInfo->GetDeviceType() == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_LCA2_DISCRETE )
+                std::cout << " [LCA2D] ";
+            else if( lInfo->GetDeviceType() == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_LCA3_DISCRETE )
+                std::cout << " [LCA3] ";
+            else if( lInfo->GetDeviceType() == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_LCA2_REFDESIGN )
+                std::cout << " [LCA2] ";
+            else if( lInfo->GetDeviceType() == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_DTEC )
+                std::cout << " [DTec] ";
+            else if( lInfo->GetDeviceType() == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_SIDETEC_M )
+                std::cout << " [SideTec] ";
+            else if( lInfo->GetDeviceType() == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_TRACKER )
+                std::cout << " [Tracker] ";
+            else if( lInfo->GetDeviceType() == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_VTEC )
+                std::cout << " [VTec] ";
+            else if( lInfo->GetDeviceType() == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_TRACKER_TRANS )
+                std::cout << " [TrackerTrans] ";
+
+            std::cout << " - " << dynamic_cast<LeddarConnection::LdConnectionInfoEthernet *>( aConnections[i] )->GetIP();
+            std::cout << ":" << dynamic_cast<LeddarConnection::LdConnectionInfoEthernet *>( aConnections[i] )->GetPort();
+        }
+
+        std::cout << std::endl;
     }
 
     std::cout << std::endl;
@@ -190,6 +234,23 @@ void displayEchoes( const std::string &aSensorName, LeddarDevice::LdSensor *aSen
     // Retrieves echoes from the device
     bool lNewData = aSensor->GetData();
 
+    static int count = 0;
+    LeddarDevice::LdSensorPixell *lPix = dynamic_cast<LeddarDevice::LdSensorPixell *>( aSensor );
+    LeddarDevice::LdSensorDTec *lDTec = dynamic_cast<LeddarDevice::LdSensorDTec *>( aSensor );
+
+
+    if( lPix != nullptr && ++count < 20 )
+    {
+        lPix->GetStatus();
+        count = 0;
+    }
+
+    if( lDTec != nullptr && ++count < 20 )
+    {
+        lDTec->GetStatus();
+        count = 0;
+    }
+
     if( lNewData )
     {
         LeddarConnection::LdResultEchoes *lResultEchoes = aSensor->GetResultEchoes();
@@ -205,7 +266,12 @@ void displayEchoes( const std::string &aSensorName, LeddarDevice::LdSensor *aSen
         {
             std::cout << lEchoes[i].mChannelIndex;
             std::cout << "\t" << std::setprecision( 3 ) << ( ( float )lEchoes[i].mDistance / ( float )lDistanceScale );
-            std::cout << "\t\t" << std::setprecision( 3 ) << ( ( float )lEchoes[i].mAmplitude / ( float )lAmplitudeScale ) << std::endl;
+            std::cout << "\t\t" << std::setprecision( 3 ) << ( ( float )lEchoes[i].mAmplitude / ( float )lAmplitudeScale );
+
+            if( lEchoes[i].mTimestamp != 0 )
+                std::cout << "\t@" << lEchoes[i].mTimestamp << std::endl;
+
+            std::cout << std::endl;
         }
 
         lResultEchoes->UnLock( LeddarConnection::B_GET );
@@ -214,17 +280,47 @@ void displayEchoes( const std::string &aSensorName, LeddarDevice::LdSensor *aSen
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void readConfiguration( LeddarDevice::LdSensor *aSensor )
+/// \fn void readConfiguration( LeddarDevice::LdSensor *aSensor, bool aConstants )
 ///
 /// \brief  Reads all properties related to sensor configuration
 ///
-/// \param [in,out] aSensor sensor.
-///
 /// \author David Levy
 /// \date   November 2018
+///
+/// \param [in,out] aSensor     sensor.
+/// \param          aConstants  True to display constants.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void readConfiguration( LeddarDevice::LdSensor *aSensor )
+void readConfiguration( LeddarDevice::LdSensor *aSensor, bool aConstants )
 {
+    if( aConstants )
+    {
+        std::cout << "Constants : " << std::endl;
+        std::vector<LeddarCore::LdProperty *> lProperties = aSensor->GetProperties()->FindPropertiesByCategories( LeddarCore::LdProperty::CAT_CONSTANT );
+
+        for( std::vector<LeddarCore::LdProperty *>::iterator lIter = lProperties.begin(); lIter != lProperties.end(); ++lIter )
+        {
+            if( ( *lIter )->Count() > 0 )
+            {
+                std::cout << "Id: 0x" << std::hex << ( *lIter )->GetId() << std::dec;
+                std::cout << " Desc: \"" << ( *lIter )->GetDescription() << "\" Val: " << ( *lIter )->GetStringValue( 0 ) << std::endl;
+            }
+        }
+
+        lProperties = aSensor->GetProperties()->FindPropertiesByCategories( LeddarCore::LdProperty::CAT_INFO );
+
+        for( std::vector<LeddarCore::LdProperty *>::iterator lIter = lProperties.begin(); lIter != lProperties.end(); ++lIter )
+        {
+            if( ( *lIter )->Count() > 0 )
+            {
+                std::cout << "Id: 0x" << std::hex << ( *lIter )->GetId() << std::dec;
+                std::cout << " Desc: \"" << ( *lIter )->GetDescription() << "\" Val: " << ( *lIter )->GetStringValue( 0 ) << std::endl;
+            }
+        }
+
+        std::cout << std::endl;
+    }
+
+    std::cout << "Configuration : " << std::endl;
     std::vector<LeddarCore::LdProperty *> lProperties = aSensor->GetProperties()->FindPropertiesByCategories( LeddarCore::LdProperty::CAT_CONFIGURATION );
 
     for( std::vector<LeddarCore::LdProperty *>::iterator lIter = lProperties.begin(); lIter != lProperties.end(); ++lIter )
@@ -249,7 +345,7 @@ void readConfiguration( LeddarDevice::LdSensor *aSensor )
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void changeConfiguration( LeddarDevice::LdSensor *aSensor )
 {
-    readConfiguration( aSensor );
+    readConfiguration( aSensor, false );
 
     uint32_t lChoice = -1;
     std::cout << "Enter id you want to change (in hex, without 0x)" << std::endl;
@@ -332,7 +428,7 @@ void connectedMenu( LeddarDevice::LdSensor *aSensor, LeddarDevice::LdSensor *aSe
             }
 
             std::string lChoiceBuffer( 1, lPressedKey );
-            uint32_t lChoice = LeddarUtils::LtStringUtils::StringToInt( lChoiceBuffer, 10 );
+            int64_t lChoice = LeddarUtils::LtStringUtils::StringToInt( lChoiceBuffer, 10 );
 
             std::cout << std::endl;
 
@@ -378,6 +474,16 @@ void connectedMenu( LeddarDevice::LdSensor *aSensor, LeddarDevice::LdSensor *aSe
                 while( true )
                 {
                     aSensor->GetData();
+
+                    static int count = 0;
+                    LeddarDevice::LdSensorPixell *lPix = dynamic_cast<LeddarDevice::LdSensorPixell *>( aSensor );
+
+                    if( lPix != nullptr && ++count < 20 )
+                    {
+                        lPix->GetStatus();
+                        count = 0;
+                    }
+
                     LeddarUtils::LtTimeUtils::Wait( 1 );
 
                     if( LeddarUtils::LtKeyboardUtils::KeyPressed() )
@@ -391,12 +497,12 @@ void connectedMenu( LeddarDevice::LdSensor *aSensor, LeddarDevice::LdSensor *aSe
             else if( lChoice == 3 )
             {
                 std::cout << "Sensor" << ( aSensor2 != nullptr ? " 1" : "" ) << std::endl;
-                readConfiguration( aSensor );
+                readConfiguration( aSensor, true );
 
                 if( aSensor2 != nullptr )
                 {
                     std::cout << "Sensor 2" << std::endl;
-                    readConfiguration( aSensor2 );
+                    readConfiguration( aSensor2, true );
                 }
 
             }
@@ -464,8 +570,6 @@ void testConnection( void )
 
         while( true )
         {
-
-            std::cout << "******************** LeddarExample ********************" << std::endl << std::endl;
             std::cout << "1 - Connect to LeddarVu USB/Serial" << std::endl;
             std::cout << "2 - Connect to LeddarVu USB/Serial (Modbus protocol)" << std::endl;
             std::cout << "3 - Connect to LeddarVu SPI" << std::endl;
@@ -475,13 +579,16 @@ void testConnection( void )
             std::cout << "7 - Connect to M16 Modbus" << std::endl;
             std::cout << "8 - Connect to M16 CANBus" << std::endl;
             std::cout << "9 - Connect to LeddarOne Modbus" << std::endl;
-            std::cout << "10 - Read recording" << std::endl;
+            std::cout << "10 - Connect to an ethernet sensor" << std::endl;
+            std::cout << "11 - Connect to DTec auxiliary data server" << std::endl;
+            std::cout << "12 - Read recording" << std::endl;
+            std::cout << "13 - Ethernet sensors by IP/Port" << std::endl;
             std::cout << std::endl << "0 - Exit" << std::endl << std::endl;
             std::cout << std::endl << "Select: ";
 
             std::cin >> lChoice;
 
-            if( !ValidInput() || lChoice > 12 ) //Its a uint so negative value are big
+            if( !ValidInput() || lChoice > 13 ) //Its a uint so negative value are big
                 continue;
 
             if( lChoice == 0 )
@@ -847,6 +954,57 @@ void testConnection( void )
             }
             else if( 10 == lChoice )
             {
+                std::vector<LeddarConnection::LdConnectionInfo *> lConnectionsList = LeddarConnection::LdEthernet::GetDeviceList();
+                displayListConnections( lConnectionsList );
+
+                if( 0 == lConnectionsList.size() )
+                    continue;
+
+                std::cout << "Choose connection: ";
+                uint32_t lIndexSelected = 0;
+                std::cin >> lIndexSelected;
+
+                if( lIndexSelected > lConnectionsList.size() || lIndexSelected <= 0 )
+                {
+                    deleteAllButOneConnections( lConnectionsList );
+                    continue;
+                }
+
+                deleteAllButOneConnections( lConnectionsList, lIndexSelected - 1 );
+                lConnectionInfo = dynamic_cast<LeddarConnection::LdConnectionInfoEthernet *>( lConnectionsList[lIndexSelected - 1] );
+
+                // Create the connection object
+                lConnection = LeddarConnection::LdConnectionFactory::CreateConnection( lConnectionInfo );
+
+                lSensor = LeddarDevice::LdDeviceFactory::CreateSensor( lConnection );
+                lSensor->Connect();
+            }
+            else if( 11 == lChoice )              //DTec auxiliary server
+            {
+                std::vector<LeddarConnection::LdConnectionInfo *> lConnectionsList = LeddarConnection::LdEthernet::GetDeviceList();
+                displayListConnections( lConnectionsList );
+
+                if( 0 == lConnectionsList.size() )
+                    continue;
+
+                std::cout << "Choose connection: ";
+                uint32_t lIndexSelected = 0;
+                std::cin >> lIndexSelected;
+
+                if( lIndexSelected > lConnectionsList.size() || lIndexSelected <= 0 )
+                {
+                    deleteAllButOneConnections( lConnectionsList );
+                    continue;
+                }
+
+                deleteAllButOneConnections( lConnectionsList, lIndexSelected - 1 );
+                lConnectionInfo = dynamic_cast<LeddarConnection::LdConnectionInfoEthernet *>( lConnectionsList[lIndexSelected - 1] );
+                lConnection = LeddarConnection::LdConnectionFactory::CreateConnection( lConnectionInfo );
+                lSensor = new LeddarDevice::LdSensorDTec( lConnection, true );
+                lSensor->Connect();
+            }
+            else if( 12 == lChoice )
+            {
                 std::cout << "Path of the record file: ";
                 std::cin.ignore();
                 std::string lPath;
@@ -859,6 +1017,30 @@ void testConnection( void )
                 }
 
                 lPlayer = new LeddarRecord::LdRecordPlayer( lPath );
+            }
+
+            else if( 13 == lChoice )
+            {
+                std::string lIp = "127.0.0.1";
+                uint32_t lPort = 48630;
+
+                std::cout << "IP: ";
+                std::cin >> lIp;
+                std::cout << "Port: ";
+                std::cin >> lPort;
+                LeddarConnection::LdConnectionInfo::eConnectionType lType = LeddarConnection::LdConnectionInfo::CT_ETHERNET_UNIVERSAL;
+
+                if( lPort > 4000 )
+                {
+                    lType = LeddarConnection::LdConnectionInfo::CT_ETHERNET_LEDDARTECH;
+                }
+
+                LeddarConnection::LdConnectionInfoEthernet *lConnectionInfoEthernet = new LeddarConnection::LdConnectionInfoEthernet( lIp, lPort, "", lType );
+
+                // Create the connection object
+                lConnection = LeddarConnection::LdConnectionFactory::CreateConnection( lConnectionInfoEthernet );
+                lSensor = LeddarDevice::LdDeviceFactory::CreateSensor( lConnection );
+                lSensor->Connect();
             }
 
             if( lSensor != nullptr )
@@ -891,17 +1073,20 @@ void testConnection( void )
             {
                 lSensor->Disconnect();
                 delete lSensor;
+                lSensor = nullptr;
             }
 
             if( lSensor2 )
             {
                 lSensor2->Disconnect();
                 delete lSensor2;
+                lSensor2 = nullptr;
             }
 
             if( lPlayer != nullptr )
             {
                 delete lPlayer;
+                lPlayer = nullptr;
             }
         }
 
@@ -935,6 +1120,7 @@ void testConnection( void )
 
 int main( int argc, char *argv[] )
 {
+    std::cout << "******************** LeddarExample based on SDK " << LT_SDK_VERSION_STRING << " ********************" << std::endl;
     testConnection();
 
     return 0;

@@ -31,6 +31,7 @@ namespace LeddarConnection
         uint32_t mBase;         ///< [M16 - Internal use] - Amplitude value that correspond the 0 amplitude
         uint16_t mChannelIndex; ///< Channel index
         uint16_t mFlag;         ///< Detection flag
+        uint64_t mTimestamp;    ///< Echo timestamp
 
         LeddarUtils::LtMathUtils::LtPointXYZ ToXYZ( double aHFOV, double aVFOV, uint16_t aHChanNbr, uint16_t aVChanNbr, uint32_t aDistanceScale ) const;
         bool operator==( const LdEcho &aEcho ) const {
@@ -67,10 +68,14 @@ namespace LeddarConnection
         void        Init( uint32_t aDistanceScale, uint32_t aAmplitudeScale, uint32_t aMaxDetections );
         bool        IsInitialized( void ) const { return mIsInitialized;  }
         void        Swap();
-        uint32_t    GetTimestamp( eBuffer aBuffer = B_GET ) const {return mDoubleBuffer.GetTimestamp( aBuffer );}
-        void        SetTimestamp( uint32_t aTimestamp ) override { mDoubleBuffer.SetTimestamp( aTimestamp );}
         void        Lock( eBuffer aBuffer ) {mDoubleBuffer.Lock( aBuffer );}
         void        UnLock( eBuffer aBuffer ) {mDoubleBuffer.UnLock( aBuffer );}
+        uint32_t    GetTimestamp( eBuffer aBuffer = B_GET ) const {return mDoubleBuffer.GetTimestamp( aBuffer );}
+        void        SetTimestamp( uint32_t aTimestamp ) override { mDoubleBuffer.SetTimestamp( aTimestamp );}
+        uint64_t    GetTimestamp64( eBuffer aBuffer = B_GET ) const {return mDoubleBuffer.GetTimestamp64( aBuffer );}
+        void        SetTimestamp64( uint64_t aTimestamp ) { mDoubleBuffer.SetTimestamp64( aTimestamp );}
+        uint64_t    GetFrameId( eBuffer aBuffer = B_GET ) const {return mDoubleBuffer.GetFrameId( aBuffer );}
+        void        SetFrameId( uint64_t aFrameId ) { mDoubleBuffer.SetFrameId( aFrameId );}
 
         uint32_t            GetEchoCount( eBuffer aBuffer = B_GET ) const;
         std::vector<LdEcho> *GetEchoes( eBuffer aBuffer = B_GET );

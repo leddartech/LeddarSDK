@@ -36,6 +36,9 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 LeddarCore::LdProperty::LdProperty( ePropertyType aPropertyType, eCategories aCategory, uint32_t aFeatures, uint32_t aId,
                                     uint32_t aDeviceId, uint32_t aUnitSize, size_t aStride, const std::string &aDescription ) :
+    mCheckEditable( true ),
+    mStride( aStride ),
+    mUnitSize( aUnitSize ),
     mCategory( aCategory ),
     mFeatures( aFeatures ),
     mId( aId ),
@@ -43,11 +46,10 @@ LeddarCore::LdProperty::LdProperty( ePropertyType aPropertyType, eCategories aCa
     mDescription( aDescription ),
     mDeviceId( aDeviceId ),
     mInitialized( false ),
-    mStride( aStride ),
-    mUnitSize( aUnitSize ),
-    mCheckEditable( true )
+    mStorage( 0 ),
+    mBackupStorage( 0 )
 {
-    assert( aId && aUnitSize );
+    assert( aId && ( mPropertyType == TYPE_BUFFER || aUnitSize ) ); //Buffer can have a size = 0 if they are supposed to be resized on data reception
 
     if( aStride < aUnitSize )
     {
@@ -101,6 +103,9 @@ LeddarCore::LdProperty::SetCount( size_t aValue )
 {
     mStorage.resize( aValue * mStride );
     mBackupStorage.resize( mStorage.size() );
+
+    if( aValue == 0 )
+        SetInitialized( false );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -181,7 +186,8 @@ LeddarCore::LdProperty::SetRawStorage( uint8_t *aBuffer, size_t aCount, uint32_t
             }
             else
             {
-                throw std::logic_error( "Couldnt set storage value - Invalid size" );
+                throw std::logic_error( "Couldnt set storage value - Invalid size: " + LeddarUtils::LtStringUtils::IntToString( aSize )
+                                        + " id: " + LeddarUtils::LtStringUtils::IntToString( mId, 16 ) );
             }
 
             if( mStride == sizeof( uint8_t ) )
@@ -202,7 +208,8 @@ LeddarCore::LdProperty::SetRawStorage( uint8_t *aBuffer, size_t aCount, uint32_t
             }
             else
             {
-                throw std::logic_error( "Couldnt set storage value - Invalid stride" );
+                throw std::logic_error( "Couldnt set storage value - Invalid stride: " + LeddarUtils::LtStringUtils::IntToString( mStride )
+                                        + " id: " + LeddarUtils::LtStringUtils::IntToString( mId, 16 ) );
             }
         }
     }

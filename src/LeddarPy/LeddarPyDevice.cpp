@@ -12,7 +12,6 @@
 // Copyright (c) 2017 LeddarTech Inc. All rights reserved.
 // *****************************************************************************
 
-
 #include "LeddarPyDevice.h"
 #include "LeddarPy.h"
 #include "PythonHelper.h"
@@ -33,6 +32,8 @@
 #include "LdSensor.h"
 
 
+#include "LdSensorLeddarAuto.h"
+#include "LdSensorPixell.h"
 
 #include "LdLjrRecorder.h"
 
@@ -42,6 +43,7 @@
 #include <numpy/arrayobject.h>
 
 #include <algorithm>
+#include <chrono>
 
 
 #ifdef _WIN32
@@ -62,6 +64,42 @@ void _sleep_ms( int sleepMs )
 }
 #endif
 
+
+
+void CloseSocket( int socket )
+{
+    int lRet = 0;
+
+#ifdef _WIN32
+    lRet = closesocket( socket );
+#else
+    errno = 0;
+    lRet = close( socket );
+#endif
+
+    if( lRet < 0 )
+        throw std::runtime_error( "cannot close socket" );
+}
+
+void SetReceiveTimeout( int socket, uint32_t timeout_ms )
+{
+#ifdef _WIN32
+    uint32_t lSockOptResult = setsockopt( socket, SOL_SOCKET, SO_RCVTIMEO, ( char * )&timeout_ms, sizeof( timeout_ms ) );
+
+    if( lSockOptResult == SOCKET_ERROR )
+#else
+    struct timeval lTimeout;
+
+    lTimeout.tv_sec = timeout_ms / 1000;
+    lTimeout.tv_usec = ( timeout_ms % 1000 ) * 1000;
+    int lSockOptResult = setsockopt( socket, SOL_SOCKET, SO_RCVTIMEO, &lTimeout, sizeof( lTimeout ) );
+
+    if( lSockOptResult < 0 )
+#endif
+    {
+        throw LeddarException::LtComException( "Failed to set socket option SO_RCVTIMEO (setsockopt): " );
+    }
+}
 
 class ScopedDataMask
 {
@@ -102,9 +140,9 @@ private:
 
         // if we got a callback, it is necessarily after a call to GetData() from DataThread(),
         // so it both is safe and necessary to remove the lock, or we could deadlock GIL
-        if( mSelf->mGetDataLocked ) { //additional safety, it is illegal to unlock a mutex twice, do not use this field outside of DataThread()
-            mSelf->mDataThreadMutex.unlock();
-            mSelf->mGetDataLocked = false;
+        if( mSelf->mDataThreadSharedData.mGetDataLocked ) { //additional safety, it is illegal to unlock a mutex twice, do not use this field outside of DataThread()
+            mSelf->mDataThreadSharedData.mMutex.unlock();
+            mSelf->mDataThreadSharedData.mGetDataLocked = false;
         }
 
         if( aSignal != LeddarCore::LdObject::NEW_DATA )
@@ -113,12 +151,12 @@ private:
         PyGILState_STATE gstate;
 
         if( aSender == mStates ) {
-            if( mSelf->mCallBackState ) {
+            if( mSelf->mDataThreadSharedData.mCallBackState ) {
                 //Thread safe python call
                 gstate = PyGILState_Ensure();
 
                 if( PyObject *o = PackageStates( mStates ) ) {
-                    PyObject_CallFunctionObjArgs( mSelf->mCallBackState, o, NULL );
+                    PyObject_CallFunctionObjArgs( mSelf->mDataThreadSharedData.mCallBackState, o, NULL );
                     Py_DECREF( o );
                 }
 
@@ -127,12 +165,12 @@ private:
             }
         }
         else if( aSender == mEchoes ) {
-            if( mSelf->mCallBackEcho ) {
+            if( mSelf->mDataThreadSharedData.mCallBackEcho ) {
                 //Thread safe python call
                 gstate = PyGILState_Ensure();
 
                 if( PyObject *o = PackageEchoes( mEchoes ) ) {
-                    PyObject_CallFunctionObjArgs( mSelf->mCallBackEcho, o, NULL );
+                    PyObject_CallFunctionObjArgs( mSelf->mDataThreadSharedData.mCallBackEcho, o, NULL );
                     Py_DECREF( o );
                 }
 
@@ -191,18 +229,10 @@ PyObject *Device_new( PyTypeObject *type, PyObject *args, PyObject *kwds )
 {
     sLeddarDevice *self;
     self = ( sLeddarDevice * )type->tp_alloc( type, 0 );
-    new( self ) sLeddarDevice; //Properly initialize memory
+    new( self ) sLeddarDevice; //Placement new (runs the constructor without allocating the memory)
 
     if( self != nullptr )
-    {
-        self->mSensor = nullptr;
-        self->mRecorder = nullptr;
-        self->mStream = false;
         self->mDataMask = LeddarDevice::LdSensor::DM_NONE;
-        self->mDataThreadSharedData.mStop = false;
-        self->mDataThreadSharedData.mDelay = 5000;
-        self->mGetDataLocked = false;
-    }
 
     return ( PyObject * )self;
 }
@@ -244,10 +274,8 @@ void Device_dealloc( sLeddarDevice *self )
 {
     DebugTrace( "Destructing device." );
 
-    Py_XDECREF( self->mCallBackState );
-    Py_XDECREF( self->mCallBackEcho );
-    Py_XDECREF( self->mCallBackRawTrace );
-    Py_XDECREF( self->mCallBackFilteredTrace );
+    Py_XDECREF( self->mDataThreadSharedData.mCallBackState );
+    Py_XDECREF( self->mDataThreadSharedData.mCallBackEcho );
 
     if( self->mRecorder != nullptr )
     {
@@ -258,13 +286,13 @@ void Device_dealloc( sLeddarDevice *self )
     if( self->mSensor != nullptr )
     {
         Disconnect( self, nullptr );
-        delete self->mSensor; //FIXME: double free or corruption
-        self->mSensor = nullptr;
     }
 
     DebugTrace( "C++ Device Destructor." );
     self->~sLeddarDevice();
     Py_TYPE( self )->tp_free( ( PyObject * )self );
+
+    DebugTrace( "tp_free called successfully" );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -353,6 +381,7 @@ PyObject *Connect( sLeddarDevice *self, PyObject *args )
         else
             Py_RETURN_FALSE;
     }
+
     else if( CONNECTION_TYPE_ETHERNET == lConnectionType || LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_AUTO_FAMILY == lDeviceType )
     {
         try
@@ -375,6 +404,7 @@ PyObject *Connect( sLeddarDevice *self, PyObject *args )
         else
             Py_RETURN_FALSE;
     }
+
     else if( LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_M16 == lDeviceType || LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_M16_LASER == lDeviceType ||
              LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_IS16 == lDeviceType || LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_M16_EVALKIT == lDeviceType )
     {
@@ -438,8 +468,7 @@ PyObject *Connect( sLeddarDevice *self, PyObject *args )
     {
         if( ConnectUsb( &self->mSensor, lConnectionString ) )
             Py_RETURN_TRUE;
-        else if( ConnectEthernet( &self->mSensor, lConnectionString, 48630 ) )
-            Py_RETURN_TRUE;
+
         else if( ConnectSerial( &self->mSensor, lConnectionString, 1, 115200 ) )
             Py_RETURN_TRUE;
         else if( ConnectSPIFTDI( &self->mSensor, lConnectionString ) )
@@ -468,16 +497,111 @@ PyObject *Disconnect( sLeddarDevice *self, PyObject *args )
 {
     if( self->mSensor != nullptr )
     {
-        if( self->mDataThread.joinable() )
+        if( self->mDataThreadSharedData.mThread.joinable() )
         {
             StopDataThread( self, nullptr );
         }
 
         self->mSensor->Disconnect();
+        delete self->mSensor;
+        self->mSensor = nullptr;
         DebugTrace( "Disconnected" );
     }
 
     Py_RETURN_TRUE;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn PyObject *GetCalibValues( sLeddarDevice *self, PyObject *args )
+///
+/// \brief  Gets calibration values
+///
+/// \param [in,out] self    If non-null, the class instance that this method operates on.
+/// \param [in,out] args    If non-null, the arguments.
+///                 int: property id
+///
+/// \return Null if it fails, else the calibration value.
+///
+/// \author Maxime Lemonnier
+/// \date   December 2018
+////////////////////////////////////////////////////////////////////////////////////////////////////
+PyObject *GetCalibValues( sLeddarDevice *self, PyObject *args )
+{
+    if( self->mSensor == nullptr )
+    {
+        PyErr_SetString( PyExc_RuntimeError, "Not connected to a sensor." );
+        return nullptr;
+    }
+
+    int lPropertyId = 0;
+
+    if( !PyArg_ParseTuple( args, "i", &lPropertyId ) )
+        return nullptr;
+
+    try
+    {
+        std::lock_guard<std::mutex> lock( self->mDataThreadSharedData.mMutex );
+        self->mSensor->GetCalib();
+        LeddarCore::LdProperty *lProp = self->mSensor->GetProperties()->GetProperty( lPropertyId );
+
+
+        switch( lProp->GetType() )
+        {
+            case LeddarCore::LdProperty::TYPE_FLOAT:
+                if( LeddarCore::LdFloatProperty *lFloatprop = dynamic_cast< LeddarCore::LdFloatProperty * >( lProp ) )
+                {
+                    npy_intp dims = lFloatprop->Count();
+                    PyObject *lPyArray =  PyArray_SimpleNew( 1, &dims, NPY_FLOAT32 );
+
+                    if( !lPyArray )
+                        throw std::logic_error( "Unable to allocate memory for Numpy Array" );
+
+                    for( npy_intp i = 0; i < dims; i++ )
+                        ( static_cast<float *>PyArray_GETPTR1( ( PyArrayObject * )lPyArray, i ) )[0] = lFloatprop->Value( i );
+
+                    return lPyArray;
+                }
+
+                break;
+
+
+            case LeddarCore::LdProperty::TYPE_BUFFER:
+                if( LeddarCore::LdBufferProperty *lBufProp = dynamic_cast< LeddarCore::LdBufferProperty * >( lProp ) )
+                {
+                    npy_intp dims[2] = {( npy_intp )lBufProp->Count(), ( npy_intp )lBufProp->Size()};
+                    PyObject *lPyArray =  PyArray_SimpleNew( 2, dims, NPY_UBYTE );
+
+                    if( !lPyArray )
+                        throw std::logic_error( "Unable to allocate memory for Numpy Array" );
+
+                    for( npy_intp row_i = 0; row_i < dims[0]; row_i++ )
+                    {
+                        const uint8_t *bytes = lBufProp->Value( row_i );
+
+                        for( npy_intp col_i = 0; col_i < dims[1]; ++col_i )
+                            ( static_cast<uint8_t *>PyArray_GETPTR2( ( PyArrayObject * )lPyArray, row_i, col_i ) )[0] = bytes[col_i];
+
+                    }
+
+                    return lPyArray;
+                }
+
+                break;
+
+            default:
+            {
+                PyErr_SetString( PyExc_RuntimeError, "Unhandled property type" );
+            }
+        }
+
+
+    }
+    catch( std::exception &e )
+    {
+        PyErr_SetString( PyExc_RuntimeError, e.what() );
+    }
+
+    return nullptr;
 }
 
 
@@ -492,7 +616,7 @@ PyObject *GetPropertiesSnapshot( sLeddarDevice *self )
 
     try
     {
-        std::lock_guard<std::mutex> lock( self->mDataThreadMutex );
+        std::lock_guard<std::mutex> lock( self->mDataThreadSharedData.mMutex );
 
         const auto *all_props = self->mSensor->GetProperties()->GetContent();
 
@@ -583,7 +707,7 @@ PyObject *GetPropertyValue( sLeddarDevice *self, PyObject *args )
 
     try
     {
-        std::lock_guard<std::mutex> lock( self->mDataThreadMutex );
+        std::lock_guard<std::mutex> lock( self->mDataThreadSharedData.mMutex );
         return PyUnicode_FromString( self->mSensor->GetProperties()->GetProperty( lPropertyId )->GetStringValue( lIndex ).c_str() );
     }
     catch( std::exception &e )
@@ -622,8 +746,8 @@ PyObject *GetPropertyCount( sLeddarDevice *self, PyObject *args )
     try
     {
         //If we overflow a long with a property count, we have a serious problem...
-        std::lock_guard<std::mutex> lock( self->mDataThreadMutex );
-        return PyLong_FromLong( static_cast<long>( self->mSensor->GetProperties()->GetProperty( lPropertyId )->Count() ) );
+        std::lock_guard<std::mutex> lock( self->mDataThreadSharedData.mMutex );
+        return PyLong_FromUnsignedLong( static_cast<long>( self->mSensor->GetProperties()->GetProperty( lPropertyId )->Count() ) );
     }
     catch( std::exception &e )
     {
@@ -676,15 +800,17 @@ PyObject *GetPropertyAvailableValues( sLeddarDevice *self, PyObject *args )
 
         LeddarCore::LdProperty *lProp = nullptr;
         {
-            std::lock_guard<std::mutex> lock( self->mDataThreadMutex );
+            std::lock_guard<std::mutex> lock( self->mDataThreadSharedData.mMutex );
             lProp = self->mSensor->GetProperties()->GetProperty( lPropertyId );
         }
 
-        PyDict_SetItemString( lValues, "features", PyLong_FromLong( lProp->GetFeatures() ) );
+        PyDict_SetItemString( lValues, "features", PyLong_FromUnsignedLong( lProp->GetFeatures() ) );
 
-        PyDict_SetItemString( lValues, "category", PyLong_FromLong( lProp->GetCategory() ) );
+        PyDict_SetItemString( lValues, "category", PyLong_FromUnsignedLong( lProp->GetCategory() ) );
 
-        PyDict_SetItemString( lValues, "const", PyBool_FromLong( lProp->GetCategory() == LeddarCore::LdProperty::CAT_CONSTANT ) );
+        PyDict_SetItemString( lValues, "const", PyLong_FromUnsignedLong( lProp->GetCategory() == LeddarCore::LdProperty::CAT_CONSTANT ) );
+
+        PyDict_SetItemString( lValues, "description", PyUnicode_FromString( lProp->GetDescription().c_str() ) );
 
         switch( lProp->GetType() )
         {
@@ -697,7 +823,7 @@ PyObject *GetPropertyAvailableValues( sLeddarDevice *self, PyObject *args )
                         lIntensityValues.push_back( lEnumProp->EnumText( i ) );
 
                     PyDict_SetItemString( lValues, "type", PyUnicode_FromString( "list" ) );
-                    PyDict_SetItemString( lValues, "current", PyLong_FromLong( lEnumProp->Value() ) );
+                    PyDict_SetItemString( lValues, "current", PyLong_FromUnsignedLong( lEnumProp->Value() ) );
                     PyDict_SetItemString( lValues, "data", VectorToList_String( lIntensityValues ) );
                 }
 
@@ -718,7 +844,6 @@ PyObject *GetPropertyAvailableValues( sLeddarDevice *self, PyObject *args )
                 {
                     PyDict_SetItemString( lValues, "type", PyUnicode_FromString( "range" ) );
                     SET_CURRENT_VALUES( lFloatprop, lValues, "current", PyFloat_FromDouble );
-                    PyDict_SetItemString( lValues, "current", PyLong_FromLong( lFloatprop->Value() ) );
                     PyDict_SetItemString( lValues, "data", VectorToList_Float( { lFloatprop->MinValue(), lFloatprop->MaxValue() } ) );
                 }
 
@@ -738,7 +863,7 @@ PyObject *GetPropertyAvailableValues( sLeddarDevice *self, PyObject *args )
                 if( LeddarCore::LdBitFieldProperty *lBitProp = dynamic_cast< LeddarCore::LdBitFieldProperty * >( lProp ) )
                 {
                     PyDict_SetItemString( lValues, "type", PyUnicode_FromString( "bitfield" ) );
-                    SET_CURRENT_VALUES( lBitProp, lValues, "current", PyLong_FromLong );
+                    SET_CURRENT_VALUES( lBitProp, lValues, "current", PyLong_FromUnsignedLong );
                 }
 
                 break;
@@ -803,7 +928,7 @@ PyObject *SetPropertyValue( sLeddarDevice *self, PyObject *args )
 
     try
     {
-        std::lock_guard<std::mutex> lock( self->mDataThreadMutex );
+        std::lock_guard<std::mutex> lock( self->mDataThreadSharedData.mMutex );
         self->mSensor->GetProperties()->GetProperty( lPropertyId )->SetStringValue( lIndex, lPropValue );
         self->mSensor->SetConfig();
         self->mSensor->WriteConfig();
@@ -842,7 +967,7 @@ PyObject *SetAccumulationExponent( sLeddarDevice *self, PyObject *args )
 
     try
     {
-        std::lock_guard<std::mutex> lock( self->mDataThreadMutex );
+        std::lock_guard<std::mutex> lock( self->mDataThreadSharedData.mMutex );
         self->mSensor->GetProperties()->GetProperty( LeddarCore::LdPropertyIds::ID_ACCUMULATION_EXP )->SetStringValue( 0, LeddarUtils::LtStringUtils::IntToString( lValue ) );
         self->mSensor->SetConfig();
         self->mSensor->WriteConfig();
@@ -885,7 +1010,7 @@ PyObject *SetOversamplingExponent( sLeddarDevice *self, PyObject *args )
 
     try
     {
-        std::lock_guard<std::mutex> lock( self->mDataThreadMutex );
+        std::lock_guard<std::mutex> lock( self->mDataThreadSharedData.mMutex );
         self->mSensor->GetProperties()->GetProperty( LeddarCore::LdPropertyIds::ID_OVERSAMPLING_EXP )->SetStringValue( 0, LeddarUtils::LtStringUtils::IntToString( lValue ) );
         self->mSensor->SetConfig();
         self->mSensor->WriteConfig();
@@ -902,82 +1027,6 @@ PyObject *SetOversamplingExponent( sLeddarDevice *self, PyObject *args )
     }
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn PyObject *SendJSON( sLeddarDevice *self, PyObject *args )
-///
-/// \brief  Sends a JSON string
-///
-/// \param [in,out] self    If non-null, the class instance that this method operates on.
-/// \param [in,out] args    If non-null, the arguments.
-///
-/// \return the server answer
-///
-/// \author Maxime Lemonnier
-/// \date   June 2019
-////////////////////////////////////////////////////////////////////////////////////////////////////
-PyObject *SendJSON( sLeddarDevice *self, PyObject *args )
-{
-    const char *json = nullptr;
-    int port = 46000;
-    int len = -1;
-
-    if( !PyArg_ParseTuple( args, "s*|ii", &json, &len, &port) )
-        return nullptr;
-
-    if (len < 0)
-        len = strlen(json);
-
-    try
-    {
-        int _socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-
-        if (_socket < 0)
-            throw std::runtime_error("cannot create socket");
-
-        struct sockaddr_in socketaddr;
-        memset( socketaddr.sin_zero, 0, sizeof( socketaddr.sin_zero ) );
-        socketaddr.sin_family      = AF_INET;
-        socketaddr.sin_port        = htons(port);
-
-        DebugTrace(self->mIP + "@" + std::to_string(port) + ": " + json);
-
-        if ( inet_pton( AF_INET, self->mIP.c_str(), &(socketaddr.sin_addr)) != 1 )
-            throw std::runtime_error("cannot convert address");
-
-#ifdef _WIN_32
-        DWORD tv = 12;
-#else
-        struct timeval tv;
-        tv.tv_sec = 0;
-        tv.tv_usec = 12000;
-#endif
-        setsockopt(_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
-
-        if (connect(_socket, (struct sockaddr *)&socketaddr, sizeof(socketaddr)) < 0)
-            throw std::runtime_error("cannot connect to socket");
-
-        ssize_t sentlen = send(_socket, json, strlen(json), 0);
-
-        char buf[512];
-
-        ssize_t rcvlen = recv(_socket, buf, 512, MSG_WAITALL);
-
-        close(_socket);
-
-        char * loc = strrchr(buf, '}');
-
-        if (loc != nullptr)
-            rcvlen = size_t(loc - buf + 1);
-
-        return PyBytes_FromStringAndSize(buf, rcvlen);
-    }
-    catch(const std::exception& e)
-    {
-        PyErr_SetString( PyExc_RuntimeError, e.what() );
-        return nullptr;
-    }
-
-}
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \fn PyObject *GetIPConfig( sLeddarDevice *self, PyObject *args )
 ///
@@ -1000,7 +1049,7 @@ PyObject *GetIPConfig( sLeddarDevice *self, PyObject *args )
     {
         uint32_t lIPConfig = 0;
         {
-            std::lock_guard<std::mutex> lock( self->mDataThreadMutex );
+            std::lock_guard<std::mutex> lock( self->mDataThreadSharedData.mMutex );
 
             if( LeddarCore::LdBufferProperty *p = dynamic_cast< LeddarCore::LdBufferProperty * >( self->mSensor->GetProperties()->GetProperty( LeddarCore::LdPropertyIds::ID_IP_ADDRESS ) ) )
             {
@@ -1073,7 +1122,7 @@ PyObject *SetIPConfig( sLeddarDevice *self, PyObject *args )
             }
         }
 
-        std::lock_guard<std::mutex> lock( self->mDataThreadMutex );
+        std::lock_guard<std::mutex> lock( self->mDataThreadSharedData.mMutex );
 
         if( LeddarCore::LdBufferProperty *p = dynamic_cast< LeddarCore::LdBufferProperty * >( self->mSensor->GetProperties()->GetProperty( LeddarCore::LdPropertyIds::ID_IP_ADDRESS ) ) )
         {
@@ -1106,7 +1155,7 @@ PyObject *SetIPConfig( sLeddarDevice *self, PyObject *args )
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 PyObject *GetDataMask( sLeddarDevice *self, PyObject *args )
 {
-    return PyLong_FromLong( self->mDataMask );
+    return PyLong_FromUnsignedLong( self->mDataMask );
 }
 
 // *****************************************************************************
@@ -1125,7 +1174,7 @@ PyObject *SetDataMask( sLeddarDevice *self, PyObject *args )
         return nullptr;
 
     {
-        std::lock_guard<std::mutex> lock( self->mDataThreadMutex );
+        std::lock_guard<std::mutex> lock( self->mDataThreadSharedData.mMutex );
 
         try
         {
@@ -1160,7 +1209,7 @@ PyObject *GetStates( sLeddarDevice *self, PyObject *args )
     return RetryNTimes( [&]()
     {
         ScopedDataMask sdm( self, LeddarDevice::LdSensor::DM_STATES );
-        std::lock_guard<std::mutex> lock( self->mDataThreadMutex );
+        std::lock_guard<std::mutex> lock( self->mDataThreadSharedData.mMutex );
 
         if( !self->mSensor->GetData() )
             throw std::runtime_error( "No new states available!" );
@@ -1221,15 +1270,15 @@ PyObject *PackageStates( LeddarConnection::LdResultStates *aResultStates )
 
     using namespace LeddarCore::LdPropertyIds;
 
-    ADD_PROPERTY( "timestamp", ID_RS_TIMESTAMP, LeddarCore::LdIntegerProperty,  PyLong_FromLong );
-    ADD_PROPERTY( "timestamp64", ID_RS_TIMESTAMP64, LeddarCore::LdIntegerProperty,  PyLong_FromLong );
+    ADD_PROPERTY( "timestamp", ID_RS_TIMESTAMP, LeddarCore::LdIntegerProperty,  PyLong_FromUnsignedLong );
+    ADD_PROPERTY( "timestamp64", ID_RS_TIMESTAMP64, LeddarCore::LdIntegerProperty,  PyLong_FromUnsignedLongLong );
     ADD_PROPERTY( "system_temp", ID_RS_SYSTEM_TEMP, LeddarCore::LdFloatProperty,  PyFloat_FromDouble );
     ADD_PROPERTY( "predict_temp", ID_RS_PREDICT_TEMP, LeddarCore::LdFloatProperty,  PyFloat_FromDouble );
     ADD_PROPERTY( "cpu_load", ID_RS_CPU_LOAD, LeddarCore::LdFloatProperty,  PyFloat_FromDouble );
-    ADD_PROPERTY( "discrete_outputs", ID_RS_DISCRETE_OUTPUTS, LeddarCore::LdIntegerProperty,  PyLong_FromLong );
-    ADD_PROPERTY( "acq_current_params", ID_RS_ACQ_CURRENT_PARAMS, LeddarCore::LdIntegerProperty,  PyLong_FromLong );
+    ADD_PROPERTY( "discrete_outputs", ID_RS_DISCRETE_OUTPUTS, LeddarCore::LdIntegerProperty,  PyLong_FromUnsignedLong );
+    ADD_PROPERTY( "acq_current_params", ID_RS_ACQ_CURRENT_PARAMS, LeddarCore::LdIntegerProperty,  PyLong_FromUnsignedLong );
     ADD_PROPERTY( "apd_temp", ID_RS_APD_TEMP, LeddarCore::LdFloatProperty,  PyFloat_FromDouble );
-    ADD_PROPERTY( "backup", ID_RS_BACKUP, LeddarCore::LdIntegerProperty,  PyLong_FromLong );
+    ADD_PROPERTY( "backup", ID_RS_BACKUP, LeddarCore::LdIntegerProperty,  PyLong_FromUnsignedLong );
     ADD_PROPERTY( "apd_gain", ID_RS_APD_GAIN, LeddarCore::LdFloatProperty,  PyFloat_FromDouble );
     ADD_PROPERTY( "noise_level", ID_RS_NOISE_LEVEL, LeddarCore::LdFloatProperty,  PyFloat_FromDouble );
     ADD_PROPERTY( "adc_rssi", ID_RS_ADC_RSSI, LeddarCore::LdFloatProperty,  PyFloat_FromDouble );
@@ -1296,15 +1345,18 @@ PyObject *GetEchoes( sLeddarDevice *self, PyObject *args )
 /// \author David Levy, Maxime Lemonnier
 /// \date   November 2017
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma pack(push,1)
 
 struct LeddarPyEcho
 {
     uint32_t index;
     float distance;
     float amplitude;
-    uint16_t timestamp;
+    uint64_t timestamp;
     uint16_t flag;
 };
+#pragma pack(pop)
+
 PyObject *PackageEchoes( LeddarConnection::LdResultEchoes *aResultEchoes )
 {
     std::vector<LeddarConnection::LdEcho> &lEchoes = *( aResultEchoes->GetEchoes() );
@@ -1314,15 +1366,16 @@ PyObject *PackageEchoes( LeddarConnection::LdResultEchoes *aResultEchoes )
     if( !lEchoesDict )
         throw std::logic_error( "Unable to allocate memory for Python list" );
 
-    PyDict_SetItemString( lEchoesDict, "scan_direction", PyLong_FromLong( aResultEchoes->GetScanDirection() ) );
-    PyDict_SetItemString( lEchoesDict, "timestamp", PyLong_FromLong( aResultEchoes->GetTimestamp() ) );
-    PyDict_SetItemString( lEchoesDict, "distance_scale", PyLong_FromLong( aResultEchoes->GetDistanceScale() ) );
-    PyDict_SetItemString( lEchoesDict, "amplitude_scale", PyLong_FromLong( aResultEchoes->GetAmplitudeScale() ) );
-    PyDict_SetItemString( lEchoesDict, "led_power", PyLong_FromLong( aResultEchoes->GetCurrentLedPower() ) );
-    PyDict_SetItemString( lEchoesDict, "v_fov", PyLong_FromLong( aResultEchoes->GetVFOV() ) );
-    PyDict_SetItemString( lEchoesDict, "h_fov", PyLong_FromLong( aResultEchoes->GetHFOV() ) );
-    PyDict_SetItemString( lEchoesDict, "v", PyLong_FromLong( aResultEchoes->GetVChan() ) );
-    PyDict_SetItemString( lEchoesDict, "h", PyLong_FromLong( aResultEchoes->GetHChan() ) );
+    PyDict_SetItemString( lEchoesDict, "scan_direction", PyLong_FromUnsignedLong( aResultEchoes->GetScanDirection() ) );
+    PyDict_SetItemString( lEchoesDict, "timestamp", PyLong_FromUnsignedLongLong( aResultEchoes->GetTimestamp64() != 0 ? aResultEchoes->GetTimestamp64() :
+                          aResultEchoes->GetTimestamp() ) );
+    PyDict_SetItemString( lEchoesDict, "distance_scale", PyLong_FromUnsignedLong( aResultEchoes->GetDistanceScale() ) );
+    PyDict_SetItemString( lEchoesDict, "amplitude_scale", PyLong_FromUnsignedLong( aResultEchoes->GetAmplitudeScale() ) );
+    PyDict_SetItemString( lEchoesDict, "led_power", PyLong_FromUnsignedLong( aResultEchoes->GetCurrentLedPower() ) );
+    PyDict_SetItemString( lEchoesDict, "v_fov", PyFloat_FromDouble( aResultEchoes->GetVFOV() ) );
+    PyDict_SetItemString( lEchoesDict, "h_fov", PyFloat_FromDouble( aResultEchoes->GetHFOV() ) );
+    PyDict_SetItemString( lEchoesDict, "v", PyLong_FromUnsignedLong( aResultEchoes->GetVChan() ) );
+    PyDict_SetItemString( lEchoesDict, "h", PyLong_FromUnsignedLong( aResultEchoes->GetHChan() ) );
 
 
     npy_intp dims[1] = {dimsIndices};
@@ -1331,7 +1384,7 @@ PyObject *PackageEchoes( LeddarConnection::LdResultEchoes *aResultEchoes )
                                   , "indices", "u4"
                                   , "distances", "f4"
                                   , "amplitudes", "f4"
-                                  , "timestamps", "u2"
+                                  , "timestamps", "u8"
                                   , "flags", "u2" );
     PyArray_Descr *descr;
     PyArray_DescrConverter( op, &descr );
@@ -1347,7 +1400,7 @@ PyObject *PackageEchoes( LeddarConnection::LdResultEchoes *aResultEchoes )
         ech_ptr->index = uint32_t( lEchoes[i].mChannelIndex );
         ech_ptr->distance = float( lEchoes[i].mDistance ) / aResultEchoes->GetDistanceScale();
         ech_ptr->amplitude = float( lEchoes[i].mAmplitude ) / aResultEchoes->GetAmplitudeScale();
-        ech_ptr->timestamp = uint16_t( 0 ); //TODO it should contain offset from main timestamp
+        ech_ptr->timestamp = lEchoes[i].mTimestamp;
         ech_ptr->flag = uint16_t( lEchoes[i].mFlag );
     }
 
@@ -1355,6 +1408,17 @@ PyObject *PackageEchoes( LeddarConnection::LdResultEchoes *aResultEchoes )
 }
 
 
+bool DataThreadIsStopped( sSharedDataBase &shared )
+{
+    std::lock_guard<std::mutex> lock( shared.mMutex );
+
+    if( !shared.mStop )
+    {
+        PyErr_SetString( PyExc_RuntimeError, "Operation refused, DataThread is running." );
+    }
+
+    return shared.mStop;
+}
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \fn PyObject *SetCallBackState( sLeddarDevice *self, PyObject *args )
 ///
@@ -1373,17 +1437,17 @@ PyObject *SetCallBackState( sLeddarDevice *self, PyObject *args )
 {
     PyObject *lCallback = nullptr;
 
-    if( !PyArg_ParseTuple( args, "O", &lCallback ) )
+    if( !DataThreadIsStopped( self->mDataThreadSharedData ) || !PyArg_ParseTuple( args, "O", &lCallback ) )
         return nullptr;
 
-    if( self->mCallBackState != nullptr )
+    if( self->mDataThreadSharedData.mCallBackState != nullptr )
     {
-        Py_DECREF( self->mCallBackState );
+        Py_DECREF( self->mDataThreadSharedData.mCallBackState );
     }
 
     Py_INCREF( lCallback );
 
-    self->mCallBackState = lCallback;
+    self->mDataThreadSharedData.mCallBackState = lCallback;
 
     Py_RETURN_TRUE;
 }
@@ -1406,21 +1470,20 @@ PyObject *SetCallBackEcho( sLeddarDevice *self, PyObject *args )
 {
     PyObject *lCallback = nullptr;
 
-    if( !PyArg_ParseTuple( args, "O", &lCallback ) )
+    if( !DataThreadIsStopped( self->mDataThreadSharedData ) || !PyArg_ParseTuple( args, "O", &lCallback ) )
         return nullptr;
 
-    if( self->mCallBackEcho != nullptr )
+    if( self->mDataThreadSharedData.mCallBackEcho != nullptr )
     {
-        Py_DECREF( self->mCallBackEcho );
+        Py_DECREF( self->mDataThreadSharedData.mCallBackEcho );
     }
 
     Py_INCREF( lCallback );
 
-    self->mCallBackEcho = lCallback;
+    self->mDataThreadSharedData.mCallBackEcho = lCallback;
 
     Py_RETURN_TRUE;
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \fn void DataThread( sLeddarDevice *self )
@@ -1446,7 +1509,7 @@ void DataThread( sLeddarDevice *self )
         {
             uint32_t lDelay = 0;
             {
-                std::lock_guard<std::mutex> lock( self->mDataThreadMutex );
+                std::lock_guard<std::mutex> lock( self->mDataThreadSharedData.mMutex );
                 lDelay = self->mDataThreadSharedData.mDelay;
 
                 if( self->mDataThreadSharedData.mStop )
@@ -1461,8 +1524,8 @@ void DataThread( sLeddarDevice *self )
 
             try
             {
-                self->mDataThreadMutex.lock(); //we can't use a std::lock_guard here, since we have to free the lock BEFORE acquiring GIL
-                self->mGetDataLocked = true;
+                self->mDataThreadSharedData.mMutex.lock(); //we can't use a std::lock_guard here, since we have to free the lock BEFORE acquiring GIL
+                self->mDataThreadSharedData.mGetDataLocked = true;
                 bool lNewData = self->mSensor->GetData(); //mutex will be handled by CallBackManager
 
                 if( lNewData )
@@ -1482,15 +1545,44 @@ void DataThread( sLeddarDevice *self )
             if( !lNewData )
                 _sleep_ms( 1 );
 
-            if( self->mGetDataLocked )
+            if( self->mDataThreadSharedData.mGetDataLocked )
             {
-                self->mDataThreadMutex.unlock(); // if no new data is found, or a exception was thrown, CallBackManager could not unlock the mutex
-                self->mGetDataLocked = false;
+                self->mDataThreadSharedData.mMutex.unlock(); // if no new data is found, or a exception was thrown, CallBackManager could not unlock the mutex
+                self->mDataThreadSharedData.mGetDataLocked = false;
             }
 
 
             LeddarUtils::LtTimeUtils::WaitBlockingMicro( lDelay * ( lErrorCount + 1 ) );
 
+            if( LeddarDevice::LdSensorLeddarAuto *lAutoSensor = dynamic_cast<LeddarDevice::LdSensorLeddarAuto *>( self->mSensor ) )
+            {
+                auto lNow = std::chrono::system_clock::now();
+                std::chrono::duration<double> diff = lNow - lLastPing;
+
+                if( diff.count() > 1.0 ) //every 2s
+                {
+                    lLastPing = lNow;
+                    DebugTrace( "Sending Ping..." );
+
+                    try
+                    {
+                        std::lock_guard<std::mutex> lock( self->mDataThreadSharedData.mMutex );
+
+                        if( LeddarDevice::LdSensorPixell *lPixell = dynamic_cast<LeddarDevice::LdSensorPixell *>( self->mSensor ) )
+                        {
+                            lPixell->GetStatus();
+                        }
+                        else
+                        {
+                            lAutoSensor->SendPing();
+                        }
+                    }
+                    catch( std::exception &e )
+                    {
+                        DebugTrace( std::string( "Error in data thread (SendPing()): " ) + e.what() );
+                    }
+                }
+            }
         }
         catch( ... )
         {
@@ -1519,13 +1611,24 @@ PyObject *StartDataThread( sLeddarDevice *self, PyObject *args )
     if( !CheckSensor( self ) )
         return nullptr;
 
-    DebugTrace( "Starting thread" );
+    Py_BEGIN_ALLOW_THREADS;
+
     {
-        std::lock_guard<std::mutex> lock( self->mDataThreadMutex );
-        self->mDataThreadSharedData.mStop = false;
+        std::lock_guard<std::mutex> lock( self->mDataThreadSharedData.mMutex );
+
+        if( self->mDataThreadSharedData.mStop )
+        {
+            self->mDataThreadSharedData.mStop = false;
+            DebugTrace( "Starting DataThread" );
+            self->mDataThreadSharedData.mThread = std::thread( DataThread, self );
+        }
+        else
+            DebugTrace( "DataThread already running, nothing to do." );
     }
 
-    self->mDataThread = std::thread( DataThread, self );
+
+
+    Py_END_ALLOW_THREADS;
 
     Py_RETURN_TRUE;
 }
@@ -1545,18 +1648,23 @@ PyObject *StartDataThread( sLeddarDevice *self, PyObject *args )
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 PyObject *StopDataThread( sLeddarDevice *self, PyObject *args )
 {
+    Py_BEGIN_ALLOW_THREADS;
+
     {
-        DebugTrace( "Obtaining mutex" );
-        std::lock_guard<std::mutex> lock( self->mDataThreadMutex );
+        DebugTrace( "Obtaining mMutex" );
+        std::lock_guard<std::mutex> lock( self->mDataThreadSharedData.mMutex );
         self->mDataThreadSharedData.mStop = true;
     }
 
-    if( self->mDataThread.joinable() )
+    if( self->mDataThreadSharedData.mThread.joinable() )
     {
-        DebugTrace( "Joining thread" );
-        self->mDataThread.join();
-        DebugTrace( "Thread joined" );
+        DebugTrace( "Joining DataThread" );
+        self->mDataThreadSharedData.mThread.join();
+        DebugTrace( "DataThread joined" );
     }
+
+
+    Py_END_ALLOW_THREADS;
 
     Py_RETURN_TRUE;
 }
@@ -1589,7 +1697,7 @@ PyObject *SetDataThreadDelay( sLeddarDevice *self, PyObject *args )
         Py_RETURN_FALSE;
 
     {
-        std::lock_guard<std::mutex> lock( self->mDataThreadMutex );
+        std::lock_guard<std::mutex> lock( self->mDataThreadSharedData.mMutex );
         self->mDataThreadSharedData.mDelay = lDelay;
     }
     Py_RETURN_TRUE;

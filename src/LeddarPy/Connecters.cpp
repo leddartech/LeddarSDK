@@ -35,6 +35,8 @@ LeddarConnection::LdConnection *LdCreateConnection( const LeddarConnection::LdCo
 
 LeddarDevice::LdSensor *LdCreateSensor( LeddarConnection::LdConnection *aConnection ) {return LeddarDevice::LdDeviceFactory::CreateSensor( aConnection );}
 
+
+
 // *****************************************************************************
 // Function: ConnectEthernet
 //
@@ -349,7 +351,7 @@ bool ConnectCanKomodo( LeddarDevice::LdSensor **aSensor, int aDeviceType, int aR
             default:
                 throw std::invalid_argument( "Unsupported device type" ); //Should never reach this point, its already checked before
         }
-
+        DebugTrace(std::string("lM16: ") + std::to_string(lM16));
         auto lList = LeddarConnection::LdCanKomodo::GetDeviceList();
 
         if( lList.size() == 0 )

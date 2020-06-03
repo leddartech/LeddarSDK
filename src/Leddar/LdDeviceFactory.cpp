@@ -26,6 +26,8 @@
 #include "LdSensorIS16.h"
 #include "LdSensorM16Modbus.h"
 #include "LdSensorM16Can.h"
+#include "LdSensorPixell.h"
+#include "LdSensorDTec.h"
 
 #include "comm/LtComLeddarTechPublic.h"
 
@@ -97,7 +99,7 @@ LdSensor *LeddarDevice::LdDeviceFactory::CreateSensorFromDeviceType( uint32_t aD
                 lSensor->SetCarrier( new LdCarrierEnhancedModbus( aConnection ) );
             }
 
-#endif
+#endif //BUILD_MODBUS
             return lSensor;
         }
 
@@ -108,10 +110,10 @@ LdSensor *LeddarDevice::LdDeviceFactory::CreateSensorFromDeviceType( uint32_t aD
             return new LeddarDevice::LdSensorVu8Can( aConnection );
         }
 
-#endif
+#endif //BUILD_CANBUS
     }
 
-#endif
+#endif //BUILD_VU
 #if defined(BUILD_ONE) && defined(BUILD_MODBUS)
 
     if( LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_SCH_EVALKIT == aDeviceType || LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_SCH_LONG_RANGE == aDeviceType )
@@ -119,7 +121,7 @@ LdSensor *LeddarDevice::LdDeviceFactory::CreateSensorFromDeviceType( uint32_t aD
         return new LdSensorOneModbus( aConnection );
     }
 
-#endif
+#endif //BUILD_ONE && BUILD_MODBUS
 #if defined(BUILD_M16)
 
     if( aDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_M16_EVALKIT || aDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_M16 )
@@ -129,7 +131,7 @@ LdSensor *LeddarDevice::LdDeviceFactory::CreateSensorFromDeviceType( uint32_t aD
         if( !aConnection || aConnection->GetConnectionInfo()->GetType() == LeddarConnection::LdConnectionInfo::CT_USB ) //!aConnection for recording TODO : enlever le !aConnection
             return new LdSensorM16( aConnection );
 
-#endif
+#endif //BUILD_USB
 #if defined(BUILD_MODBUS)
 
         if( aConnection && aConnection->GetConnectionInfo()->GetType() == LeddarConnection::LdConnectionInfo::CT_LIB_MODBUS )
@@ -137,7 +139,7 @@ LdSensor *LeddarDevice::LdDeviceFactory::CreateSensorFromDeviceType( uint32_t aD
             return new LdSensorM16Modbus( aConnection );
         }
 
-#endif
+#endif //BUILD_MODBUS
 #ifdef BUILD_CANBUS
 
         if( aConnection && aConnection->GetConnectionInfo()->GetType() == LeddarConnection::LdConnectionInfo::CT_CAN_KOMODO )
@@ -145,7 +147,7 @@ LdSensor *LeddarDevice::LdDeviceFactory::CreateSensorFromDeviceType( uint32_t aD
             return new LeddarDevice::LdSensorM16Can( aConnection );
         }
 
-#endif
+#endif //BUILD_CANBUS
     }
     else if( aDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_M16_LASER )
     {
@@ -154,7 +156,7 @@ LdSensor *LeddarDevice::LdDeviceFactory::CreateSensorFromDeviceType( uint32_t aD
         if( !aConnection || aConnection->GetConnectionInfo()->GetType() == LeddarConnection::LdConnectionInfo::CT_USB ) //!aConnection for recording TODO : enlever le !aConnection
             return new LdSensorM16Laser( aConnection );
 
-#endif
+#endif //BUILD_USB
 #if defined(BUILD_MODBUS)
 
         if( aConnection && aConnection->GetConnectionInfo()->GetType() == LeddarConnection::LdConnectionInfo::CT_LIB_MODBUS )
@@ -162,7 +164,7 @@ LdSensor *LeddarDevice::LdDeviceFactory::CreateSensorFromDeviceType( uint32_t aD
             return new LdSensorM16Modbus( aConnection );
         }
 
-#endif
+#endif //BUILD_MODBUS
 #ifdef BUILD_CANBUS
 
         if( aConnection && aConnection->GetConnectionInfo()->GetType() == LeddarConnection::LdConnectionInfo::CT_CAN_KOMODO )
@@ -170,7 +172,7 @@ LdSensor *LeddarDevice::LdDeviceFactory::CreateSensorFromDeviceType( uint32_t aD
             return new LeddarDevice::LdSensorM16Can( aConnection );
         }
 
-#endif
+#endif //BUILD_CANBUS
     }
     else if( aDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_IS16 )
     {
@@ -179,7 +181,7 @@ LdSensor *LeddarDevice::LdDeviceFactory::CreateSensorFromDeviceType( uint32_t aD
         if( !aConnection || aConnection->GetConnectionInfo()->GetType() == LeddarConnection::LdConnectionInfo::CT_USB ) //!aConnection for recording TODO : enlever le !aConnection
             return new LdSensorIS16( aConnection );
 
-#endif
+#endif //BUILD_USB
 #if defined(BUILD_MODBUS)
 
         if( aConnection && aConnection->GetConnectionInfo()->GetType() == LeddarConnection::LdConnectionInfo::CT_LIB_MODBUS )
@@ -187,7 +189,7 @@ LdSensor *LeddarDevice::LdDeviceFactory::CreateSensorFromDeviceType( uint32_t aD
             return new LdSensorM16Modbus( aConnection );
         }
 
-#endif
+#endif //BUILD_MODBUS
 #ifdef BUILD_CANBUS
 
         if( aConnection && aConnection->GetConnectionInfo()->GetType() == LeddarConnection::LdConnectionInfo::CT_CAN_KOMODO )
@@ -195,10 +197,31 @@ LdSensor *LeddarDevice::LdDeviceFactory::CreateSensorFromDeviceType( uint32_t aD
             return new LeddarDevice::LdSensorM16Can( aConnection );
         }
 
-#endif
+#endif //BUILD_CANBUS
     }
 
-#endif
+#endif //BUILD_M16
+
+#if defined(BUILD_AUTO) && defined(BUILD_ETHERNET)
+
+    if( aDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_PIXELL )
+    {
+        LeddarDevice::LdSensor *lSensor = new LdSensorPixell( aConnection );
+
+        return lSensor;
+    }
+
+#endif //BUILD_AUTO && BUILD_ETHERNET
+#if defined(BUILD_ETHERNET) && defined(BUILD_DTEC)
+
+    if( LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_DTEC == aDeviceType || LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_SIDETEC_M == aDeviceType ||
+            LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_TRACKER == aDeviceType || LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_VTEC == aDeviceType ||
+            LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_TRACKER_TRANS == aDeviceType )
+    {
+        return new LdSensorDTec( aConnection );
+    }
+
+#endif //defined(BUILD_ETHERNET) && defined(BUILD_DTEC)
     return nullptr;
 }
 
@@ -346,5 +369,27 @@ LdSensor *LeddarDevice::LdDeviceFactory::CreateSensorForRecording( uint32_t aDev
     }
 
 #endif
+
+#if defined(BUILD_AUTO) && defined(BUILD_ETHERNET)
+
+    if( aDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_PIXELL )
+    {
+        LeddarDevice::LdSensor *lSensor = new LdSensorPixell( nullptr );
+
+        return lSensor;
+    }
+
+#endif //BUILD_AUTO && BUILD_ETHERNET
+#if defined(BUILD_ETHERNET) && defined(BUILD_DTEC)
+
+    if( ( LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_DTEC == aDeviceType || LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_SIDETEC_M == aDeviceType ||
+            LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_TRACKER == aDeviceType || LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_VTEC == aDeviceType ||
+            LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_TRACKER_TRANS == aDeviceType )
+            && aProtocol == LeddarDevice::LdSensor::P_ETHERNET )
+    {
+        return new LdSensorDTec( nullptr );
+    }
+
+#endif //defined(BUILD_ETHERNET) && defined(BUILD_DTEC)
     return nullptr;
 }

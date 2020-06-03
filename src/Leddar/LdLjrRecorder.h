@@ -48,7 +48,8 @@ namespace LeddarRecord
         void EchoesCallback();
         void PropertyCallback( LeddarCore::LdProperty *aProperty );
 
-        std::ofstream mFile;
+        std::ostream *mOutStream;
+        std::ofstream *mFile;
         rapidjson::StringBuffer *mStringBuffer;
         rapidjson::Writer<rapidjson::StringBuffer, rapidjson::UTF8<char>, rapidjson::UTF8<char>, rapidjson::CrtAllocator, 0> *mWriter;
         uint64_t mLastTimestamp;

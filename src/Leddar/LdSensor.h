@@ -22,9 +22,34 @@
 
 namespace LeddarDevice
 {
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    /// \struct LdFirmwareData.
+    ///
+    /// \brief  Small structure that hold the data for a firmware update
+    ///         Most of the time its just a simple std::vector<uint8_t> holder
+    ///         But in few cases, update require several vectors
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    struct LdFirmwareData
+    {
+        // cppcheck-suppress noExplicitConstructor - Firmware data is usually just a std::vector<uint8_t>. Second constructor take care of specific case
+        LdFirmwareData( const std::vector<uint8_t> &aFirmwareData ) : mFirmwareData( aFirmwareData ) {};
+        explicit LdFirmwareData( const std::vector<uint8_t> &aFPGAData, const std::vector<uint8_t> &aAlgoData ) : mFirmwareData( aFPGAData ), mAlgoData( aAlgoData ) {};
+
+        std::vector<uint8_t> mFirmwareData;
+        std::vector<uint8_t> mAlgoData;
+    };
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    /// \class  LdSensor.
+    ///
+    /// \brief  Interface class to all sensors.
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
     class LdSensor : public LdDevice
     {
     public:
+
+
+        /// \brief  Available data mask
         enum eDataMask
         {
             DM_NONE             = 0,
@@ -33,11 +58,18 @@ namespace LeddarDevice
             DM_ALL              = DM_STATES | DM_ECHOES
         };
 
-        ////////////////////////////////////////////////////////////////////////////////////////////////////
-        /// \enum   eProtocol
-        ///
+        /// \brief  Type of firmware data to send
+        enum eFirmwareType
+        {
+            FT_DSP,
+            FT_FPGA,
+            FT_ASIC,
+            FT_FACTORY,
+            FT_OS,
+            FT_INVALID = 0xFF
+        };
+
         /// \brief  Possible communication protocol
-        ////////////////////////////////////////////////////////////////////////////////////////////////////
         enum eProtocol
         {
             P_NONE             = 0,
@@ -60,7 +92,7 @@ namespace LeddarDevice
         virtual bool                        GetData( void );
         virtual bool                        GetEchoes( void )                        = 0;
         virtual void                        GetStates( void )                        = 0;
-        virtual void                        Reset( LeddarDefines::eResetType aType, LeddarDefines::eResetOptions aOptions = LeddarDefines::RO_NO_OPTION ) = 0;
+        virtual void                        Reset( LeddarDefines::eResetType aType, LeddarDefines::eResetOptions aOptions = LeddarDefines::RO_NO_OPTION, uint32_t aSubOptions = 0 ) = 0;
         LeddarConnection::LdResultEchoes   *GetResultEchoes( void ) { return &mEchoes; }
         LeddarConnection::LdResultStates   *GetResultStates( void ) { return &mStates; }
 
@@ -68,8 +100,15 @@ namespace LeddarDevice
 
         virtual void                        RemoveLicense( const std::string & /*aLicense*/ ) {}
         virtual void                        RemoveAllLicenses( void ) {}
-        virtual LeddarDefines::sLicense     SendLicense( const std::string & /*aLicense*/ ) { return LeddarDefines::sLicense(); }
+        virtual LeddarDefines::sLicense     SendLicense( const std::string &, bool = false ) { return LeddarDefines::sLicense(); }
         virtual std::vector<LeddarDefines::sLicense> GetLicenses( void ) { return std::vector<LeddarDefines::sLicense> ( 0 ); }
+        void                                RemoveVolatileLicense( void );
+        LeddarDefines::sLicense             GetVolatileLicense();
+        void                                SendVolatileLicense( const std::string &aLicence ) { SendLicense( aLicence, true ); }
+
+        void UpdateFirmware( const std::string &aFileName, LeddarCore::LdIntegerProperty *aProcessPercentage, LeddarCore::LdBoolProperty *aCancel );
+        virtual eFirmwareType LtbTypeToFirmwareType( uint32_t ) { return FT_INVALID; }
+        virtual void UpdateFirmware( eFirmwareType, const LdFirmwareData &, LeddarCore::LdIntegerProperty *, LeddarCore::LdBoolProperty * ) { throw std::logic_error( "Firmware update not implemented for this sensor" ); }
 
     protected:
         LdSensor( LeddarConnection::LdConnection *aConnection, LeddarCore::LdPropertiesContainer *aProperties = nullptr );
@@ -82,5 +121,6 @@ namespace LeddarDevice
 
     private:
         void             InitProperties( void );
+
     };
 }

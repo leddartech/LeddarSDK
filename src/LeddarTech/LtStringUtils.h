@@ -23,8 +23,8 @@ namespace LeddarUtils
 {
     namespace LtStringUtils
     {
-        int32_t StringToInt( const std::string &aData, int aBase );
-        uint32_t StringToUInt( const std::string &aData, int aBase );
+        int64_t StringToInt( const std::string &aData, int aBase );
+        uint64_t StringToUInt( const std::string &aData, int aBase );
         float StringToFloat( const std::string &aData );
 
         template <typename T> std::string IntToString( T aData, int aBase = 10, bool aLeadingZero = false );
@@ -120,7 +120,7 @@ namespace LeddarUtils
 
                 if( aLeadingZero == false )
                 {
-                    lRes.erase( 0, std::min( lRes.find_first_not_of( '0' ), lRes.size() - 1 ) );
+                    lRes.erase( 0, ( std::min )( lRes.find_first_not_of( '0' ), lRes.size() - 1 ) );
                 }
 
                 return lRes;
@@ -155,7 +155,7 @@ namespace LeddarUtils
 
                 if( aLeadingZero == false )
                 {
-                    lRes.erase( 0, std::min( lRes.find_first_not_of( '0' ), lRes.size() - 1 ) );
+                    lRes.erase( 0, ( std::min )( lRes.find_first_not_of( '0' ), lRes.size() - 1 ) );
                 }
 
                 return lRes;
@@ -190,7 +190,7 @@ namespace LeddarUtils
 
                 if( aLeadingZero == false )
                 {
-                    lRes.erase( 0, std::min( lRes.find_first_not_of( '0' ), lRes.size() - 1 ) );
+                    lRes.erase( 0, ( std::min )( lRes.find_first_not_of( '0' ), lRes.size() - 1 ) );
                 }
 
                 return lRes;

@@ -15,6 +15,9 @@
 #include "LdDoubleBuffer.h"
 
 #include "LtTimeUtils.h"
+#include "LdPropertyIds.h"
+#include "comm/LtComLeddarTechPublic.h"
+
 #include <assert.h>
 
 using namespace LeddarConnection;
@@ -28,44 +31,13 @@ using namespace LeddarConnection;
 ///
 /// \since   January 2018
 /// *****************************************************************************
-LdDoubleBuffer::LdDoubleBuffer() : mTimestamp( nullptr ), mGetBuffer( new DataBuffer ), mSetBuffer( new DataBuffer )
+LdDoubleBuffer::LdDoubleBuffer() : mTimestamp( nullptr ), mGetBuffer( new DataBuffer ), mSetBuffer( new DataBuffer ),
+    mFrameId( LeddarCore::LdProperty::CAT_INFO, LeddarCore::LdProperty::F_SAVE, LeddarCore::LdPropertyIds::ID_RS_FRAME_ID, LtComLeddarTechPublic::LT_COMM_ID_FRAME_ID,
+              sizeof( uint64_t ), "Frame id" )
 {
-}
-
-/// *****************************************************************************
-/// Function: LdDoubleBuffer::LdDoubleBuffer
-///
-/// \brief   Copy constructor
-///
-/// \author  David Levy
-///
-/// \since   January 2018
-/// *****************************************************************************
-LdDoubleBuffer::LdDoubleBuffer( const LdDoubleBuffer &aBuffer ) : mTimestamp( nullptr ), mGetBuffer( new DataBuffer ), mSetBuffer( new DataBuffer )
-{
-    *mGetBuffer = *aBuffer.mGetBuffer;
-    *mSetBuffer = *aBuffer.mSetBuffer;
-    mTimestamp = aBuffer.mTimestamp;
-}
-
-/// *****************************************************************************
-/// Function: LdDoubleBuffer::LdDoubleBuffer
-///
-/// \brief   = Operator
-///
-/// \author  David Levy
-///
-/// \since   January 2018
-/// *****************************************************************************
-LdDoubleBuffer &LeddarConnection::LdDoubleBuffer::operator=( const LdDoubleBuffer &aBuffer )
-{
-    if( this == &aBuffer )
-        return *this;
-
-    *mGetBuffer = *aBuffer.mGetBuffer;
-    *mSetBuffer = *aBuffer.mSetBuffer;
-    mTimestamp = aBuffer.mTimestamp;
-    return *this;
+    mFrameId.SetCount( 2 );
+    mFrameId.ForceValue( 0, 0 );
+    mFrameId.ForceValue( 1, 0 );
 }
 
 /// *****************************************************************************
@@ -99,17 +71,27 @@ LdDoubleBuffer::~LdDoubleBuffer()
 /// \since   January 2018
 /// *****************************************************************************
 void
-LdDoubleBuffer::Init( void *aGetBuffer, void *aSetBuffer, LeddarCore::LdIntegerProperty *aTimestamp )
+LdDoubleBuffer::Init( void *aGetBuffer, void *aSetBuffer, LeddarCore::LdIntegerProperty *aTimestamp, LeddarCore::LdIntegerProperty *aTimestamp64 )
 {
     mGetBuffer->mBuffer = aGetBuffer;
     mSetBuffer->mBuffer = aSetBuffer;
     mTimestamp          = aTimestamp;
+    mTimestamp64        = aTimestamp64;
 
     //Timestamp index 0 is Get buffer, index 1 is Set buffer
     if( mTimestamp )
     {
         mTimestamp->SetCount( 2 );
+        mTimestamp->ForceValue( 0, 0 );
         mTimestamp->ForceValue( 1, 0 );
+    }
+
+    //Timestamp index 0 is Get buffer, index 1 is Set buffer
+    if( mTimestamp64 )
+    {
+        mTimestamp64->SetCount( 2 );
+        mTimestamp64->ForceValue( 0, 0 );
+        mTimestamp64->ForceValue( 1, 0 );
     }
 }
 
@@ -151,6 +133,19 @@ void LdDoubleBuffer::Swap()
         int64_t lOldTimeStamp0 = mTimestamp->Value( 0 );
         mTimestamp->ForceValue( 0, mTimestamp->Value( 1 ) );
         mTimestamp->ForceValue( 1, lOldTimeStamp0 );
+    }
+
+    if( mTimestamp64 && mTimestamp64->Count() == 2 )
+    {
+        int64_t lOldTimeStamp0 = mTimestamp64->Value( 0 );
+        mTimestamp64->ForceValue( 0, mTimestamp64->Value( 1 ) );
+        mTimestamp64->ForceValue( 1, lOldTimeStamp0 );
+    }
+
+    {
+        uint64_t lOldFrameId0 = mFrameId.ValueT<uint64_t>( 0 );
+        mFrameId.ForceValue( 0, mFrameId.ValueT<uint64_t>( 1 ) );
+        mFrameId.ForceValue( 1, lOldFrameId0 );
     }
 }
 
@@ -197,5 +192,97 @@ void LdDoubleBuffer::SetTimestamp( uint32_t aTimestamp )
     else if( mTimestamp )
     {
         mTimestamp->ForceValue( 1, aTimestamp );
+    }
+}
+
+/// *****************************************************************************
+/// Function: LdDoubleBuffer::GetTimestamp64
+///
+/// \brief   Get the timestamp of the buffer
+///
+/// \param aBuffer : Get or Set buffer
+///
+/// \author  David Levy
+///
+/// \since   January 2018
+/// *****************************************************************************
+uint64_t
+LdDoubleBuffer::GetTimestamp64( eBuffer aBuffer ) const
+{
+    if( mTimestamp64 && ( mTimestamp64->Count() < 2 || aBuffer == B_GET ) )
+    {
+        return mTimestamp64->ValueT<uint64_t>( 0 );
+    }
+    else
+    {
+        return mTimestamp64->ValueT<uint64_t>( 1 );
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LdDoubleBuffer::SetTimestamp64( uint64_t aTimestamp )
+///
+/// \brief  Sets a timestamp
+///
+/// \param  aTimestamp  The new timestamp.
+///
+/// \author David Levy
+/// \date   January 2018
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void LdDoubleBuffer::SetTimestamp64( uint64_t aTimestamp )
+{
+    if( mTimestamp64 && mTimestamp64->Count() < 2 )
+    {
+        mTimestamp64->ForceValueUnsigned( 0, aTimestamp );
+    }
+    else if( mTimestamp64 )
+    {
+        mTimestamp64->ForceValueUnsigned( 1, aTimestamp );
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn uint64_t LeddarConnection::LdDoubleBuffer::GetFrameId( eBuffer aBuffer ) const
+///
+/// \brief  Gets frame identifier
+///
+/// \param  aBuffer The buffer.
+///
+/// \returns    The frame identifier.
+///
+/// \author David Lévy
+/// \date   January 2020
+////////////////////////////////////////////////////////////////////////////////////////////////////
+uint64_t LeddarConnection::LdDoubleBuffer::GetFrameId( eBuffer aBuffer ) const
+{
+    if( mFrameId.Count() < 2 || aBuffer == B_GET )
+    {
+        return mFrameId.ValueT<uint64_t>( 0 );
+    }
+    else
+    {
+        return mFrameId.ValueT<uint64_t>( 1 );
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LeddarConnection::LdDoubleBuffer::SetFrameId( uint64_t aFrameId )
+///
+/// \brief  Sets frame identifier
+///
+/// \param  aFrameId    Identifier for the frame.
+///
+/// \author David Lévy
+/// \date   January 2020
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void LeddarConnection::LdDoubleBuffer::SetFrameId( uint64_t aFrameId )
+{
+    if( mFrameId.Count() < 2 )
+    {
+        mFrameId.ForceValueUnsigned( 0, aFrameId );
+    }
+    else
+    {
+        mFrameId.ForceValueUnsigned( 1, aFrameId );
     }
 }

@@ -45,11 +45,12 @@ namespace LeddarDevice
         virtual void                                GetStates( void ) override;
         void                                        ResetToDefaultWithoutWriteEnable( int16_t aCRCTry = 0 );
         void                                        ResetToDefault( void );
+        virtual void                                Reset( LeddarDefines::eResetType aType, LeddarDefines::eResetOptions aOptions = LeddarDefines::RO_NO_OPTION, uint32_t = 0 ) override;
+
         virtual void                                RemoveLicense( const std::string &aLicense ) override;
         virtual void                                RemoveAllLicenses( void ) override;
-        virtual LeddarDefines::sLicense             SendLicense( const std::string &aLicense ) override;
+        virtual LeddarDefines::sLicense             SendLicense( const std::string &aLicense, bool aVolatile = false ) override;
         virtual std::vector<LeddarDefines::sLicense> GetLicenses( void ) override;
-        virtual void                                Reset( LeddarDefines::eResetType aType, LeddarDefines::eResetOptions aOptions = LeddarDefines::RO_NO_OPTION ) override;
 
         void                                        CreateBackup( void );
         void                                        DeleteBackup( void );

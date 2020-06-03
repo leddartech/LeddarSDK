@@ -32,7 +32,7 @@ namespace LeddarConnection
         LeddarCore::LdPropertiesContainer *GetProperties( void ) { return &mProperties; }
 
     protected:
-        LeddarCore::LdIntegerProperty *mTimestamp;
+        LeddarCore::LdIntegerProperty *mTimestamp, *mTimestamp64;
         LeddarCore::LdPropertiesContainer mProperties;
 
     private:

@@ -11,8 +11,8 @@
 #include "LtDefines.h"
 
 #include <cstddef>
-#include <map>
 #include <set>
+#include <map>
 #include <stdexcept>
 
 namespace LeddarCore
@@ -47,9 +47,6 @@ namespace LeddarCore
         void EmitSignal( const SIGNALS aSignal, void *aExtraData = nullptr );
 
     private:
-        LdObject(const LdObject &aObj);
-        LdObject& operator=(const LdObject &aObj);
-
         void DisconnectAll( void );
 
         std::set< LdObject * > mConnectedObject;

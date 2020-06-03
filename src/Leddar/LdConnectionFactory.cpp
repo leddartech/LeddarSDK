@@ -26,6 +26,9 @@
 #include "LdSpiBCM2835.h"
 #include "LdCanKomodo.h"
 #include "LdProtocolCan.h"
+#include "LdProtocolLeddartechEthernet.h"
+#include "LdProtocolLeddartechEthernetUDP.h"
+#include "LdEthernet.h"
 
 using namespace LeddarConnection;
 
@@ -152,7 +155,26 @@ LdConnectionFactory::CreateConnection( const LdConnectionInfo *aConnectionInfo, 
 
 #endif
 
+#ifdef BUILD_ETHERNET
 
+    if( aConnectionInfo->GetType() == LdConnectionInfo::CT_ETHERNET_LEDDARTECH )
+    {
+        const LdConnectionInfoEthernet *lConnectionInfo = dynamic_cast<const LdConnectionInfoEthernet *>( aConnectionInfo );
+        LdInterfaceEthernet *lConnectionEthernet =  new LdEthernet( lConnectionInfo );
+
+        if( lConnectionInfo->GetProtocoleType() == LeddarConnection::LdConnectionInfoEthernet::PT_TCP )
+        {
+            return new LdProtocolLeddartechEthernet( lConnectionInfo, lConnectionEthernet );
+        }
+        else if( lConnectionInfo->GetProtocoleType() == LeddarConnection::LdConnectionInfoEthernet::PT_UDP )
+        {
+            return new LdProtocolLeddartechEthernetUDP( lConnectionInfo, lConnectionEthernet );
+        }
+        else
+            return nullptr;
+    }
+
+#endif
     throw std::invalid_argument( "Invalid connection type." );
     return nullptr;
 }

@@ -32,10 +32,8 @@ namespace LeddarConnection
     {
     public:
         LdDoubleBuffer();
-        LdDoubleBuffer( const LdDoubleBuffer &aBuffer );
-        LdDoubleBuffer &operator=( const LdDoubleBuffer &aBuffer );
         ~LdDoubleBuffer();
-        void Init( void *aGetBuffer, void *aSetBuffer, LeddarCore::LdIntegerProperty *aTimestamp = nullptr );
+        void Init( void *aGetBuffer, void *aSetBuffer, LeddarCore::LdIntegerProperty *aTimestamp, LeddarCore::LdIntegerProperty *aTimestamp64 = nullptr );
 
         void Swap();
         void Lock( eBuffer aBuffer ) { aBuffer == B_GET ? mGetBuffer->mBusy = true : mSetBuffer->mBusy = true; }
@@ -43,14 +41,22 @@ namespace LeddarConnection
 
         uint32_t    GetTimestamp( eBuffer aBuffer = B_GET ) const;
         void        SetTimestamp( uint32_t aTimestamp );
+        uint64_t    GetTimestamp64( eBuffer aBuffer = B_GET ) const;
+        void        SetTimestamp64( uint64_t aTimestamp );
+        uint64_t    GetFrameId( eBuffer aBuffer = B_GET ) const;
+        void        SetFrameId( uint64_t aFrameId );
 
         DataBuffer *GetBuffer( eBuffer aBuffer ) {return ( aBuffer == B_GET ? mGetBuffer : mSetBuffer ); }
         const DataBuffer *GetConstBuffer( eBuffer aBuffer ) const {return ( aBuffer == B_GET ? mGetBuffer : mSetBuffer ); }
 
     private:
-        LeddarCore::LdIntegerProperty *mTimestamp; //Set buffer is value 1, Get is value 0
+        LeddarCore::LdIntegerProperty *mTimestamp, *mTimestamp64; //Set buffer is value 1, Get is value 0
+        LeddarCore::LdIntegerProperty mFrameId;
         DataBuffer *mGetBuffer;
         DataBuffer *mSetBuffer;
+
+        LdDoubleBuffer( const LdDoubleBuffer &aBuffer ); //Disable copy constructor
+        LdDoubleBuffer &operator=( const LdDoubleBuffer &aBuffer ); //Disable equal operator
     };
 }
 

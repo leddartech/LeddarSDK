@@ -27,15 +27,32 @@ def states_callback(states):
 dev = leddar.Device()
 
 #Connect to the device
-sensorlist = leddar.get_devices("Usb")
-dev.connect(sensorlist[0]['name'], leddar.device_types["Usb"])
+##Use one of this connection method
+#Ethernet
+sensor_list = leddar.get_devices("Ethernet")
+print(leddar.device_types["Ethernet"])
+dev.connect('192.168.0.2', leddar.device_types["Ethernet"], 48630)
+connection = dev.connect('192.168.0.2', leddar.device_types["Ethernet"], 48630)
+
+#M16 Usb
+# sensor_list = leddar.get_devices("Usb")
+# dev.connect(sensor_list[0]['name'], leddar.device_types["Usb"])
+
+##For any sensors with modbus serial communication (LeddarOne, Vu8 or M16)
+# sensor_list = leddar.get_devices("Serial")
+# dev.connect(sensor_list[0]['name'], leddar.device_types["Serial"])
+
+##For Vu8/M16 sensors with CAN BUS communication
+# dev.connect(Baud rate (kbps), Type of sensor, Tx ID (optionnal), Rx ID (optionnal))
+# dev.connect('1000', leddar.device_types["M16Komodo"])
+# dev.connect('1000', leddar.device_types["Vu8Komodo"])
 
 #Get properties value
-print("ID_BASE_POINT_COUNT = " + dev.get_property_value(leddar.property_ids["ID_BASE_POINT_COUNT"]))
-print("ID_LED_INTENSITY = " + dev.get_property_value(leddar.property_ids["ID_LED_INTENSITY"]))
+print("ID_DEVICE_NAME = " + dev.get_property_value(leddar.property_ids["ID_DEVICE_NAME"]))
+print("ID_SERIAL_NUMBER = " + dev.get_property_value(leddar.property_ids["ID_SERIAL_NUMBER"]))
 
 #Property available values
-values = dev.get_property_available_values(leddar.property_ids["ID_LED_INTENSITY"])
+values = dev.get_property_available_values(leddar.property_ids["ID_DISTANCE_SCALE"])
 print(values["type"])
 print(values["data"])
 

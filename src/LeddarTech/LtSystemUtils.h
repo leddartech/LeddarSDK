@@ -26,9 +26,7 @@ namespace LeddarUtils
         std::string GetEnvVariable( const std::string &aVariableName );
         bool IsEnvVariableExist( const std::string &aVariableName );
         std::vector<std::string> GetSerialPorts( void );
-
-#ifndef _WIN32
         bool DirectoryExists( const std::string &aPath );
-#endif
+        std::string ErrnoToString( int aErrno );
     }
 }

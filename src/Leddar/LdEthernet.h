@@ -49,7 +49,7 @@ namespace LeddarConnection
         virtual uint32_t ReceiveFrom( std::string &aIpAddress, uint16_t &aPort, uint8_t *aData, uint32_t aSize ) override;
         virtual void     OpenUDPSocket( uint32_t aPort, uint32_t aTimeout = 2000 ) override;
         virtual void     CloseUDPSocket( void ) override;
-        static void CloseSocket( const SOCKET aSocket );
+        static uint64_t CloseSocket( const SOCKET aSocket );
 
         static std::vector<std::pair<SOCKET, unsigned long> > OpenScanRequestSockets();
         static void GetDevicesListSendRequest( const std::vector<std::pair<SOCKET, unsigned long> > &aInterfaces, bool aWideBroadcast = false );

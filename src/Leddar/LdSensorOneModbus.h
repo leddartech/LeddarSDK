@@ -39,7 +39,7 @@ namespace LeddarDevice
         virtual void    UpdateConstants( void ) override;
         virtual bool    GetEchoes( void ) override;
         virtual void    GetStates( void ) override {}
-        virtual void    Reset( LeddarDefines::eResetType /*aType*/, LeddarDefines::eResetOptions = LeddarDefines::RO_NO_OPTION ) override {};
+        virtual void    Reset( LeddarDefines::eResetType /*aType*/, LeddarDefines::eResetOptions = LeddarDefines::RO_NO_OPTION, uint32_t = 0 ) override {};
 
     protected:
         virtual bool    RequestData( uint32_t &aDataMask );

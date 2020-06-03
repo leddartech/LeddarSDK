@@ -29,45 +29,6 @@ namespace LtComEthernetPublic
         uint8_t mReserved0[ 2 ];
     } sLtEthernetAddress;
 
-
-    // Because the protocol is UDP based, the current structure must be smaller
-    // than the smaller UDP packet a network must support. To be safe, the
-    // structure must be smaller than LT_IPV4_UDP_PACKET_SIZE_MAX bytes.
-    //
-    // mDeviceName  The device name is defined as byte array but unicode char may
-    //              be stored on it. All unused byte must be set to 0. This make
-    //              possible to detect the presence of an unicode string.
-    //
-    // Total size    : 264 bytes
-    typedef struct _sLtIdtAnswerIdentify
-    {
-        LtComLeddarTechPublic::sLtCommAnswerHeader mHeader;
-
-        sLtEthernetAddress mEthernetAddress; // 8 bytes (2 reserved)
-
-        sLtIpAddress mIpAddress; // 8 bytes
-        sLtIpAddress mIpGateway;
-        sLtIpAddress mIpNetMask;
-
-        uint16_t mDeviceType; // See PDTECS_IDT_DEVICE_TYPE_...
-        uint16_t mFirmwareVersion;
-        uint16_t mProtocolVersion; // See LT_IPV4_IDENTIFY_PROT_VERSION...
-        uint16_t mSoftwareVersion; // See PDTECS_SOFTWARE_TYPE_...
-
-        uint32_t mOptions;        // Bit field that defines various device options (meaning defined for each platform).
-        uint32_t mServerState;    // See LT_IPV4_IDT_SERVER_STATE_...
-        uint16_t mBusyProgress;   // Number of steps remaining before the current operation completes
-        uint8_t  mReserved[ 2 ];   // For alignment and provision for adding more info
-        // All reserved fields must be set to zero
-        uint32_t mSoftwareCRC32;
-
-        char mDeviceName[ LT_COMM_DEVICE_NAME_LENGTH ];
-        char mSerialNumber[ LT_COMM_SERIAL_NUMBER_LENGTH ];
-        char mStateMessage[ LT_COMM_IDT_STATE_MESSAGE_LENGTH ];
-        char mSoftwarePartNumber[ LT_COMM_PART_NUMBER_LENGTH ];
-        char mHardwarePartNumber[ LT_COMM_PART_NUMBER_LENGTH ];
-    } sLtIdtAnswerIdentify;
-
     typedef enum eLtCommIdtServerState
     {
         /// \brief  Bit field of identification protocol server states.
@@ -140,7 +101,7 @@ namespace LtComEthernetPublic
         // All reserved fields must be set to zero
         uint32_t mSoftwareCRC32;
 
-        char mDeviceName[LT_COMM_DEVICE_NAME_LENGTH];           // (64)
+        char mDeviceName[LT_COMM_DEVICE_NAME_LENGTH];           // (64) - Semi UTF16 encoding
         char mSerialNumber[LT_COMM_SERIAL_NUMBER_LENGTH];       // (32)
         char mStateMessage[LT_COMM_IDT_STATE_MESSAGE_LENGTH];   // (64)
         char mSoftwarePartNumber[LT_COMM_PART_NUMBER_LENGTH];   // (16)

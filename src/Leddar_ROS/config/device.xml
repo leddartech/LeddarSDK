@@ -23,7 +23,7 @@
   <arg name="parent_frame_id" default="map" />
 
   <arg name="position" default="0 0 0" />
-  <arg name="rotation" default="-0.707106781 0 0 0.707106781" />
+  <arg name="rotation" default="0 0 0" />
 
   <node pkg="leddar_ros" type="device.py" name="sensor">
     <param name="device_type" value="$(arg device_type)" />
