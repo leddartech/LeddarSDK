@@ -227,7 +227,7 @@ LeddarConnection::LdLibModbusSerial::SendRawRequest( uint8_t *aBuffer, uint32_t 
 // Function: LdLibModbusSerial::ReadRegisters
 //
 /// \brief   Read registers on modbus interface (use function 0x03)
-///             You DO NOT need to convert data to/from bug endian
+///             You DO NOT need to convert data to/from big endian
 ///
 /// \param   aAddr Address to read from
 /// \param   aNb Number of register to read
@@ -259,7 +259,7 @@ LeddarConnection::LdLibModbusSerial::ReadRegisters( uint16_t aAddr, uint8_t aNb,
 // Function: LdLibModbusSerial::ReadInputRegisters
 //
 /// \brief   Read registers on modbus interface (use function 0x04)
-///             You DO NOT need to convert data to/from bug endian
+///             You DO NOT need to convert data to/from big endian
 ///
 /// \param   aAddr Address to read from
 /// \param   aNb Number of register to read
@@ -291,7 +291,7 @@ LeddarConnection::LdLibModbusSerial::ReadInputRegisters( uint16_t aAddr, uint8_t
 // Function: LdLibModbusSerial::WriteRegister
 //
 /// \brief   Write registers on modbus interface (use function 0x06)
-///             You DO NOT need to convert data to/from bug endian
+///             You DO NOT need to convert data to/from big endian
 ///
 /// \param   aAddr Address to write to
 /// \param   aValue Value to write to the register
