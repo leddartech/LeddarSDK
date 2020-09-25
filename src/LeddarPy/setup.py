@@ -2,11 +2,13 @@ try:
     from setuptools import setup
 except ImportError:
     from distutils.core import setup
-from distutils.core import Extension
-import platform
-import numpy as np
-import sys
+
 import os
+import platform
+import sys
+from distutils.core import Extension
+
+import numpy as np
 
 if platform.system() == 'Windows':
     extra_compile_args = []
