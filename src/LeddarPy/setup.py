@@ -1,3 +1,10 @@
+"""
+LeddarPy module meta and build information.
+
+Build & install:
+$ python setup.py build
+$ python setup.py install
+"""
 try:
     from setuptools import setup
 except ImportError:
