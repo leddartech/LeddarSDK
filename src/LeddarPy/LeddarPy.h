@@ -21,7 +21,5 @@ PyObject *GetDeviceTypeDict( PyObject *self, PyObject *args );
 
 PyObject *GetPropertyIdDict( PyObject *self, PyObject *args );
 
-PyObject *GetProtocolTypeDict( PyObject *self, PyObject *args );
-
 PyObject *GetMaskDict( PyObject *self, PyObject *args );
 
