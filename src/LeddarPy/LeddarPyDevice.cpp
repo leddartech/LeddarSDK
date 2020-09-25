@@ -325,8 +325,6 @@ PyObject *Connect( sLeddarDevice *self, PyObject *args )
     int lConnectionType = lDeviceType & 0xFFFF0000;
     lDeviceType = lDeviceType & 0x0000FFFF;
 
-    self->mIP = lConnectionString;
-
     if( CONNECTION_TYPE_SERIAL == lConnectionType )
     {
         lAdditionalInfo = lAdditionalInfo == 0 ? 1 : lAdditionalInfo;

@@ -66,7 +66,6 @@ typedef struct sLeddarDevice
 
     size_t v, h;
     float v_fov, h_fov;
-    std::string mIP;
 } sLeddarDevice;
 
 
