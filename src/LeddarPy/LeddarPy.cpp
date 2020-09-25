@@ -289,22 +289,6 @@ static PyObject *GetDevices( PyObject *self, PyObject *args )
 
 }
 
-int to_positive( int i, int n )
-{
-    if( i >= n || i < -n )
-        throw std::runtime_error( "index out of bounds" );
-
-    if( i < 0 )
-    {
-        if( i < -n )
-            throw std::runtime_error( "index out of bounds" );
-
-        i = n + i;
-    }
-
-    return i;
-}
-
 //List all functions available to Python
 static PyMethodDef leddar_Methods[] =
 {
