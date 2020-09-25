@@ -17,9 +17,4 @@
 
 #include <Python.h>
 
-PyObject *GetDeviceTypeDict( PyObject *self, PyObject *args );
-
 PyObject *GetPropertyIdDict( PyObject *self, PyObject *args );
-
-PyObject *GetMaskDict( PyObject *self, PyObject *args );
-
