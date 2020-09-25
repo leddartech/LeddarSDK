@@ -72,6 +72,9 @@ PyObject *GetDeviceTypeDict( PyObject *self, PyObject *args )
 {
     PyObject *lDeviceType = PyDict_New();
 
+    if( !lDeviceType )
+        return nullptr;
+
     PyDict_SetItemString( lDeviceType, "M16", PyLong_FromLong( LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_M16 ) );
     PyDict_SetItemString( lDeviceType, "LeddarOne", PyLong_FromLong( LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_SCH_EVALKIT ) );
     PyDict_SetItemString( lDeviceType, "Vu8", PyLong_FromLong( LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_VU8 ) );
@@ -90,6 +93,10 @@ PyObject *GetDeviceTypeDict( PyObject *self, PyObject *args )
 PyObject *GetPropertyIdDict( PyObject *self, PyObject *args )
 {
     PyObject *lPropertyId = PyDict_New();
+
+    if( !lPropertyId )
+        return nullptr;
+
     //Config
     PyDict_SetItemString( lPropertyId, "ID_ACCUMULATION_EXP", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_ACCUMULATION_EXP ) );
     PyDict_SetItemString( lPropertyId, "ID_OVERSAMPLING_EXP", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_OVERSAMPLING_EXP ) );
@@ -176,6 +183,9 @@ PyObject *GetMaskDict( PyObject *self, PyObject *args )
 {
     PyObject *lMask = PyDict_New();
 
+    if( !lMask )
+        return nullptr;
+
     PyDict_SetItemString( lMask, "DM_NONE", PyLong_FromLong( LeddarDevice::LdSensor::DM_NONE ) );
     PyDict_SetItemString( lMask, "DM_STATES", PyLong_FromLong( LeddarDevice::LdSensor::DM_STATES ) );
     PyDict_SetItemString( lMask, "DM_ECHOES", PyLong_FromLong( LeddarDevice::LdSensor::DM_ECHOES ) );
@@ -187,6 +197,10 @@ PyObject *GetMaskDict( PyObject *self, PyObject *args )
 PyObject *GetCalibTypeDict( PyObject *self, PyObject *args )
 {
     PyObject *lCalib = PyDict_New();
+
+    if( !lCalib )
+        return nullptr;
+
     PyDict_SetItemString( lCalib, "ID_TIMEBASE_DELAY", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_TIMEBASE_DELAY ) );
     PyDict_SetItemString( lCalib, "ID_STATIC_NOISE", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_STATIC_NOISE ) );
     PyDict_SetItemString( lCalib, "ID_INTENSITY_COMPENSATIONS", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_INTENSITY_COMPENSATIONS ) );
@@ -240,11 +254,19 @@ static PyObject *GetDevices( PyObject *self, PyObject *args )
 
         PyObject *lList = PyList_New( lConnectionsList.size() );
 
+        if( !lList )
+            return nullptr;
+
         for( size_t i = 0; i < lConnectionsList.size(); i++ )
         {
             LeddarConnection::LdConnectionInfo *c = lConnectionsList[i];
             PyObject *lConnection = PyDict_New();
             std::string lName;
+
+            if( !lList ) {
+                Py_DECREF(lList);
+                return nullptr;
+            }
 
             switch( c->GetType() )
             {

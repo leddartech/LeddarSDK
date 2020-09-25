@@ -826,6 +826,9 @@ PyObject *GetPropertiesSnapshot( sLeddarDevice *self )
 
         PyObject *lValues = PyDict_New();
 
+        if( !lValues )
+            return nullptr;
+
         for( auto const &k_v : *all_props )
         {
             LeddarCore::LdProperty *property = k_v.second;
@@ -835,6 +838,11 @@ PyObject *GetPropertiesSnapshot( sLeddarDevice *self )
             {
 
                 PyObject *listObj = PyList_New( count );
+
+                if( !listObj ) {
+                    Py_DECREF(lValues);
+                    return nullptr;
+                }
 
                 for( size_t i = 0; i < count; i++ )
                     PyList_SetItem( listObj, i, PyUnicode_FromString( property->GetStringValue( i ).c_str() ) );
@@ -981,6 +989,8 @@ PyObject *GetPropertyCount( sLeddarDevice *self, PyObject *args )
     if(count > 1)\
     {\
         PyObject *listObj = PyList_New( count );\
+        if( !listObj )\
+            throw std::logic_error( "Unable to allocate memory for Python list" );\
         for( size_t i = 0; i < count; i++ )\
             PyList_SetItem( listObj, i, TO_PYTHON_TYPE( property->Value( i ) ) );\
         PyDict_SetItemString( dict, name, listObj);\
@@ -1001,6 +1011,9 @@ PyObject *GetPropertyAvailableValues( sLeddarDevice *self, PyObject *args )
     try
     {
         PyObject *lValues = PyDict_New();
+
+        if( !lValues )
+            return nullptr;
 
         LeddarCore::LdProperty *lProp = nullptr;
         {
@@ -1450,6 +1463,8 @@ PyObject *GetStates( sLeddarDevice *self, PyObject *args )
             if(count > 1)\
             {\
                 PyObject *listObj = PyList_New( count );\
+                if( !listObj )\
+                    throw std::logic_error( "Unable to allocate memory for Python list" );\
                 for( size_t i = 0; i < count; i++ )\
                     PyList_SetItem( listObj, i, TO_PYTHON_TYPE( property->Value( i ) ) );\
                 PyDict_SetItemString( lStates, NAME, listObj );\
@@ -1471,6 +1486,9 @@ PyObject *GetStates( sLeddarDevice *self, PyObject *args )
 PyObject *PackageStates( LeddarConnection::LdResultStates *aResultStates )
 {
     PyObject *lStates = PyDict_New();
+
+    if( !lStates )
+        return nullptr;
 
     using namespace LeddarCore::LdPropertyIds;
 
