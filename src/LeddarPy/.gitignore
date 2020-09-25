@@ -1,0 +1,7 @@
+# Ignore local python cache
+__pycache__
+
+# Ignore build files
+build/
+dist/
+leddar.egg-info/
