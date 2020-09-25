@@ -5,7 +5,6 @@ except ImportError:
 
 import os
 import platform
-import sys
 from distutils.core import Extension
 
 import numpy as np
