@@ -343,10 +343,6 @@ PyMODINIT_FUNC PyInit_leddar( void )
 PyMODINIT_FUNC initleddar( void )
 #endif
 {
-
-    if( PyType_Ready( &LeddarDeviceType ) < 0 ) //Initialize the type
-        return RETURN_VALUE( nullptr );
-
     if( !PyEval_ThreadsInitialized() )
     {
         PyEval_InitThreads();
@@ -362,12 +358,19 @@ PyMODINIT_FUNC initleddar( void )
 
     import_array();
 
+    PyTypeObject *deviceType = InitDeviceType();
+    if( !deviceType ) {
+        Py_DECREF( lModule );
+        return RETURN_VALUE( nullptr );
+    }
+
     PyModule_AddObject( lModule, "device_types", GetDeviceTypeDict( lModule, nullptr ) );
     PyModule_AddObject( lModule, "property_ids", GetPropertyIdDict( lModule, nullptr ) );
     PyModule_AddObject( lModule, "data_masks", GetMaskDict( lModule, nullptr ) );
     PyModule_AddObject( lModule, "calib_types", GetCalibTypeDict( lModule, nullptr ) );
-    Py_INCREF( &LeddarDeviceType );
-    PyModule_AddObject( lModule, "Device", ( PyObject * )&LeddarDeviceType );
+    if( !PyType_HasFeature( deviceType, Py_TPFLAGS_HEAPTYPE ) )
+        Py_INCREF( deviceType );
+    PyModule_AddObject( lModule, "Device", ( PyObject * )deviceType );
 
     return RETURN_VALUE( lModule );
 }
