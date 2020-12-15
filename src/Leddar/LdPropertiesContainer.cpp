@@ -558,8 +558,6 @@ LeddarCore::LdPropertiesContainer::AddPropertiesFromFile( std::string aFilename 
         throw std::runtime_error( "JSON format error, no element properties." );
     }
 
-    const rapidjson::Value &lPropertiesDescription = lDocument["properties"];
-
     const rapidjson::GenericArray<false, rapidjson::Value::ValueType> lPropArray = lDocument["properties"].GetArray();
 
 

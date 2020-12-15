@@ -194,10 +194,6 @@ void LeddarDevice::LdSensorPixell::GetCalib( void )
         lSensorOrderTimeBaseDelays[i] = lTimeBaseDelays->Value( i );
     }
 
-
-    uint32_t lChannelCount = mProperties->GetIntegerProperty( LdPropertyIds::ID_VSEGMENT )->ValueT<uint16_t>() * mProperties->GetIntegerProperty(
-                                 LdPropertyIds::ID_HSEGMENT )->ValueT<uint16_t>();
-
     for( uint32_t i = 0; i < lTimeBaseDelays->Count(); ++i )
     {
         lTimeBaseDelays->SetValue( SensorChannelIndexToEchoChannelIndex( i ), lSensorOrderTimeBaseDelays[i] );

@@ -393,13 +393,13 @@ LeddarConnection::LdEthernet::Receive( uint8_t *aBuffer, uint32_t aSize )
         }
     }
 
-    if( lBytesReceived < aSize )
+    if( lBytesReceived < static_cast<int32_t>(aSize) )
     {
         //Retry once to get all expected data
         int32_t lBytesReceived2 = recv( mSocket, ( char * )( aBuffer + lBytesReceived ), aSize, MSG_WAITALL );
         lBytesReceived += lBytesReceived2;
 
-        if( lBytesReceived < aSize )
+        if( lBytesReceived < static_cast<int32_t>(aSize) )
         {
             throw LeddarException::LtComException( "Incomplete data received.", LeddarException::ERROR_COM_READ, false );
         }
@@ -1028,12 +1028,9 @@ LeddarConnection::LdEthernet::ReceiveFrom( std::string &aIpAddress, uint16_t &aP
 {
     sockaddr_in lAddress;
     socklen_t lAddressSize = sizeof( lAddress );
-    int lErr = 0;
 
     const int32_t lResult = recvfrom( mUDPSocket, ( char * )aData, aSize, 0, ( sockaddr * )&lAddress, &lAddressSize );
 
-    if( lResult < 0 )
-        lErr = LAST_ERROR;
 
 #ifdef WIN32
     aIpAddress = LeddarUtils::LtStringUtils::Ip4AddrToString( lAddress.sin_addr.S_un.S_addr );

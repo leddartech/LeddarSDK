@@ -31,10 +31,12 @@ using namespace LeddarConnection;
 ///
 /// \since   January 2018
 /// *****************************************************************************
-LdDoubleBuffer::LdDoubleBuffer() : mTimestamp( nullptr ), mGetBuffer( new DataBuffer ), mSetBuffer( new DataBuffer ),
-    mFrameId( LeddarCore::LdProperty::CAT_INFO, LeddarCore::LdProperty::F_SAVE, LeddarCore::LdPropertyIds::ID_RS_FRAME_ID, LtComLeddarTechPublic::LT_COMM_ID_FRAME_ID,
+LdDoubleBuffer::LdDoubleBuffer() : mFrameId( LeddarCore::LdProperty::CAT_INFO, LeddarCore::LdProperty::F_SAVE, LeddarCore::LdPropertyIds::ID_RS_FRAME_ID, LtComLeddarTechPublic::LT_COMM_ID_FRAME_ID,
               sizeof( uint64_t ), "Frame id" )
 {
+    mTimestamp = nullptr;
+    mGetBuffer = new DataBuffer();
+    mSetBuffer = new DataBuffer();
     mFrameId.SetCount( 2 );
     mFrameId.ForceValue( 0, 0 );
     mFrameId.ForceValue( 1, 0 );
@@ -250,7 +252,7 @@ void LdDoubleBuffer::SetTimestamp64( uint64_t aTimestamp )
 ///
 /// \returns    The frame identifier.
 ///
-/// \author David Lévy
+/// \author David Lï¿½vy
 /// \date   January 2020
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 uint64_t LeddarConnection::LdDoubleBuffer::GetFrameId( eBuffer aBuffer ) const
@@ -272,7 +274,7 @@ uint64_t LeddarConnection::LdDoubleBuffer::GetFrameId( eBuffer aBuffer ) const
 ///
 /// \param  aFrameId    Identifier for the frame.
 ///
-/// \author David Lévy
+/// \author David Lï¿½vy
 /// \date   January 2020
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void LeddarConnection::LdDoubleBuffer::SetFrameId( uint64_t aFrameId )
