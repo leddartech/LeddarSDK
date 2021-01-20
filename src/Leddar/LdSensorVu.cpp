@@ -906,7 +906,6 @@ LdSensorVu::GetCalib()
         mCalibrationLedBackup = new int32_t[ lLedPwrCount ];
     }
 
-    mCalibrationLedBackup = new int32_t[lLedPwrCount];
     memcpy( mCalibrationLedBackup, lOutputBuffer, lLedPwrCount * sizeof( int32_t ) );
     LeddarCore::LdFloatProperty *lCompensationProp = GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_INTENSITY_COMPENSATIONS );
     lCompensationProp->SetScale( lDistanceScale );
@@ -1041,6 +1040,7 @@ LdSensorVu::GetEchoes()
         throw;
     }
 
+    ComputeCartesianCoordinates();
     lResultEchoes->Swap();
     lResultEchoes->UpdateFinished();
     return true;
@@ -1166,7 +1166,7 @@ LdSensorVu::GetLicenses( void )
     uint32_t lResultLicenseInfo;
     mConnectionUniversal->ReadRegister( GetBankAddress( REGMAP_CMD_LIST ) + offsetof( sCmdList, mLicenceInfoVolatile ), ( uint8_t * )&lResultLicenseInfo, sizeof( uint32_t ), 5 );
     lLicense.mType = lResultLicenseInfo & 0xFFFF;
-    lLicense.mSubType = lResultLicenseInfo >> 16;
+    //lLicense.mSubType = lResultLicenseInfo >> 16; //Not used at the moment
 
     uint8_t lVolatileLicenseKey[ REGMAP_KEY_LENGTH ];
     mConnectionUniversal->ReadRegister( GetBankAddress( REGMAP_VOLATILE_LICENSE_KEYS ), ( uint8_t * )lVolatileLicenseKey, REGMAP_KEY_LENGTH, 1 );
@@ -1315,9 +1315,7 @@ LdSensorVu::SendLicense( const std::string &aLicense, bool aVolatile )
 void
 LdSensorVu::RemoveLicense( const std::string &aLicense )
 {
-
     // Get licience from device
-    LeddarDefines::sLicense lResultLicense;
     std::vector<LeddarDefines::sLicense> lLicenses = GetLicenses();
 
     // Looking for license slot

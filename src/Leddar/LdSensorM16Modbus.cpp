@@ -136,6 +136,7 @@ LdSensorM16Modbus::GetEchoes0x41( void )
             uint16_t lLedPower = *reinterpret_cast<uint16_t *>( &lResponse[MODBUS_DATA_OFFSET + lEchoCount * sizeof( LtComLeddarM16Modbus::sLeddarM16Detections0x41 ) + 4] );
             mEchoes.SetTimestamp( lTimeStamp );
             mEchoes.SetCurrentLedPower( lLedPower );
+            ComputeCartesianCoordinates();
             mEchoes.Swap();
             mEchoes.UpdateFinished();
         }
@@ -207,6 +208,7 @@ LdSensorM16Modbus::GetEchoes0x6A( void )
             uint16_t lLedPower = *reinterpret_cast<uint16_t *>( &lResponse[MODBUS_DATA_OFFSET + lEchoCount * sizeof( LtComLeddarM16Modbus::sLeddarM16Detections0x6A ) + 4] );
             mEchoes.SetTimestamp( lTimeStamp );
             mEchoes.SetCurrentLedPower( lLedPower );
+            ComputeCartesianCoordinates();
             mEchoes.Swap();
             mEchoes.UpdateFinished();
         }
@@ -504,11 +506,14 @@ LdSensorM16Modbus::InitProperties( void )
     using namespace LeddarCore;
 
     //constants
-    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_SERIAL_NUMBER, 0, LtComLeddarM16Modbus::M16_SERIAL_NBR_SIZE, LdTextProperty::TYPE_ASCII,
+    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_SERIAL_NUMBER, 0, LtComLeddarM16Modbus::M16_SERIAL_NBR_SIZE,
+                              LdTextProperty::TYPE_ASCII,
                               "Serial Number" ) );
-    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_DEVICE_NAME, 0, LtComLeddarM16Modbus::M16_DEVICE_NAME_SIZE, LdTextProperty::TYPE_UTF16,
+    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_DEVICE_NAME, 0, LtComLeddarM16Modbus::M16_DEVICE_NAME_SIZE,
+                              LdTextProperty::TYPE_UTF16,
                               "Device name" ) );
-    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_PART_NUMBER, 0, LtComLeddarM16Modbus::M16_HW_PART_NBR_SIZE, LdTextProperty::TYPE_ASCII,
+    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_PART_NUMBER, 0, LtComLeddarM16Modbus::M16_HW_PART_NBR_SIZE,
+                              LdTextProperty::TYPE_ASCII,
                               "Hardware part number" ) );
     mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_SOFTWARE_PART_NUMBER, 0, LtComLeddarM16Modbus::M16_SW_PART_NBR_SIZE,
                               LdTextProperty::TYPE_ASCII, "Software part number" ) );

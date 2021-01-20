@@ -103,14 +103,14 @@ LdSensor *LeddarDevice::LdDeviceFactory::CreateSensorFromDeviceType( uint32_t aD
             return lSensor;
         }
 
-#ifdef BUILD_CANBUS
+#ifdef BUILD_CANBUS_KOMODO
 
         if( aConnection && aConnection->GetConnectionInfo()->GetType() == LeddarConnection::LdConnectionInfo::CT_CAN_KOMODO )
         {
             return new LeddarDevice::LdSensorVu8Can( aConnection );
         }
 
-#endif //BUILD_CANBUS
+#endif //BUILD_CANBUS_KOMODO
     }
 
 #endif //BUILD_VU
@@ -140,14 +140,14 @@ LdSensor *LeddarDevice::LdDeviceFactory::CreateSensorFromDeviceType( uint32_t aD
         }
 
 #endif //BUILD_MODBUS
-#ifdef BUILD_CANBUS
+#ifdef BUILD_CANBUS_KOMODO
 
         if( aConnection && aConnection->GetConnectionInfo()->GetType() == LeddarConnection::LdConnectionInfo::CT_CAN_KOMODO )
         {
             return new LeddarDevice::LdSensorM16Can( aConnection );
         }
 
-#endif //BUILD_CANBUS
+#endif //BUILD_CANBUS_KOMODO
     }
     else if( aDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_M16_LASER )
     {
@@ -165,14 +165,14 @@ LdSensor *LeddarDevice::LdDeviceFactory::CreateSensorFromDeviceType( uint32_t aD
         }
 
 #endif //BUILD_MODBUS
-#ifdef BUILD_CANBUS
+#ifdef BUILD_CANBUS_KOMODO
 
         if( aConnection && aConnection->GetConnectionInfo()->GetType() == LeddarConnection::LdConnectionInfo::CT_CAN_KOMODO )
         {
             return new LeddarDevice::LdSensorM16Can( aConnection );
         }
 
-#endif //BUILD_CANBUS
+#endif //BUILD_CANBUS_KOMODO
     }
     else if( aDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_IS16 )
     {
@@ -190,14 +190,14 @@ LdSensor *LeddarDevice::LdDeviceFactory::CreateSensorFromDeviceType( uint32_t aD
         }
 
 #endif //BUILD_MODBUS
-#ifdef BUILD_CANBUS
+#ifdef BUILD_CANBUS_KOMODO
 
         if( aConnection && aConnection->GetConnectionInfo()->GetType() == LeddarConnection::LdConnectionInfo::CT_CAN_KOMODO )
         {
             return new LeddarDevice::LdSensorM16Can( aConnection );
         }
 
-#endif //BUILD_CANBUS
+#endif //BUILD_CANBUS_KOMODO
     }
 
 #endif //BUILD_M16

@@ -32,7 +32,7 @@ namespace LeddarConnection
     class LdLibUsb : public LdInterfaceUsb
     {
     public:
-        LdLibUsb( const LdConnectionInfoUsb *aConnectionInfo, LdConnection *aInterface = nullptr );
+        explicit LdLibUsb( const LdConnectionInfoUsb *aConnectionInfo, LdConnection *aInterface = nullptr );
         ~LdLibUsb();
 
         virtual void Connect( void ) override;

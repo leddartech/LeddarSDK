@@ -76,9 +76,12 @@ void LeddarDevice::LdSensorM16Can::InitProperties()
 
     //Configuration
     // Accumulation, oversampling and base point count are not available on IS16
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_ACCUMULATION_EXP, 0, 1, "Accumulation exponent" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_OVERSAMPLING_EXP, 0, 1, "Oversampling exponent" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_BASE_POINT_COUNT, 0, 1, "Number of base samples" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_ACCUMULATION_EXP, 0, 1,
+                              "Accumulation exponent" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_OVERSAMPLING_EXP, 0, 1,
+                              "Oversampling exponent" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_BASE_POINT_COUNT, 0, 1,
+                              "Number of base samples" ) );
 
     //IS16 only
     mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_REFRESH_RATE, 0, 2, true,
@@ -92,10 +95,12 @@ void LeddarDevice::LdSensorM16Can::InitProperties()
     lRefreshRate->AddEnumPair( 13, "1.5625 Hz" );
 
 
-    mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_SENSIVITY_OLD, 0, 4, LtComCanBus::M16_THREHSOLD_SCALE, 2,
+    mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_SENSIVITY_OLD, 0, 4,
+                              LtComCanBus::M16_THREHSOLD_SCALE, 2,
                               "Threshold" ) );
     mProperties->GetFloatProperty( LdPropertyIds::ID_SENSIVITY_OLD )->SetLimits( -5, 100 );
-    mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_LED_INTENSITY, LtComCanBus::M16_ID_LED_POWER, 1, true,
+    mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_LED_INTENSITY,
+                              LtComCanBus::M16_ID_LED_POWER, 1, true,
                               "Led/laser power %" ) );
     mProperties->GetEnumProperty( LdPropertyIds::ID_LED_INTENSITY )->AddEnumPair( 100, "100" );
     mProperties->GetEnumProperty( LdPropertyIds::ID_LED_INTENSITY )->AddEnumPair( 90, "90" );
@@ -105,15 +110,19 @@ void LeddarDevice::LdSensorM16Can::InitProperties()
     mProperties->GetEnumProperty( LdPropertyIds::ID_LED_INTENSITY )->AddEnumPair( 35, "35" );
     mProperties->GetEnumProperty( LdPropertyIds::ID_LED_INTENSITY )->AddEnumPair( 20, "20" );
     mProperties->GetEnumProperty( LdPropertyIds::ID_LED_INTENSITY )->AddEnumPair( 10, "10" );
-    mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_ACQ_OPTIONS, LtComCanBus::M16_ID_ACQ_OPTIONS, 2,
+    mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_ACQ_OPTIONS,
+                              LtComCanBus::M16_ID_ACQ_OPTIONS, 2,
                               "Acquisition options" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_CHANGE_DELAY, LtComCanBus::M16_ID_AUTO_ACQ_DELAY, 2,
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_CHANGE_DELAY,
+                              LtComCanBus::M16_ID_AUTO_ACQ_DELAY, 2,
                               "Auto led delay (in frame)" ) );
     mProperties->GetIntegerProperty( LdPropertyIds::ID_CHANGE_DELAY )->SetLimits( 1, 8192 );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_PRECISION, LtComCanBus::M16_ID_SMOOTHING, 1, "Smoothing",
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_PRECISION,
+                              LtComCanBus::M16_ID_SMOOTHING, 1, "Smoothing",
                               true ) );
     mProperties->GetIntegerProperty( LdPropertyIds::ID_PRECISION )->SetLimits( -17, 16 );
-    mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_CAN_PORT_ECHOES_RES, LtComCanBus::M16_ID_DISTANCE_UNITS,
+    mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_CAN_PORT_ECHOES_RES,
+                              LtComCanBus::M16_ID_DISTANCE_UNITS,
                               2, true, "Distance units" ) );
     mProperties->GetEnumProperty( LdPropertyIds::ID_COM_CAN_PORT_ECHOES_RES )->AddEnumPair( 1, "m" );
     mProperties->GetEnumProperty( LdPropertyIds::ID_COM_CAN_PORT_ECHOES_RES )->AddEnumPair( 10, "dm" );
@@ -134,19 +143,26 @@ void LeddarDevice::LdSensorM16Can::InitProperties()
     mProperties->GetEnumProperty( LdPropertyIds::ID_COM_CAN_PORT_BAUDRATE )->AddEnumPair( 7, "10 kbps" );
     mProperties->AddProperty( new LdBoolProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_CAN_PORT_FRAME_FORMAT, 0,
                               "Frame format - false = standard" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_CAN_PORT_TX_MSG_BASE_ID, 0, 4, "Tx base id" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_CAN_PORT_RX_MSG_BASE_ID, 0, 4, "Rx base id" ) );
-    mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_CAN_PORT_PORT_OPTIONS, 0, 1, "Operation mode" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_CAN_PORT_MAX_ECHOES, 0, 1, "Maximum echoes" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_CAN_PORT_TX_MSG_BASE_ID, 0, 4,
+                              "Tx base id" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_CAN_PORT_RX_MSG_BASE_ID, 0, 4,
+                              "Rx base id" ) );
+    mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_CAN_PORT_PORT_OPTIONS, 0, 1,
+                              "Operation mode" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_CAN_PORT_MAX_ECHOES, 0, 1,
+                              "Maximum echoes" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_CAN_PORT_MAILBOX_DELAY, 0, 2,
                               "Inter-message delay" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_CAN_PORT_PORT_ACQCYCLE_DELAY, 0, 2,
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_CAN_PORT_PORT_ACQCYCLE_DELAY, 0,
+                              2,
                               "Inter-cycle delay" ) );
-    mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_SEGMENT_ENABLE, LtComCanBus::M16_ID_SEGMENT_ENABLE, 2,
+    mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_SEGMENT_ENABLE,
+                              LtComCanBus::M16_ID_SEGMENT_ENABLE, 2,
                               "Enable / disable selected channels pair on the device (enable = 0)" ) );
     GetProperties()->GetBitProperty( LdPropertyIds::ID_SEGMENT_ENABLE )->SetLimit( ( 1 << GetProperties()->GetIntegerProperty( LdPropertyIds::ID_HSEGMENT )->Value() ) - 1 );
 
-    GetResultStates()->GetProperties()->AddProperty( new LdFloatProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_RS_SYSTEM_TEMP, 0, 4, 0, 2, "System Temperature" ) );
+    GetResultStates()->GetProperties()->AddProperty( new LdFloatProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_RS_SYSTEM_TEMP, 0, 4, 0, 2,
+            "System Temperature" ) );
     GetResultStates()->Init( LtComCanBus::M16_TEMPERATURE_SCALE, 0 );
 }
 
@@ -422,7 +438,8 @@ void LeddarDevice::LdSensorM16Can::SetConfig( void )
         lConfigData.mFrame.Cmd.mSubCmd = LtComCanBus::M16_ID_CAN_PORT_CONF1;
         lConfigData.mFrame.Cmd.mArg[0] = mProperties->GetEnumProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_BAUDRATE )->Value( 0 );
         lConfigData.mFrame.Cmd.mArg[1] = mProperties->GetBoolProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_FRAME_FORMAT )->Value( 0 );
-        *reinterpret_cast<uint32_t *>( &lConfigData.mFrame.Cmd.mArg[2] ) = mProperties->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_TX_MSG_BASE_ID )->ValueT<uint32_t>( 0 );
+        *reinterpret_cast<uint32_t *>( &lConfigData.mFrame.Cmd.mArg[2] ) = mProperties->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_TX_MSG_BASE_ID )->ValueT<uint32_t>
+                ( 0 );
 
         mProtocol->SetValue( lConfigData );
         mProperties->GetEnumProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_BAUDRATE )->SetClean();
@@ -436,7 +453,8 @@ void LeddarDevice::LdSensorM16Can::SetConfig( void )
         LtComCanBus::sCanData lConfigData = {};
         lConfigData.mFrame.Cmd.mCmd = LtComCanBus::M16_CMD_SET_HOLDING_DATA;
         lConfigData.mFrame.Cmd.mSubCmd = LtComCanBus::M16_ID_CAN_PORT_CONF2;
-        *reinterpret_cast<uint32_t *>( &lConfigData.mFrame.Cmd.mArg[2] ) = mProperties->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_RX_MSG_BASE_ID )->ValueT<uint32_t>( 0 );
+        *reinterpret_cast<uint32_t *>( &lConfigData.mFrame.Cmd.mArg[2] ) = mProperties->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_RX_MSG_BASE_ID )->ValueT<uint32_t>
+                ( 0 );
 
         mProtocol->SetValue( lConfigData );
         mProperties->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_RX_MSG_BASE_ID )->SetClean();
@@ -453,8 +471,10 @@ void LeddarDevice::LdSensorM16Can::SetConfig( void )
         lConfigData.mFrame.Cmd.mSubCmd = LtComCanBus::M16_ID_CAN_PORT_CONF3;
         lConfigData.mFrame.Cmd.mArg[0] = mProperties->GetBitProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_PORT_OPTIONS )->Value( 0 );
         lConfigData.mFrame.Cmd.mArg[1] = mProperties->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_MAX_ECHOES )->ValueT<uint8_t>( 0 );
-        *reinterpret_cast<uint16_t *>( &lConfigData.mFrame.Cmd.mArg[2] ) = mProperties->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_MAILBOX_DELAY )->ValueT<uint16_t>( 0 );
-        *reinterpret_cast<uint16_t *>( &lConfigData.mFrame.Cmd.mArg[4] ) = mProperties->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_PORT_ACQCYCLE_DELAY )->ValueT<uint16_t>( 0 );
+        *reinterpret_cast<uint16_t *>( &lConfigData.mFrame.Cmd.mArg[2] ) = mProperties->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_MAILBOX_DELAY )->ValueT<uint16_t>
+                ( 0 );
+        *reinterpret_cast<uint16_t *>( &lConfigData.mFrame.Cmd.mArg[4] ) = mProperties->GetIntegerProperty(
+                    LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_PORT_ACQCYCLE_DELAY )->ValueT<uint16_t>( 0 );
 
         mProtocol->SetValue( lConfigData );
         mProperties->GetBitProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_PORT_OPTIONS )->SetClean();
@@ -733,6 +753,7 @@ bool LeddarDevice::LdSensorM16Can::GetEchoes( void )
 
     if( lTimestamp != mLastTimestamp ) // Trigg callbacks only if its a new frame
     {
+        ComputeCartesianCoordinates();
         mEchoes.Swap();
         mLastTimestamp = lTimestamp;
         mEchoes.UpdateFinished();

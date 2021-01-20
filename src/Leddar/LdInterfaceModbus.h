@@ -36,7 +36,7 @@ namespace LeddarConnection
         virtual bool   IsVirtualCOMPort( void ) = 0;
 
     protected:
-        LdInterfaceModbus( const LdConnectionInfoModbus *aConnectionInfo, LdConnection *aInterface = 0 ) : LdConnection( aConnectionInfo, aInterface ),
+        explicit LdInterfaceModbus( const LdConnectionInfoModbus *aConnectionInfo, LdConnection *aInterface = 0 ) : LdConnection( aConnectionInfo, aInterface ),
             mConnectionInfoModbus( aConnectionInfo ) {};
 
         const LdConnectionInfoModbus *mConnectionInfoModbus;

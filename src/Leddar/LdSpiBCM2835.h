@@ -29,7 +29,7 @@ namespace LeddarConnection
     class LdSpiBCM2835 : public LdInterfaceSpi
     {
     public:
-        LdSpiBCM2835( const LdConnectionInfo *aConnectionInfo, LdConnection *aInterface = nullptr );
+        explicit LdSpiBCM2835( const LdConnectionInfo *aConnectionInfo, LdConnection *aInterface = nullptr );
         virtual ~LdSpiBCM2835();
 
         virtual void Connect( void ) override;

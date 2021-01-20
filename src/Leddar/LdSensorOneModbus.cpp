@@ -193,6 +193,7 @@ LdSensorOneModbus::GetEchoes( void )
         ( *lEchoes->GetEchoes( LeddarConnection::B_SET ) )[2].mAmplitude = LtIntUtilities::SwapEndian( lDetections->mAmplitude3 );
     }
 
+    ComputeCartesianCoordinates();
     GetResultEchoes()->Swap();
     GetResultEchoes()->UpdateFinished();
     return true;
@@ -473,8 +474,10 @@ LdSensorOneModbus::InitProperties( void )
 {
     using namespace LeddarCore;
 
-    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_CONSTANT, LdProperty::F_SAVE, LdPropertyIds::ID_SERIAL_NUMBER, 0, 16, LeddarCore::LdTextProperty::TYPE_ASCII, "Serial number" ) );
-    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_CONSTANT, LdProperty::F_SAVE, LdPropertyIds::ID_PART_NUMBER, 0, 11, LeddarCore::LdTextProperty::TYPE_ASCII, "Part  number" ) );
+    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_CONSTANT, LdProperty::F_SAVE, LdPropertyIds::ID_SERIAL_NUMBER, 0, 16, LeddarCore::LdTextProperty::TYPE_ASCII,
+                              "Serial number" ) );
+    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_CONSTANT, LdProperty::F_SAVE, LdPropertyIds::ID_PART_NUMBER, 0, 11, LeddarCore::LdTextProperty::TYPE_ASCII,
+                              "Part  number" ) );
     mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_CONSTANT, LdProperty::F_SAVE, LdPropertyIds::ID_SOFTWARE_PART_NUMBER, 0, 11, LeddarCore::LdTextProperty::TYPE_ASCII,
                               "Software part number" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONSTANT, LdProperty::F_SAVE, LdPropertyIds::ID_FIRMWARE_VERSION_INT, 0, 2, "Firmware version" ) );
@@ -525,9 +528,12 @@ LdSensorOneModbus::InitProperties( void )
     GetProperties()->GetIntegerProperty( LdPropertyIds::ID_ACCUMULATION_EXP )->SetLimits( 0, ONE_MAX_ACC_EXP );
     GetProperties()->GetIntegerProperty( LdPropertyIds::ID_OVERSAMPLING_EXP )->SetLimits( 0, ONE_MAX_OVERS_EXP );
     GetProperties()->GetIntegerProperty( LdPropertyIds::ID_PRECISION )->SetLimits( ONE_MIN_SMOOTHING, ONE_MAX_SMOOTHING );
-    GetProperties()->GetIntegerProperty( LdPropertyIds::ID_BASE_POINT_COUNT )->SetLimits( LtComLeddarOneModbus::ONE_MIN_BASE_POINT_COUNT, LtComLeddarOneModbus::ONE_MAX_BASE_POINT_COUNT );
-    GetProperties()->GetIntegerProperty( LdPropertyIds::ID_STATIC_NOISE_UPDATE_RATE )->SetLimits( LtComLeddarOneModbus::ONE_MIN_PULSE_NOISE_RATE, LtComLeddarOneModbus::ONE_MAX_PULSE_NOISE_RATE );
-    GetProperties()->GetIntegerProperty( LdPropertyIds::ID_STATIC_NOISE_UPDATE_AVERAGE )->SetLimits( LtComLeddarOneModbus::ONE_MIN_PULSE_NOISE_AVG, LtComLeddarOneModbus::ONE_MAX_PULSE_NOISE_AVG );
+    GetProperties()->GetIntegerProperty( LdPropertyIds::ID_BASE_POINT_COUNT )->SetLimits( LtComLeddarOneModbus::ONE_MIN_BASE_POINT_COUNT,
+            LtComLeddarOneModbus::ONE_MAX_BASE_POINT_COUNT );
+    GetProperties()->GetIntegerProperty( LdPropertyIds::ID_STATIC_NOISE_UPDATE_RATE )->SetLimits( LtComLeddarOneModbus::ONE_MIN_PULSE_NOISE_RATE,
+            LtComLeddarOneModbus::ONE_MAX_PULSE_NOISE_RATE );
+    GetProperties()->GetIntegerProperty( LdPropertyIds::ID_STATIC_NOISE_UPDATE_AVERAGE )->SetLimits( LtComLeddarOneModbus::ONE_MIN_PULSE_NOISE_AVG,
+            LtComLeddarOneModbus::ONE_MAX_PULSE_NOISE_AVG );
 
     LeddarCore::LdEnumProperty *lSerialBaud = GetProperties()->GetEnumProperty( LdPropertyIds::ID_COM_SERIAL_PORT_BAUDRATE );
     lSerialBaud->AddEnumPair( 0, "115200" );

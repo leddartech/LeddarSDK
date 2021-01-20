@@ -38,7 +38,7 @@ namespace LeddarConnection
     class LdSpiFTDI : public LdInterfaceSpi
     {
     public:
-        LdSpiFTDI( const LdConnectionInfo *aConnectionInfo, LdConnection *aInterface = nullptr );
+        explicit LdSpiFTDI( const LdConnectionInfo *aConnectionInfo, LdConnection *aInterface = nullptr );
         virtual ~LdSpiFTDI();
 
         virtual void Connect( void ) override;

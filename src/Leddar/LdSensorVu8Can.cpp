@@ -47,9 +47,11 @@ void LeddarDevice::LdSensorVu8Can::InitProperties()
     //Constants
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONSTANT, LdProperty::F_SAVE, LdPropertyIds::ID_RSEGMENT, 0, 2, "Number of reference segment" ) );
     mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_OPTIONS, 0, 4, "Device option - Internal use" ) );
-    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_FIRMWARE_VERSION_STR, 0, LtComCanBus::VU_FIRMWARE_VERSION_SIZE, LdTextProperty::TYPE_ASCII,
+    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_FIRMWARE_VERSION_STR, 0, LtComCanBus::VU_FIRMWARE_VERSION_SIZE,
+                              LdTextProperty::TYPE_ASCII,
                               "Firmware version" ) );
-    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_BOOTLOADER_VERSION, 0, LtComCanBus::VU_FIRMWARE_VERSION_SIZE, LdTextProperty::TYPE_ASCII,
+    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_BOOTLOADER_VERSION, 0, LtComCanBus::VU_FIRMWARE_VERSION_SIZE,
+                              LdTextProperty::TYPE_ASCII,
                               "Boot loader version" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_FPGA_VERSION, 0, 2, "FPGA version" ) );
     mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_SERIAL_NUMBER, 0, LtComCanBus::VU_SERIAL_NBR_SIZE,
@@ -64,18 +66,24 @@ void LeddarDevice::LdSensorVu8Can::InitProperties()
     mProperties->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_CONNECTION_TYPE )->SetClean();
 
     //Configuration
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_ACCUMULATION_EXP, 0, 1, "Accumulation exponent" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_ACCUMULATION_EXP, 0, 1,
+                              "Accumulation exponent" ) );
     mProperties->GetIntegerProperty( LdPropertyIds::ID_ACCUMULATION_EXP )->SetLimitsUnsigned( LtComCanBus::VU_MIN_ACC, LtComCanBus::VU_MAX_ACC );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_OVERSAMPLING_EXP, 0, 1, "Oversampling exponent" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_OVERSAMPLING_EXP, 0, 1,
+                              "Oversampling exponent" ) );
     mProperties->GetIntegerProperty( LdPropertyIds::ID_OVERSAMPLING_EXP )->SetLimitsUnsigned( LtComCanBus::VU_MIN_OVERS, LtComCanBus::VU_MAX_OVERS );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_BASE_POINT_COUNT, 0, 1, "Number of base samples" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_BASE_POINT_COUNT, 0, 1,
+                              "Number of base samples" ) );
     mProperties->GetIntegerProperty( LdPropertyIds::ID_BASE_POINT_COUNT )->SetLimitsUnsigned( LtComCanBus::VU_MIN_BASE_POINT_COUNT, LtComCanBus::VU_MAX_BASE_POINT_COUNT );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_PRECISION, 0, 1, "Smoothing",  true ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_PRECISION, 0, 1, "Smoothing",
+                              true ) );
     mProperties->GetIntegerProperty( LdPropertyIds::ID_PRECISION )->SetLimits( LtComCanBus::VU_MIN_SMOOTHING, LtComCanBus::VU_MAX_SMOOTHING );
-    mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_SENSIVITY, 0, 4, LtComCanBus::VU_THREHSOLD_SCALE, 2,
+    mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_SENSIVITY, 0, 4,
+                              LtComCanBus::VU_THREHSOLD_SCALE, 2,
                               "Threshold" ) );
     mProperties->GetFloatProperty( LdPropertyIds::ID_SENSIVITY )->SetLimits( -5, 100 );
-    mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_LED_INTENSITY, 0, 1, true, "Led/laser power %" ) );
+    mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_LED_INTENSITY, 0, 1, true,
+                              "Led/laser power %" ) );
     mProperties->GetEnumProperty( LdPropertyIds::ID_LED_INTENSITY )->AddEnumPair( 6, "6" );
     mProperties->GetEnumProperty( LdPropertyIds::ID_LED_INTENSITY )->AddEnumPair( 28, "28" );
     mProperties->GetEnumProperty( LdPropertyIds::ID_LED_INTENSITY )->AddEnumPair( 53, "53" );
@@ -93,7 +101,8 @@ void LeddarDevice::LdSensorVu8Can::InitProperties()
     mProperties->GetEnumProperty( LdPropertyIds::ID_COM_CAN_PORT_ECHOES_RES )->AddEnumPair( 10, "dm" );
     mProperties->GetEnumProperty( LdPropertyIds::ID_COM_CAN_PORT_ECHOES_RES )->AddEnumPair( 100, "cm" );
     mProperties->GetEnumProperty( LdPropertyIds::ID_COM_CAN_PORT_ECHOES_RES )->AddEnumPair( 1000, "mm" );
-    mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_ACQ_OPTIONS, LtComCanBus::VU_ID_ACQ_OPTIONS, 2,
+    mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_ACQ_OPTIONS,
+                              LtComCanBus::VU_ID_ACQ_OPTIONS, 2,
                               "Acquisition options" ) ); // see eAcquisitionOptionsVu
 
 
@@ -113,15 +122,20 @@ void LeddarDevice::LdSensorVu8Can::InitProperties()
     lCanFrameFormat->AddEnumPair( 0, "Standard 11 bits" );
     lCanFrameFormat->AddEnumPair( 1, "Extended 29 bits" );
 
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_CAN_PORT_TX_MSG_BASE_ID, 0, 4, "Tx base id" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_CAN_PORT_RX_MSG_BASE_ID, 0, 4, "Rx base id" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_CAN_PORT_MAX_ECHOES, 0, 1, "Maximum echoes" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_CAN_PORT_TX_MSG_BASE_ID, 0, 4,
+                              "Tx base id" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_CAN_PORT_RX_MSG_BASE_ID, 0, 4,
+                              "Rx base id" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_CAN_PORT_MAX_ECHOES, 0, 1,
+                              "Maximum echoes" ) );
     GetProperties()->GetIntegerProperty( LdPropertyIds::ID_COM_CAN_PORT_MAX_ECHOES )->SetLimits( 1, LtComCanBus::LEDDARVU8_MAX_CAN_DETECTIONS );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_CAN_PORT_MAILBOX_DELAY, 0, 2,
                               "Inter-message delay" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_CAN_PORT_PORT_ACQCYCLE_DELAY, 0, 2,
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_CAN_PORT_PORT_ACQCYCLE_DELAY, 0,
+                              2,
                               "Inter-cycle delay" ) );
-    mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_SEGMENT_ENABLE, LtComCanBus::VU_ID_SEGMENT_ENABLE, 4,
+    mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_SEGMENT_ENABLE,
+                              LtComCanBus::VU_ID_SEGMENT_ENABLE, 4,
                               "Segment enable (sensor) - Enable on 0" ) );
 }
 
@@ -282,7 +296,8 @@ void LeddarDevice::LdSensorVu8Can::GetConstants( void )
     }
 
     GetConnection()->SetDeviceType( GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_DEVICE_TYPE )->ValueT<uint16_t>() );
-    GetProperties()->GetBitProperty( LeddarCore::LdPropertyIds::ID_SEGMENT_ENABLE )->SetLimit( ( 1 << ( GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_HSEGMENT )->Value() + 1 ) ) -
+    GetProperties()->GetBitProperty( LeddarCore::LdPropertyIds::ID_SEGMENT_ENABLE )->SetLimit( ( 1 << ( GetProperties()->GetIntegerProperty(
+                LeddarCore::LdPropertyIds::ID_HSEGMENT )->Value() + 1 ) ) -
             1 );
 }
 
@@ -448,7 +463,8 @@ void LeddarDevice::LdSensorVu8Can::SetConfig( void )
 
         lConfigData.mFrame.Cmd.mArg[0] = mProperties->GetEnumProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_BAUDRATE )->Value( 0 );
         lConfigData.mFrame.Cmd.mArg[1] = mProperties->GetEnumProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_FRAME_FORMAT )->Value( 0 );
-        *reinterpret_cast<uint32_t *>( &lConfigData.mFrame.Cmd.mArg[2] ) =  mProperties->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_TX_MSG_BASE_ID )->ValueT<uint32_t>( 0 );
+        *reinterpret_cast<uint32_t *>( &lConfigData.mFrame.Cmd.mArg[2] ) =  mProperties->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_TX_MSG_BASE_ID )->ValueT<uint32_t>
+                ( 0 );
 
         mProtocol->SetValue( lConfigData );
         mProperties->GetEnumProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_BAUDRATE )->SetClean();
@@ -463,7 +479,8 @@ void LeddarDevice::LdSensorVu8Can::SetConfig( void )
         lConfigData.mFrame.Cmd.mCmd = LtComCanBus::VU_CMD_SET_HOLDING_DATA;
         lConfigData.mFrame.Cmd.mSubCmd = LtComCanBus::VU_ID_CAN_PORT_CONF2;
 
-        *reinterpret_cast<uint32_t *>( &lConfigData.mFrame.Cmd.mArg[2] ) =  mProperties->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_RX_MSG_BASE_ID )->ValueT<uint32_t>( 0 );
+        *reinterpret_cast<uint32_t *>( &lConfigData.mFrame.Cmd.mArg[2] ) =  mProperties->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_RX_MSG_BASE_ID )->ValueT<uint32_t>
+                ( 0 );
 
         mProtocol->SetValue( lConfigData );
         mProperties->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_RX_MSG_BASE_ID )->SetClean();
@@ -479,8 +496,10 @@ void LeddarDevice::LdSensorVu8Can::SetConfig( void )
         lConfigData.mFrame.Cmd.mSubCmd = LtComCanBus::VU_ID_CAN_PORT_CONF3;
 
         lConfigData.mFrame.Cmd.mArg[1] = mProperties->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_MAX_ECHOES )->ValueT<uint8_t>( 0 );
-        *reinterpret_cast<uint16_t *>( &lConfigData.mFrame.Cmd.mArg[2] ) =  mProperties->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_MAILBOX_DELAY )->ValueT<uint16_t>( 0 );
-        *reinterpret_cast<uint16_t *>( &lConfigData.mFrame.Cmd.mArg[4] ) =  mProperties->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_PORT_ACQCYCLE_DELAY )->ValueT<uint16_t>( 0 );
+        *reinterpret_cast<uint16_t *>( &lConfigData.mFrame.Cmd.mArg[2] ) =  mProperties->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_MAILBOX_DELAY )->ValueT<uint16_t>
+                ( 0 );
+        *reinterpret_cast<uint16_t *>( &lConfigData.mFrame.Cmd.mArg[4] ) =  mProperties->GetIntegerProperty(
+                    LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_PORT_ACQCYCLE_DELAY )->ValueT<uint16_t>( 0 );
 
         mProtocol->SetValue( lConfigData );
         mProperties->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_MAX_ECHOES )->SetClean();
@@ -531,7 +550,7 @@ bool LeddarDevice::LdSensorVu8Can::GetData( void )
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 bool LeddarDevice::LdSensorVu8Can::GetEchoes( void )
 {
-    LtComCanBus::sCanData lNextData = {};
+    LtComCanBus::sCanData lNextData;
     uint16_t lTimeout = 500;
 
     if( mProtocol->IsStreaming() )
@@ -640,6 +659,7 @@ bool LeddarDevice::LdSensorVu8Can::GetEchoes( void )
 
     if( lTimestamp != mLastTimestamp ) // Trigg callbacks only if its a new frame
     {
+        ComputeCartesianCoordinates();
         mEchoes.Swap();
         mLastTimestamp = lTimestamp;
         mEchoes.UpdateFinished();

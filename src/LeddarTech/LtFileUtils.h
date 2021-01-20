@@ -38,7 +38,7 @@ namespace LeddarUtils
         class LtLtbReader
         {
         public:
-            LtLtbReader( const std::string &aFileName );
+            explicit LtLtbReader( const std::string &aFileName );
             ~LtLtbReader();
 
             uint16_t GetDeviceType() const { return mDeviceType; }

@@ -80,13 +80,6 @@ LeddarRecord::LdLjrRecorder::~LdLjrRecorder()
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 std::string LeddarRecord::LdLjrRecorder::StartRecording( const std::string &aPath )
 {
-    std::ifstream infile( aPath.c_str() ); //c_str for c++98
-
-    if( infile.good() )
-    {
-        throw std::invalid_argument( "File already exist" );
-    }
-
     if( mOutStream != nullptr )
     {
         throw std::logic_error( "Already recording" );

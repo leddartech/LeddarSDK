@@ -107,6 +107,7 @@ namespace LeddarCore
             ID_SPACIAL_FILTER_ENABLE            = 0x00116A,
             ID_SYSTEM_TIME                      = 0x00116B,
             ID_SYNCHRONIZATION                  = 0x00116C,
+            ID_CORRECT_DISTANCE_INTER_TILE      = 0x00116D,
 
             ID_VSEGMENT                     = 0x001021,
             ID_HSEGMENT                     = 0x001020,
@@ -162,6 +163,7 @@ namespace LeddarCore
             ID_ECHO_AMPLITUDE_MAX           = 0x001026,
             ID_TRIGGER_MODE                 = 0x0000E4,
             ID_ACQUISITION_MODE             = 0x0000E5,
+            ID_RAISING_FALLING_EDGE      = 0x0000E6,
 
             ID_LED_INTENSITY                = 0x00002A,
             ID_LED_INTENSITY_LIST           = 0xAA0013,

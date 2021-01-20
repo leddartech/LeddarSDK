@@ -126,7 +126,7 @@ LeddarConnection::LdEthernet::LdEthernet( const LdConnectionInfoEthernet *aConne
 // *****************************************************************************
 LeddarConnection::LdEthernet::~LdEthernet( void )
 {
-    Disconnect();
+    LdEthernet::Disconnect();
 }
 
 // *****************************************************************************
@@ -171,6 +171,17 @@ LeddarConnection::LdEthernet::Connect( void )
             throw LeddarException::LtComException( "Failed to initialize socket (socket): " + LeddarUtils::LtSystemUtils::ErrnoToString( LAST_ERROR ) );
         }
 
+        // Set OS buffer size
+        int lSocketBufferSize = 100000;
+#ifdef WIN32
+        int lResponse = setsockopt(mSocket, SOL_SOCKET, SO_RCVBUF, (char *)&lSocketBufferSize, sizeof(lSocketBufferSize));
+#else
+        int lResponse = setsockopt(mSocket, SOL_SOCKET, SO_RCVBUF, &lSocketBufferSize, sizeof(lSocketBufferSize));
+#endif
+        if (SOCKET_ERROR == lResponse)
+        {
+            throw LeddarException::LtComException("Unable to set option on TCP socket" + LeddarUtils::LtSystemUtils::ErrnoToString(LAST_ERROR), LAST_ERROR);
+        }
 
         // Set receive timeout.
 #ifdef _WIN32
@@ -866,9 +877,9 @@ std::vector<LeddarConnection::LdConnectionInfo *> LeddarConnection::LdEthernet::
 #else
 
                                 //Poor conversion, but this encoding is poorly supported in c++99 non windows
-                                for( uint8_t i = 0; i < LT_COMM_DEVICE_UNICODE_NAME_LENGTH; ++i )
+                                for( uint8_t k = 0; k < LT_COMM_DEVICE_UNICODE_NAME_LENGTH; ++k )
                                 {
-                                    lHeader->mDeviceName[i] = lHeader->mDeviceName[2 * i];
+                                    lHeader->mDeviceName[k] = lHeader->mDeviceName[2 * k];
                                 }
 
                                 std::string lDeviceName = std::string( lHeader->mDeviceName );
@@ -1046,7 +1057,7 @@ LeddarConnection::LdEthernet::ReceiveFrom( std::string &aIpAddress, uint16_t &aP
     {
         throw LeddarException::LtComException( "Error to receive UDP data on address: " + aIpAddress + " on port: "
                                                + LeddarUtils::LtStringUtils::IntToString( aPort ) + " ("
-                                               + LeddarUtils::LtSystemUtils::ErrnoToString( LAST_ERROR ) + ")" );
+                                               + LeddarUtils::LtSystemUtils::ErrnoToString( lErr ) + ")" );
     }
     else if( lResult == 0 )
     {

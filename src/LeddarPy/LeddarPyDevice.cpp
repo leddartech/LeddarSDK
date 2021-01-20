@@ -22,6 +22,7 @@
 #include "LtStringUtils.h"
 #include "LtTimeUtils.h"
 #include "LtIntUtilities.h"
+#include "LtMathUtils.h"
 #include "LtExceptions.h"
 
 #include "LdLibModbusSerial.h"
@@ -169,7 +170,7 @@ private:
                 //Thread safe python call
                 gstate = PyGILState_Ensure();
 
-                if( PyObject *o = PackageEchoes( mEchoes ) ) {
+                if( PyObject *o = PackageEchoes( mSelf->mSensor ) ) {
                     PyObject_CallFunctionObjArgs( mSelf->mDataThreadSharedData.mCallBackEcho, o, NULL );
                     Py_DECREF( o );
                 }
@@ -1327,18 +1328,18 @@ PyObject *GetEchoes( sLeddarDevice *self, PyObject *args )
             throw std::runtime_error( "No new echoes available!" );
         }
 
-        return PackageEchoes( self->mSensor->GetResultEchoes() );
+        return PackageEchoes( self->mSensor );
     }, lNRetries );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn PyObject *PackageEchoes( LeddarConnection::LdResultEchoes *aResultEchoes )
+/// \fn PyObject *PackageEchoes( LeddarDevice::LdSensor *aSensor )
 ///
 /// \brief  Package echoes
 ///
 /// \exception  std::logic_error    Raised when unable to allocate memory for Python list.
 ///
-/// \param [in,out] aResultEchoes   Pointer to the sensor's result echoes.
+/// \param [in,out] aSensor   Pointer to the sensor.
 ///
 /// \return A dict with keys: timestamp, distance_scale, amplitude_scale, led_power, v_fov, h_fov, v, h, data
 ///
@@ -1354,38 +1355,44 @@ struct LeddarPyEcho
     float amplitude;
     uint64_t timestamp;
     uint16_t flag;
+    float x;
+    float y;
+    float z;
 };
 #pragma pack(pop)
 
-PyObject *PackageEchoes( LeddarConnection::LdResultEchoes *aResultEchoes )
+PyObject *PackageEchoes( LeddarDevice::LdSensor *aSensor )
 {
-    std::vector<LeddarConnection::LdEcho> &lEchoes = *( aResultEchoes->GetEchoes() );
-    npy_intp dimsIndices = aResultEchoes->GetEchoCount();
+    std::vector<LeddarConnection::LdEcho> &lEchoes = *( aSensor->GetResultEchoes()->GetEchoes() );
+    npy_intp dimsIndices = aSensor->GetResultEchoes()->GetEchoCount();
     PyObject *lEchoesDict = PyDict_New();
 
     if( !lEchoesDict )
         throw std::logic_error( "Unable to allocate memory for Python list" );
 
-    PyDict_SetItemString( lEchoesDict, "scan_direction", PyLong_FromUnsignedLong( aResultEchoes->GetScanDirection() ) );
-    PyDict_SetItemString( lEchoesDict, "timestamp", PyLong_FromUnsignedLongLong( aResultEchoes->GetTimestamp64() != 0 ? aResultEchoes->GetTimestamp64() :
-                          aResultEchoes->GetTimestamp() ) );
-    PyDict_SetItemString( lEchoesDict, "distance_scale", PyLong_FromUnsignedLong( aResultEchoes->GetDistanceScale() ) );
-    PyDict_SetItemString( lEchoesDict, "amplitude_scale", PyLong_FromUnsignedLong( aResultEchoes->GetAmplitudeScale() ) );
-    PyDict_SetItemString( lEchoesDict, "led_power", PyLong_FromUnsignedLong( aResultEchoes->GetCurrentLedPower() ) );
-    PyDict_SetItemString( lEchoesDict, "v_fov", PyFloat_FromDouble( aResultEchoes->GetVFOV() ) );
-    PyDict_SetItemString( lEchoesDict, "h_fov", PyFloat_FromDouble( aResultEchoes->GetHFOV() ) );
-    PyDict_SetItemString( lEchoesDict, "v", PyLong_FromUnsignedLong( aResultEchoes->GetVChan() ) );
-    PyDict_SetItemString( lEchoesDict, "h", PyLong_FromUnsignedLong( aResultEchoes->GetHChan() ) );
+    PyDict_SetItemString( lEchoesDict, "scan_direction", PyLong_FromUnsignedLong( aSensor->GetResultEchoes()->GetScanDirection() ) );
+    PyDict_SetItemString( lEchoesDict, "timestamp", PyLong_FromUnsignedLongLong( aSensor->GetResultEchoes()->GetTimestamp64() != 0 ? aSensor->GetResultEchoes()->GetTimestamp64() :
+                          aSensor->GetResultEchoes()->GetTimestamp() ) );
+    PyDict_SetItemString( lEchoesDict, "distance_scale", PyLong_FromUnsignedLong( aSensor->GetResultEchoes()->GetDistanceScale() ) );
+    PyDict_SetItemString( lEchoesDict, "amplitude_scale", PyLong_FromUnsignedLong( aSensor->GetResultEchoes()->GetAmplitudeScale() ) );
+    PyDict_SetItemString( lEchoesDict, "led_power", PyLong_FromUnsignedLong( aSensor->GetResultEchoes()->GetCurrentLedPower() ) );
+    PyDict_SetItemString( lEchoesDict, "v_fov", PyFloat_FromDouble( aSensor->GetResultEchoes()->GetVFOV() ) );
+    PyDict_SetItemString( lEchoesDict, "h_fov", PyFloat_FromDouble( aSensor->GetResultEchoes()->GetHFOV() ) );
+    PyDict_SetItemString( lEchoesDict, "v", PyLong_FromUnsignedLong( aSensor->GetResultEchoes()->GetVChan() ) );
+    PyDict_SetItemString( lEchoesDict, "h", PyLong_FromUnsignedLong( aSensor->GetResultEchoes()->GetHChan() ) );
 
 
     npy_intp dims[1] = {dimsIndices};
 
-    PyObject *op = Py_BuildValue( "[(s, s), (s, s), (s, s), (s, s), (s, s)]"
+    PyObject *op = Py_BuildValue( "[(s, s), (s, s), (s, s), (s, s), (s, s), (s, s), (s, s), (s, s)]"
                                   , "indices", "u4"
                                   , "distances", "f4"
                                   , "amplitudes", "f4"
                                   , "timestamps", "u8"
-                                  , "flags", "u2" );
+                                  , "flags", "u2"
+                                  , "x", "f4"
+                                  , "y", "f4"
+                                  , "z", "f4" );
     PyArray_Descr *descr;
     PyArray_DescrConverter( op, &descr );
     Py_DECREF( op );
@@ -1398,10 +1405,13 @@ PyObject *PackageEchoes( LeddarConnection::LdResultEchoes *aResultEchoes )
         LeddarPyEcho *ech_ptr = static_cast<LeddarPyEcho *>PyArray_GETPTR1( ( PyArrayObject * )lEchoesArray, i );
 
         ech_ptr->index = uint32_t( lEchoes[i].mChannelIndex );
-        ech_ptr->distance = float( lEchoes[i].mDistance ) / aResultEchoes->GetDistanceScale();
-        ech_ptr->amplitude = float( lEchoes[i].mAmplitude ) / aResultEchoes->GetAmplitudeScale();
+        ech_ptr->distance = float( lEchoes[i].mDistance ) / aSensor->GetResultEchoes()->GetDistanceScale();
+        ech_ptr->amplitude = float( lEchoes[i].mAmplitude ) / aSensor->GetResultEchoes()->GetAmplitudeScale();
         ech_ptr->timestamp = lEchoes[i].mTimestamp;
         ech_ptr->flag = uint16_t( lEchoes[i].mFlag );
+        ech_ptr->x = lEchoes[i].mX;
+        ech_ptr->y = lEchoes[i].mY;
+        ech_ptr->z = lEchoes[i].mZ;
     }
 
     return lEchoesDict;

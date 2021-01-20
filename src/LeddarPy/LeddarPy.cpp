@@ -1,4 +1,4 @@
-﻿// *****************************************************************************
+// *****************************************************************************
 // Module..: LeddarPy
 //
 /// \file    LeddarPy.cpp
@@ -91,80 +91,80 @@ PyObject *GetPropertyIdDict( PyObject *self, PyObject *args )
 {
     PyObject *lPropertyId = PyDict_New();
     //Config
-    PyDict_SetItemString( lPropertyId, "ID_ACCUMULATION_EXP"              , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_ACCUMULATION_EXP ) );
-    PyDict_SetItemString( lPropertyId, "ID_OVERSAMPLING_EXP"              , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_OVERSAMPLING_EXP ) );
-    PyDict_SetItemString( lPropertyId, "ID_PRECISION"                     , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_PRECISION ) );
-    PyDict_SetItemString( lPropertyId, "ID_PRECISION_ENABLE"              , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_PRECISION_ENABLE ) );
-    PyDict_SetItemString( lPropertyId, "ID_LED_INTENSITY"                 , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_LED_INTENSITY ) );
-    PyDict_SetItemString( lPropertyId, "ID_BASE_POINT_COUNT"              , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_BASE_POINT_COUNT ) );
+    PyDict_SetItemString( lPropertyId, "ID_ACCUMULATION_EXP", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_ACCUMULATION_EXP ) );
+    PyDict_SetItemString( lPropertyId, "ID_OVERSAMPLING_EXP", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_OVERSAMPLING_EXP ) );
+    PyDict_SetItemString( lPropertyId, "ID_PRECISION", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_PRECISION ) );
+    PyDict_SetItemString( lPropertyId, "ID_PRECISION_ENABLE", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_PRECISION_ENABLE ) );
+    PyDict_SetItemString( lPropertyId, "ID_LED_INTENSITY", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_LED_INTENSITY ) );
+    PyDict_SetItemString( lPropertyId, "ID_BASE_POINT_COUNT", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_BASE_POINT_COUNT ) );
 
 
-    PyDict_SetItemString( lPropertyId, "ID_SATURATION_COMP_ENABLE"        , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_SATURATION_COMP_ENABLE ) );
-    PyDict_SetItemString( lPropertyId, "ID_OVERSHOOT_MNG_ENABLE"          , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_OVERSHOOT_MNG_ENABLE ) );
-    PyDict_SetItemString( lPropertyId, "ID_DEMERGING_ENABLE"              , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_DEMERGING_ENABLE ) );
-    PyDict_SetItemString( lPropertyId, "ID_STATIC_NOISE_REMOVAL_ENABLE"   , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_STATIC_NOISE_REMOVAL_ENABLE ) );
-    PyDict_SetItemString( lPropertyId, "ID_OVERSHOOT_MNG_ENABLE"          , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_OVERSHOOT_MNG_ENABLE ) );
-    PyDict_SetItemString( lPropertyId, "ID_LED_AUTO_PWR_ENABLE"           , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_LED_AUTO_PWR_ENABLE ) );
-    PyDict_SetItemString( lPropertyId, "ID_LED_AUTO_FRAME_AVG"            , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_LED_AUTO_FRAME_AVG ) );
-    PyDict_SetItemString( lPropertyId, "ID_LED_AUTO_ECHO_AVG"             , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_LED_AUTO_ECHO_AVG ) );
-    PyDict_SetItemString( lPropertyId, "ID_SATURATION_COMP_ENABLE"        , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_SATURATION_COMP_ENABLE ) );
-    PyDict_SetItemString( lPropertyId, "ID_SATURATION_COMP_ENABLE"        , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_SATURATION_COMP_ENABLE ) );
-    PyDict_SetItemString( lPropertyId, "ID_SEGMENT_ENABLE"                , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_SEGMENT_ENABLE ) );
+    PyDict_SetItemString( lPropertyId, "ID_SATURATION_COMP_ENABLE", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_SATURATION_COMP_ENABLE ) );
+    PyDict_SetItemString( lPropertyId, "ID_OVERSHOOT_MNG_ENABLE", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_OVERSHOOT_MNG_ENABLE ) );
+    PyDict_SetItemString( lPropertyId, "ID_DEMERGING_ENABLE", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_DEMERGING_ENABLE ) );
+    PyDict_SetItemString( lPropertyId, "ID_STATIC_NOISE_REMOVAL_ENABLE", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_STATIC_NOISE_REMOVAL_ENABLE ) );
+    PyDict_SetItemString( lPropertyId, "ID_OVERSHOOT_MNG_ENABLE", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_OVERSHOOT_MNG_ENABLE ) );
+    PyDict_SetItemString( lPropertyId, "ID_LED_AUTO_PWR_ENABLE", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_LED_AUTO_PWR_ENABLE ) );
+    PyDict_SetItemString( lPropertyId, "ID_LED_AUTO_FRAME_AVG", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_LED_AUTO_FRAME_AVG ) );
+    PyDict_SetItemString( lPropertyId, "ID_LED_AUTO_ECHO_AVG", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_LED_AUTO_ECHO_AVG ) );
+    PyDict_SetItemString( lPropertyId, "ID_SATURATION_COMP_ENABLE", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_SATURATION_COMP_ENABLE ) );
+    PyDict_SetItemString( lPropertyId, "ID_SATURATION_COMP_ENABLE", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_SATURATION_COMP_ENABLE ) );
+    PyDict_SetItemString( lPropertyId, "ID_SEGMENT_ENABLE", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_SEGMENT_ENABLE ) );
 
 
-    PyDict_SetItemString( lPropertyId, "ID_REF_PULSE_RATE"                , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_REF_PULSE_RATE ) );
-    PyDict_SetItemString( lPropertyId, "ID_ORIGIN_X"                      , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_ORIGIN_X ) );
-    PyDict_SetItemString( lPropertyId, "ID_ORIGIN_Y"                      , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_ORIGIN_Y ) );
-    PyDict_SetItemString( lPropertyId, "ID_ORIGIN_Z"                      , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_ORIGIN_Z ) );
-    PyDict_SetItemString( lPropertyId, "ID_YAW"                           , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_YAW ) );
-    PyDict_SetItemString( lPropertyId, "ID_PITCH"                         , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_PITCH ) );
-    PyDict_SetItemString( lPropertyId, "ID_ROLL"                          , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_ROLL ) );
+    PyDict_SetItemString( lPropertyId, "ID_REF_PULSE_RATE", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_REF_PULSE_RATE ) );
+    PyDict_SetItemString( lPropertyId, "ID_ORIGIN_X", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_ORIGIN_X ) );
+    PyDict_SetItemString( lPropertyId, "ID_ORIGIN_Y", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_ORIGIN_Y ) );
+    PyDict_SetItemString( lPropertyId, "ID_ORIGIN_Z", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_ORIGIN_Z ) );
+    PyDict_SetItemString( lPropertyId, "ID_YAW", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_YAW ) );
+    PyDict_SetItemString( lPropertyId, "ID_PITCH", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_PITCH ) );
+    PyDict_SetItemString( lPropertyId, "ID_ROLL", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_ROLL ) );
 
     //Constants
-    PyDict_SetItemString( lPropertyId, "ID_PRECISION_LIMITS"              , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_PRECISION_LIMITS ) );
-    PyDict_SetItemString( lPropertyId, "ID_DEVICE_TYPE"                   , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_DEVICE_TYPE ) );
-    PyDict_SetItemString( lPropertyId, "ID_VERTICAL_CHANNEL_NBR"          , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_VSEGMENT ) );
-    PyDict_SetItemString( lPropertyId, "ID_HORIZONTAL_CHANNEL_NBR"        , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_HSEGMENT ) );
-    PyDict_SetItemString( lPropertyId, "ID_HFOV"                          , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_HFOV ) );
-    PyDict_SetItemString( lPropertyId, "ID_VFOV"                          , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_VFOV ) );
+    PyDict_SetItemString( lPropertyId, "ID_PRECISION_LIMITS", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_PRECISION_LIMITS ) );
+    PyDict_SetItemString( lPropertyId, "ID_DEVICE_TYPE", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_DEVICE_TYPE ) );
+    PyDict_SetItemString( lPropertyId, "ID_VERTICAL_CHANNEL_NBR", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_VSEGMENT ) );
+    PyDict_SetItemString( lPropertyId, "ID_HORIZONTAL_CHANNEL_NBR", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_HSEGMENT ) );
+    PyDict_SetItemString( lPropertyId, "ID_HFOV", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_HFOV ) );
+    PyDict_SetItemString( lPropertyId, "ID_VFOV", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_VFOV ) );
 
 
-    PyDict_SetItemString( lPropertyId, "ID_DEVICE_NAME"                   , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_DEVICE_NAME ) );
-    PyDict_SetItemString( lPropertyId, "ID_PART_NUMBER"                   , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_PART_NUMBER ) );
-    PyDict_SetItemString( lPropertyId, "ID_SOFTWARE_PART_NUMBER"          , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_SOFTWARE_PART_NUMBER ) );
-    PyDict_SetItemString( lPropertyId, "ID_SERIAL_NUMBER"                 , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_SERIAL_NUMBER ) );
-    PyDict_SetItemString( lPropertyId, "ID_FIRMWARE_VERSION_INT"          , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_FIRMWARE_VERSION_INT ) );
-    PyDict_SetItemString( lPropertyId, "ID_FPGA_VERSION"                  , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_FPGA_VERSION ) );
-    PyDict_SetItemString( lPropertyId, "ID_GROUP_ID_NUMBER"               , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_GROUP_ID_NUMBER ) );
-    PyDict_SetItemString( lPropertyId, "ID_LED_AUTO_FRAME_AVG_LIMITS"     , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_LED_AUTO_FRAME_AVG_LIMITS ) );
-    PyDict_SetItemString( lPropertyId, "ID_MAC_ADDRESS"                   , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_MAC_ADDRESS ) );
-    PyDict_SetItemString( lPropertyId, "ID_OPTIONS"                       , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_OPTIONS ) );
-    PyDict_SetItemString( lPropertyId, "ID_BASE_SAMPLE_DISTANCE"          , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_BASE_SAMPLE_DISTANCE ) );
-    PyDict_SetItemString( lPropertyId, "ID_MAX_ECHOES_PER_CHANNEL"        , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_MAX_ECHOES_PER_CHANNEL ) );
-    PyDict_SetItemString( lPropertyId, "ID_DISTANCE_SCALE"                , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_DISTANCE_SCALE ) );
-    PyDict_SetItemString( lPropertyId, "ID_ECHO_AMPLITUDE_MAX"            , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_ECHO_AMPLITUDE_MAX ) );
-    PyDict_SetItemString( lPropertyId, "ID_RAW_AMP_SCALE"                 , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_RAW_AMP_SCALE ) );
-    PyDict_SetItemString( lPropertyId, "ID_FILTERED_AMP_SCALE"            , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_FILTERED_AMP_SCALE ) );
-    PyDict_SetItemString( lPropertyId, "ID_TEMPERATURE_SCALE"             , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_TEMPERATURE_SCALE ) );
-    PyDict_SetItemString( lPropertyId, "ID_SENSIVITY"                     , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_SENSIVITY ) );
-    PyDict_SetItemString( lPropertyId, "ID_IP_ADDRESS"                    , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_IP_ADDRESS ) );
-    PyDict_SetItemString( lPropertyId, "ID_IP_MODE"                       , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_IP_MODE ) );
-    PyDict_SetItemString( lPropertyId, "ID_DATA_SERVER_PORT"              , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_DATA_SERVER_PORT ) );
-    PyDict_SetItemString( lPropertyId, "ID_DATA_SERVER_PROTOCOL"          , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_DATA_SERVER_PROTOCOL ) );
-    PyDict_SetItemString( lPropertyId, "ID_BUFFER_SIZE_TCP"               , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_BUFFER_SIZE_TCP ) );
-    PyDict_SetItemString( lPropertyId, "ID_BUFFER_SIZE_UDP"               , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_BUFFER_SIZE_UDP ) );
-    PyDict_SetItemString( lPropertyId, "ID_LICENSE"                       , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_LICENSE ) );
-    PyDict_SetItemString( lPropertyId, "ID_LICENSE_INFO"                  , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_LICENSE_INFO ) );
-    PyDict_SetItemString( lPropertyId, "ID_PULSE_RATE"                    , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_PULSE_RATE ) );
-    PyDict_SetItemString( lPropertyId, "ID_ACC_DIST_EXP"                  , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_ACC_DIST_EXP ) );
-    PyDict_SetItemString( lPropertyId, "ID_XTALK_REMOVAL_ENABLE"          , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_XTALK_REMOVAL_ENABLE ) );
-    PyDict_SetItemString( lPropertyId, "ID_XTALK_OPTIC_SEG_ENABLE"        , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_XTALK_OPTIC_SEG_ENABLE ) );
-    PyDict_SetItemString( lPropertyId, "ID_XTALK_OPTIC_LINE_ENABLE"       , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_XTALK_OPTIC_LINE_ENABLE ) );
-    PyDict_SetItemString( lPropertyId, "ID_XTALK_OPTIC_ECH_SEG_ENABLE"    , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_XTALK_OPTIC_ECH_SEG_ENABLE ) );
-    PyDict_SetItemString( lPropertyId, "ID_XTALK_OPTIC_ECH_LINE_ENABLE"   , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_XTALK_OPTIC_ECH_LINE_ENABLE ) );
+    PyDict_SetItemString( lPropertyId, "ID_DEVICE_NAME", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_DEVICE_NAME ) );
+    PyDict_SetItemString( lPropertyId, "ID_PART_NUMBER", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_PART_NUMBER ) );
+    PyDict_SetItemString( lPropertyId, "ID_SOFTWARE_PART_NUMBER", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_SOFTWARE_PART_NUMBER ) );
+    PyDict_SetItemString( lPropertyId, "ID_SERIAL_NUMBER", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_SERIAL_NUMBER ) );
+    PyDict_SetItemString( lPropertyId, "ID_FIRMWARE_VERSION_INT", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_FIRMWARE_VERSION_INT ) );
+    PyDict_SetItemString( lPropertyId, "ID_FPGA_VERSION", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_FPGA_VERSION ) );
+    PyDict_SetItemString( lPropertyId, "ID_GROUP_ID_NUMBER", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_GROUP_ID_NUMBER ) );
+    PyDict_SetItemString( lPropertyId, "ID_LED_AUTO_FRAME_AVG_LIMITS", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_LED_AUTO_FRAME_AVG_LIMITS ) );
+    PyDict_SetItemString( lPropertyId, "ID_MAC_ADDRESS", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_MAC_ADDRESS ) );
+    PyDict_SetItemString( lPropertyId, "ID_OPTIONS", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_OPTIONS ) );
+    PyDict_SetItemString( lPropertyId, "ID_BASE_SAMPLE_DISTANCE", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_BASE_SAMPLE_DISTANCE ) );
+    PyDict_SetItemString( lPropertyId, "ID_MAX_ECHOES_PER_CHANNEL", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_MAX_ECHOES_PER_CHANNEL ) );
+    PyDict_SetItemString( lPropertyId, "ID_DISTANCE_SCALE", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_DISTANCE_SCALE ) );
+    PyDict_SetItemString( lPropertyId, "ID_ECHO_AMPLITUDE_MAX", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_ECHO_AMPLITUDE_MAX ) );
+    PyDict_SetItemString( lPropertyId, "ID_RAW_AMP_SCALE", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_RAW_AMP_SCALE ) );
+    PyDict_SetItemString( lPropertyId, "ID_FILTERED_AMP_SCALE", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_FILTERED_AMP_SCALE ) );
+    PyDict_SetItemString( lPropertyId, "ID_TEMPERATURE_SCALE", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_TEMPERATURE_SCALE ) );
+    PyDict_SetItemString( lPropertyId, "ID_SENSIVITY", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_SENSIVITY ) );
+    PyDict_SetItemString( lPropertyId, "ID_IP_ADDRESS", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_IP_ADDRESS ) );
+    PyDict_SetItemString( lPropertyId, "ID_IP_MODE", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_IP_MODE ) );
+    PyDict_SetItemString( lPropertyId, "ID_DATA_SERVER_PORT", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_DATA_SERVER_PORT ) );
+    PyDict_SetItemString( lPropertyId, "ID_DATA_SERVER_PROTOCOL", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_DATA_SERVER_PROTOCOL ) );
+    PyDict_SetItemString( lPropertyId, "ID_BUFFER_SIZE_TCP", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_BUFFER_SIZE_TCP ) );
+    PyDict_SetItemString( lPropertyId, "ID_BUFFER_SIZE_UDP", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_BUFFER_SIZE_UDP ) );
+    PyDict_SetItemString( lPropertyId, "ID_LICENSE", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_LICENSE ) );
+    PyDict_SetItemString( lPropertyId, "ID_LICENSE_INFO", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_LICENSE_INFO ) );
+    PyDict_SetItemString( lPropertyId, "ID_PULSE_RATE", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_PULSE_RATE ) );
+    PyDict_SetItemString( lPropertyId, "ID_ACC_DIST_EXP", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_ACC_DIST_EXP ) );
+    PyDict_SetItemString( lPropertyId, "ID_XTALK_REMOVAL_ENABLE", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_XTALK_REMOVAL_ENABLE ) );
+    PyDict_SetItemString( lPropertyId, "ID_XTALK_OPTIC_SEG_ENABLE", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_XTALK_OPTIC_SEG_ENABLE ) );
+    PyDict_SetItemString( lPropertyId, "ID_XTALK_OPTIC_LINE_ENABLE", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_XTALK_OPTIC_LINE_ENABLE ) );
+    PyDict_SetItemString( lPropertyId, "ID_XTALK_OPTIC_ECH_SEG_ENABLE", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_XTALK_OPTIC_ECH_SEG_ENABLE ) );
+    PyDict_SetItemString( lPropertyId, "ID_XTALK_OPTIC_ECH_LINE_ENABLE", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_XTALK_OPTIC_ECH_LINE_ENABLE ) );
 
-    PyDict_SetItemString( lPropertyId, "ID_SYSTEM_TIME"                   , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_SYSTEM_TIME ) );
-    PyDict_SetItemString( lPropertyId, "ID_SYNCHRONIZATION"               , PyLong_FromLong( LeddarCore::LdPropertyIds::ID_SYNCHRONIZATION ) );
+    PyDict_SetItemString( lPropertyId, "ID_SYSTEM_TIME", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_SYSTEM_TIME ) );
+    PyDict_SetItemString( lPropertyId, "ID_SYNCHRONIZATION", PyLong_FromLong( LeddarCore::LdPropertyIds::ID_SYNCHRONIZATION ) );
 
 
 

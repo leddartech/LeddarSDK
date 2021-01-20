@@ -80,6 +80,7 @@ bool ConnectEthernet( LeddarDevice::LdSensor **aSensor, const std::string &aIP, 
 
         ( *aSensor )->GetConstants();
         ( *aSensor )->GetConfig();
+        ( *aSensor )->GetCalib();
 
         return true;
     }
@@ -128,8 +129,10 @@ bool ConnectSerial( LeddarDevice::LdSensor **aSensor, const std::string &aConnec
 
     try
     {
-        DebugTrace( "Connecting to a serial device @ " + aConnectionString + " - " + LeddarUtils::LtStringUtils::IntToString( aModbusAddress ) + "/" + LeddarUtils::LtStringUtils::IntToString( aBaudRate ) );
-        auto *lConnectionInfo = new LeddarConnection::LdConnectionInfoModbus( aConnectionString, "Serial Sensor", aBaudRate, LeddarConnection::LdConnectionInfoModbus::MB_PARITY_NONE, 8, 1, aModbusAddress );
+        DebugTrace( "Connecting to a serial device @ " + aConnectionString + " - " + LeddarUtils::LtStringUtils::IntToString( aModbusAddress ) + "/" +
+                    LeddarUtils::LtStringUtils::IntToString( aBaudRate ) );
+        auto *lConnectionInfo = new LeddarConnection::LdConnectionInfoModbus( aConnectionString, "Serial Sensor", aBaudRate, LeddarConnection::LdConnectionInfoModbus::MB_PARITY_NONE, 8, 1,
+                aModbusAddress );
         LeddarConnection::LdConnection *lConnection = LdCreateConnection( lConnectionInfo );
         *aSensor = LdCreateSensor( lConnection );
         ( *aSensor )->Connect();
@@ -351,7 +354,8 @@ bool ConnectCanKomodo( LeddarDevice::LdSensor **aSensor, int aDeviceType, int aR
             default:
                 throw std::invalid_argument( "Unsupported device type" ); //Should never reach this point, its already checked before
         }
-        DebugTrace(std::string("lM16: ") + std::to_string(lM16));
+
+        DebugTrace( std::string( "lM16: " ) + std::to_string( lM16 ) );
         auto lList = LeddarConnection::LdCanKomodo::GetDeviceList();
 
         if( lList.size() == 0 )

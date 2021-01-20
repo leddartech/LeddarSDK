@@ -493,7 +493,7 @@ void LeddarRecord::LdLjrRecordReader::ReadProperties( const std::string &aLine, 
                 {
                     if( lPropArray[i].HasMember( "limits" ) )
                     {
-                        dynamic_cast<LeddarCore::LdIntegerProperty *>( lProp )->SetLimits( lPropArray[i]["limits"][0].GetUint64(), lPropArray[i]["limits"][1].GetUint64() );
+                        dynamic_cast<LeddarCore::LdIntegerProperty *>( lProp )->SetLimitsUnsigned( lPropArray[i]["limits"][0].GetUint64(), lPropArray[i]["limits"][1].GetUint64() );
                     }
 
                     if( lPropArray[i]["val"].IsArray() )
@@ -502,13 +502,13 @@ void LeddarRecord::LdLjrRecordReader::ReadProperties( const std::string &aLine, 
 
                         for( unsigned j = 0; j < lPropArray[i]["val"].GetArray().Size(); ++j )
                         {
-                            dynamic_cast<LeddarCore::LdIntegerProperty *>( lProp )->ForceValue( j, lPropArray[i]["val"].GetArray()[j].GetUint64() );
+                            dynamic_cast<LeddarCore::LdIntegerProperty *>( lProp )->ForceValueUnsigned( j, lPropArray[i]["val"].GetArray()[j].GetUint64() );
                         }
                     }
                     else
                     {
                         lProp->SetCount( 1 );
-                        dynamic_cast<LeddarCore::LdIntegerProperty *>( lProp )->ForceValue( 0, lPropArray[i]["val"].GetUint64() );
+                        dynamic_cast<LeddarCore::LdIntegerProperty *>( lProp )->ForceValueUnsigned( 0, lPropArray[i]["val"].GetUint64() );
                     }
                 }
 
@@ -590,7 +590,6 @@ void LeddarRecord::LdLjrRecordReader::ReadFrame( const std::string &aLine )
 
     if( lDOM["frame"].HasMember( "states" ) )
     {
-        rapidjson::GenericArray<false, rapidjson::Value::ValueType> lStatesArray = lDOM["frame"]["states"].GetArray();
         mSensor->GetResultStates()->SetTimestamp( lTimestamp );
         ReadProperties( aLine, true );
     }
@@ -617,6 +616,8 @@ void LeddarRecord::LdLjrRecordReader::ReadFrame( const std::string &aLine )
             lEcho.mFlag = static_cast<uint16_t>( lEchoesArray[i][3].GetUint() );
             lEchoes[i] = lEcho;
         }
+
+        mSensor->ComputeCartesianCoordinates();
 
         lResultEchoes->UnLock( LeddarConnection::B_SET );
         lResultEchoes->Swap();

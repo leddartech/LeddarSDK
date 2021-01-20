@@ -1,11 +1,11 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \file   LeddarPrototypes/LdSensorPixell.cpp
+/// \file   Leddar/LdSensorPixell.cpp
 ///
 /// \brief  Implements the LdSensorPixell class for Pixell sensor
 ///
 /// Copyright (c) 2019 LeddarTech. All rights reserved.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-///
+
 #include "LdSensorPixell.h"
 #if defined(BUILD_ETHERNET) && defined(BUILD_AUTO)
 
@@ -14,8 +14,11 @@
 #include "LtExceptions.h"
 #include "LtScope.h"
 #include "LtStringUtils.h"
+#include "LtMathUtils.h"
 #include "comm/LtComLeddarTechPublic.h"
 #include "comm/LtComEthernetPublic.h"
+
+#include <cmath>
 using namespace LeddarCore;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -64,19 +67,31 @@ LeddarDevice::LdSensorPixell::InitProperties( void )
 
     mProperties->AddProperty( new LdBufferProperty( LdProperty::CAT_CONSTANT, LdProperty::F_SAVE, LdPropertyIds::ID_FIRMWARE_VERSION_STRUCT,
                               LtComLeddarTechPublic::LT_COMM_ID_FIRMWARE_VERSION_V3, sizeof( LtComLeddarTechPublic::sFirmwareVersion ), "Firmware version" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONSTANT, LdProperty::F_SAVE, LdPropertyIds::ID_SUB_HSEGMENT,
+                              LtComLeddarTechPublic::LT_COMM_ID_AUTO_CHANNEL_SUB_NUMBER_HORIZONTAL, 2, "Number of horizontal channels by zones" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONSTANT, LdProperty::F_NONE, LdPropertyIds::ID_LED_INTENSITY_LIST,
+                              LtComLeddarTechPublic::LT_COMM_ID_LED_POWER_AVAILABLE, 1, "Available emitter power" ) );
+    mProperties->AddProperty( new LdBufferProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_STATUS_ALERT,
+                              LtComLeddarTechPublic::LT_COMM_ID_STATUS_ALERT, sizeof( LtComLeddarTechPublic::sLtCommElementAlert ), "Sensor status" ) );
+    mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_LED_INTENSITY,
+                              LtComLeddarTechPublic::LT_COMM_ID_LED_POWER, 1, true, "Emitter intensity %" ) );
+    
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_SYSTEM_TIME,
+                                                     LtComLeddarTechPublic::LT_COMM_ID_AUTO_SYSTEM_TIME, sizeof( uint64_t ), "Timestamp in microseconds since 1970/01/01" ) );
+    mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_SYNCHRONIZATION,
+                                                  LtComLeddarTechPublic::LT_COMM_ID_AUTO_TIME_SYNC_METHOD, sizeof( uint8_t ), true,
+                                                  "Time synchronization method to be used: 0 = None, 1 = PTP, 2 = PPS" ) );
+    mProperties->AddProperty( new LdBoolProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_TRIGGER_MODE,
+                                                  LtComLeddarTechPublic::LT_COMM_ID_AUTO_EXTERNAL_TRIGGER, "External trigger enable" ) );
+    mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_RAISING_FALLING_EDGE,
+                                                  LtComLeddarTechPublic::LT_COMM_ID_AUTO_PPS_RISING_EDGE, 1, true, "Set trigger on rising or falling edge" ) );
+    mProperties->AddProperty( new LdBoolProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_DEMERGING_ENABLE,
+                                                  LtComLeddarTechPublic::LT_COMM_ID_DEMERGING_ENABLE, "Demerge enable" ) );
+
     mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CALIBRATION, LdProperty::F_SAVE, LdPropertyIds::ID_SUB_HFOV,
                               LtComLeddarTechPublic::LT_COMM_ID_AUTO_SUB_HFOV, 4, 0, 2, "Fields of view of the sub-modules" ) );
     mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CALIBRATION, LdProperty::F_SAVE, LdPropertyIds::ID_SUB_HPOSITION,
                               LtComLeddarTechPublic::LT_COMM_ID_AUTO_SUB_POSITION, 4, 0, 2, "Position of the submodules relative to the center of the sensor" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONSTANT, LdProperty::F_SAVE, LdPropertyIds::ID_SUB_HSEGMENT,
-                              LtComLeddarTechPublic::LT_COMM_ID_AUTO_CHANNEL_SUB_NUMBER_HORIZONTAL, 2, "Number of horizontal channels by zones" ) );
-    mProperties->AddProperty( new LdBufferProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_STATUS_ALERT,
-                              LtComLeddarTechPublic::LT_COMM_ID_STATUS_ALERT, sizeof( LtComLeddarTechPublic::sLtCommElementAlert ), "Sensor status" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_SYSTEM_TIME,
-                              LtComLeddarTechPublic::LT_COMM_ID_AUTO_SYSTEM_TIME, sizeof( uint64_t ), "Timestamp in microseconds since 1970/01/01" ) );
-    mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_SYNCHRONIZATION,
-                              LtComLeddarTechPublic::LT_COMM_ID_AUTO_TIME_SYNC_METHOD, sizeof( uint8_t ), true, "Time synchronization method to be used: 0 = None, 1 = PTP, 2 = PPS" ) );
-
     mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CALIBRATION, LdProperty::F_SAVE, LdPropertyIds::ID_ORIGIN_X,
                               LtComLeddarTechPublic::LT_COMM_ID_SENSOR_POSITION_X, 4, 0, 3, "X position" ) );
     mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CALIBRATION, LdProperty::F_SAVE, LdPropertyIds::ID_ORIGIN_Y,
@@ -105,6 +120,9 @@ LeddarDevice::LdSensorPixell::InitProperties( void )
     mProperties->GetEnumProperty( LdPropertyIds::ID_SYNCHRONIZATION )->AddEnumPair( 0, "None" );
     mProperties->GetEnumProperty( LdPropertyIds::ID_SYNCHRONIZATION )->AddEnumPair( 1, "PTP" );
     mProperties->GetEnumProperty( LdPropertyIds::ID_SYNCHRONIZATION )->AddEnumPair( 2, "PPS" );
+
+    mProperties->GetEnumProperty( LdPropertyIds::ID_RAISING_FALLING_EDGE )->AddEnumPair( 0, "Falling edge" );
+    mProperties->GetEnumProperty( LdPropertyIds::ID_RAISING_FALLING_EDGE )->AddEnumPair( 1, "Rising edge" );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -118,8 +136,17 @@ LeddarDevice::LdSensorPixell::InitProperties( void )
 void
 LeddarDevice::LdSensorPixell::GetConstants( void )
 {
-
     LdSensorLeddarAuto::GetConstants();
+
+    // Fill the led intensity enum
+    LdEnumProperty *lLedIntensities = GetProperties()->GetEnumProperty( LdPropertyIds::ID_LED_INTENSITY );
+    LdIntegerProperty *lLedIntensitiesList = GetProperties()->GetIntegerProperty( LdPropertyIds::ID_LED_INTENSITY_LIST );
+    lLedIntensities->ClearEnum();
+
+    for( size_t i = 0; i < lLedIntensitiesList->Count(); ++i )
+    {
+        lLedIntensities->AddEnumPair( lLedIntensitiesList->ValueT<uint32_t>( i ), LeddarUtils::LtStringUtils::IntToString( lLedIntensitiesList->Value( i ) ) + "%" );
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -194,10 +221,6 @@ void LeddarDevice::LdSensorPixell::GetCalib( void )
         lSensorOrderTimeBaseDelays[i] = lTimeBaseDelays->Value( i );
     }
 
-
-    uint32_t lChannelCount = mProperties->GetIntegerProperty( LdPropertyIds::ID_VSEGMENT )->ValueT<uint16_t>() * mProperties->GetIntegerProperty(
-                                 LdPropertyIds::ID_HSEGMENT )->ValueT<uint16_t>();
-
     for( uint32_t i = 0; i < lTimeBaseDelays->Count(); ++i )
     {
         lTimeBaseDelays->SetValue( SensorChannelIndexToEchoChannelIndex( i ), lSensorOrderTimeBaseDelays[i] );
@@ -241,6 +264,74 @@ LeddarDevice::LdSensorPixell::GetStatus( void )
             }
         }
     }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LeddarDevice::LdSensorPixell::ComputeCartesianCoordinates()
+///
+/// \brief  Override generic conversion with the correct one for pixell sensors
+///
+/// \author David Lévy
+/// \date   July 2020
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void LeddarDevice::LdSensorPixell::ComputeCartesianCoordinates()
+{
+    //From sensor's internal design
+    const std::vector<double> Bx = {0.056, 0, -0.056};
+    const std::vector<double> By = {0.034, 0.0396, 0.034};
+    const double D = -0.01562;
+
+    double lDistanceScale =  static_cast<double>( GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_DISTANCE_SCALE )->Value() );
+    GetResultEchoes()->Lock( LeddarConnection::B_SET );
+    std::vector<LeddarConnection::LdEcho> &lEchoes = *GetResultEchoes()->GetEchoes( LeddarConnection::B_SET );
+    LdFloatProperty *lAzimutProp = GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_CHANNEL_ANGLE_AZIMUT );
+    LdFloatProperty *lElevationProp = GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_CHANNEL_ANGLE_ELEVATION );
+
+    const size_t lTotalSegment = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_HSEGMENT )->Value( 0 )
+                                 * GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_VSEGMENT )->Value( 0 );
+    const uint32_t lHChannelCount = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_HSEGMENT )->Value();
+    const float lHFoV = GetProperties()->GetFloatProperty( LdPropertyIds::ID_HFOV )->Value( 0 );
+    const float lVFoV = GetProperties()->GetFloatProperty( LdPropertyIds::ID_VFOV )->Value( 0 );
+
+    std::vector<double> lAzimuts, lElevations;
+    lAzimuts.reserve( lTotalSegment );
+    lElevations.reserve( lTotalSegment );
+
+    for( size_t lChannelIndex = 0; lChannelIndex < lTotalSegment; ++lChannelIndex )
+    {
+        if( lAzimutProp->Count() == 0 || lElevationProp->Count() == 0
+                || ( lAzimutProp->Value( 0 ) == 0 && lElevationProp->Value( 0 ) == 0 ) )
+        {
+            //We dont have calibration, use theorical values
+            uint32_t lHChannelIndex = lChannelIndex % lHChannelCount;
+            uint32_t lVChannelIndex = lChannelIndex / lHChannelCount;
+            lAzimuts.push_back( LeddarUtils::LtMathUtils::DegreeToRadian( lHChannelIndex * lHFoV / lHChannelCount - lHFoV / 2.0 ) );
+            lElevations.push_back( LeddarUtils::LtMathUtils::DegreeToRadian(
+                                       lVChannelIndex * lVFoV / GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_VSEGMENT )->Value( 0 ) - lVFoV / 2.0 ) );
+        }
+        else
+        {
+            lAzimuts.push_back( LeddarUtils::LtMathUtils::DegreeToRadian( lAzimutProp->Value( lChannelIndex ) ) );
+            lElevations.push_back( LeddarUtils::LtMathUtils::DegreeToRadian( lElevationProp->Value( lChannelIndex ) ) );
+        }
+    }
+
+    for( size_t i = 0; i < GetResultEchoes()->GetEchoCount( LeddarConnection::B_SET ); ++i )
+    {
+        uint32_t lHChannelIndex = lEchoes[i].mChannelIndex % lHChannelCount;
+        uint32_t lVChannelIndex = lEchoes[i].mChannelIndex / lHChannelCount;
+        uint32_t lSubmodule = lHChannelIndex / GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_SUB_HSEGMENT )->ValueT<uint32_t>( 0 );
+
+        double dx = sin( lAzimuts[lEchoes[i].mChannelIndex] ) * cos( lElevations[lEchoes[i].mChannelIndex] );
+        double dy = cos( lAzimuts[lEchoes[i].mChannelIndex] ) * cos( lElevations[lEchoes[i].mChannelIndex] );
+        double Ru = lEchoes[i].mDistance / lDistanceScale - Bx[lSubmodule] * dx - By[lSubmodule] * dy + D * sin( lElevations[lEchoes[i].mChannelIndex] );
+
+        lEchoes[i].mX = By[lSubmodule] + Ru * dy;
+        lEchoes[i].mY = Bx[lSubmodule] + Ru * dx;
+        lEchoes[i].mZ = -Ru * sin( lElevations[lEchoes[i].mChannelIndex] );
+    }
+
+    GetResultEchoes()->UnLock( LeddarConnection::B_SET );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

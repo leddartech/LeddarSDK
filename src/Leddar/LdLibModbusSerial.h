@@ -30,7 +30,7 @@ namespace LeddarConnection
     class LdLibModbusSerial : public LdInterfaceModbus
     {
     public:
-        LdLibModbusSerial( const LdConnectionInfoModbus *aConnectionInfo, LdConnection *aExistingConnection = nullptr );
+        explicit LdLibModbusSerial( const LdConnectionInfoModbus *aConnectionInfo, LdConnection *aExistingConnection = nullptr );
         virtual            ~LdLibModbusSerial();
         virtual void        Connect( void ) override;
         virtual bool        IsConnected( void ) const override { return mHandle != nullptr; }

@@ -78,7 +78,7 @@ namespace LeddarConnection
         virtual uint8_t GetGPIOPin( eSpiPin  aPin ) = 0;
 
     protected:
-        LdInterfaceSpi( const LdConnectionInfo *aConnectionInfo, LdConnection *aInterface = nullptr ): LdConnection( aConnectionInfo, aInterface ) {}
+        explicit LdInterfaceSpi( const LdConnectionInfo *aConnectionInfo, LdConnection *aInterface = nullptr ): LdConnection( aConnectionInfo, aInterface ) {}
     };
 }
 

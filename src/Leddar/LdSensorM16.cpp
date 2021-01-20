@@ -172,7 +172,7 @@ LeddarDevice::LdSensorM16::InitProperties( void )
 
     //Config - detections zones
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_CONDITION_COUNT,
-                              LtComM16::M16_ID_CFG_ZONESDET_NB_VALID_NODES, 2, "Number of valid zones detector expression node. Must be <= EVALKIT_ZONESDET_NB_NODES_MAX." ) );
+                              LtComM16::M16_ID_CFG_ZONESDET_NB_VALID_NODES, 1, "Number of valid zones detector expression node. Must be <= EVALKIT_ZONESDET_NB_NODES_MAX." ) );
     mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_CONDITION_OPTIONS,
                               LtComM16::M16_ID_CFG_ZONESDET_OPTIONS, 1, "Zones detector bits field options. See \\ref eLtCommM16ZonesDetectorOptions." ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_CONDITION_VALUE,
@@ -881,6 +881,7 @@ LeddarDevice::LdSensorM16::ProcessStates( void )
         {
             mEchoes.SetTimestamp( mStates.GetTimestamp() );
             mEchoes.UnLock( LeddarConnection::B_SET );
+            ComputeCartesianCoordinates();
             mEchoes.Swap();
             mEchoes.UpdateFinished();
         }

@@ -32,6 +32,7 @@
 #include "LtStringUtils.h"
 #include "LtFileUtils.h"
 #include "LtScope.h"
+#include "LtMathUtils.h"
 
 #include "comm/LtComLeddarTechPublic.h"
 #include "comm/LtComEthernetPublic.h"
@@ -540,6 +541,7 @@ LeddarDevice::LdSensorLeddarAuto::ProcessEchoes( void )
                         {
                             // Emit trace changes.
                             mEchoes.UnLock( LeddarConnection::B_SET );
+                            ComputeCartesianCoordinates();
                             mEchoes.Swap();
                             mEchoes.UpdateFinished();
                             mEchoes.Lock( LeddarConnection::B_SET );
@@ -655,6 +657,7 @@ LeddarDevice::LdSensorLeddarAuto::ProcessEchoes( void )
 
     if( lDataReceivedStatus != 0 )
     {
+        ComputeCartesianCoordinates();
         mEchoes.Swap();
         mEchoes.UpdateFinished();
     }

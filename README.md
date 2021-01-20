@@ -12,8 +12,7 @@ Online documentation can be found [here](http://sdk.leddartech.com)
 ./libs                              3rd party libs needed by the SDK  
 ./shared                            Structures used by the communication classes  
 ./src/Leddar                        Sensors classes  
-./src/LeddarTech                    Utilities  
-./src/LeddarConfigurator4           Visual Studio 2013 project files  
+./src/LeddarTech                    Utilities
 ./src/LeddarExample                 Example using LeddarSDK  
 ./src/LeddarPy                      Python wrapper package
 ./src/Leddar_ROS                    ROS package
@@ -23,31 +22,29 @@ Online documentation can be found [here](http://sdk.leddartech.com)
 
 =======================
 
+Build process uses cmake (<https://cmake.org>). The CMakeLists.txt file is in src folder. It is recommended to do an out of source build in the folder `src/release`
+
+You can choose for what sensor to build the sdk using cmake project configuration. All sensors are enabled by default.
+
 ### Linux build
 
-Launch build.sh to compile all the project:
+To build the LeddarSDK using CMakeList.txt, as mentionned above we recommand an out of source build, in the folder `src/release`
 
 ```bash
-    chmod +x build.sh
-    ./build.sh
+cd "LEDDARSDK_INSTALLATION_PATH"/src
+mkdir release
+cmake ..
+make
 ```
 
-The output files will be generated in ./src/release  
-
-In order to run the example, you need either :  
-
-* Run it from the release folder :  
-    cd release  
-    ./LeddarExample
-* Or run it from anywhere with the following command (with the correct PATHTO and architecture (x64, x86 or ARM):  
-LD_LIBRARY_PATH=/PATHTO/LeddarSDK/libs/FTDI/linux/x64:/PATHTO/LeddarSDK/libs/MPSSE/linux/x64 ./LeddarExample
+The LeddarExample will be the available in the release folder. See below to run the example.
 
 Note : you might need to install additional library. For example
     libusbx-devel on fedora or libusb-1.0-0-dev on debian
 
 ### Window build
 
-Open ./src/LeddarConfigurator4/LeddarConfigurator4.sln in Visual Studio and compile.
+CMake is directly integrated in visual studio, you can check the documentation [here](https://docs.microsoft.com/en-us/cpp/build/cmake-projects-in-visual-studio?view=msvc-160)
 
 ## 3 - Running LeddarExample
 
@@ -55,29 +52,31 @@ Open ./src/LeddarConfigurator4/LeddarConfigurator4.sln in Visual Studio and comp
 
 ### Linux example
 
-USB Serial:
+USB and Serial:
 
 You need to give user rights to the USB port or run the example using the "sudo" command.
 
-To change USB access, create a file in /etc/udev/rules.d
-    Example: 90-LeddarTech.rules
-    Add this line: ATTRS{idVendor}=="28f1",MODE="0666"
+To change USB access, create a file in /etc/udev/rules.d, for example `90-LeddarTech.rules` and add this line: `ATTRS{idVendor}=="28f1",MODE="0666"`
 
 SPI using FTDI cable:
 
 To access the device, you need to run first this command provided by the FTDI documentation:
-    sudo rmmod ftdi_sio
-    sudo rmmod usbserial
+    `sudo rmmod ftdi_sio`
+    `sudo rmmod usbserial`
+
+In order to run the example for the Vu8 sensor, you need to run it with the following command (with the correct PATHTO and architecture (x64, x86 or ARM):  
+LD_LIBRARY_PATH=/PATHTO/LeddarSDK/libs/FTDI/linux/x64:/PATHTO/LeddarSDK/libs/MPSSE/linux/x64 ./LeddarExample
 
 You need to give user rights to the USB port or run the example using the "sudo" command.
-To change USB access, create a file in /etc/udev/rules.d
-    Example: 91-FTDI-SPI.rules
-    Add this line: ATTRS{idVendor}=="0403",MODE="0666"
+
+To change USB access, create a file in `/etc/udev/rules.d`, for example `91-FTDI-SPI.rules` and add this line: `ATTRS{idVendor}=="0403",MODE="0666"`
 
 ## 4 - Python Package
 
 ==================  
-First you need to build the SDK using instructions found at step 2 - [Compiling LeddarSDK](https://github.com/leddartech/LeddarSDK#2---compiling-leddarsdk)
+First you need to build the SDK using instructions found at step 2 - [Compiling LeddarSDK](#2---compiling-leddarsdk)
+
+This step suppose you have built the sdk in the "release" folder. If your build folder is different, you need to update the path in the setup.py script
 
 ### Linux python
 
@@ -85,7 +84,7 @@ In folder LeddarPy run `python setup.py install --user`
 
 ### Windows python
 
-Depending on your python version and visual studio version, "python setup.py install" can work (see <https://wiki.python.org/moin/WindowsCompilers/>)  
+Depending on your python version and visual studio version, `python setup.py install` can work (see <https://wiki.python.org/moin/WindowsCompilers/>)  
 Else you can open the .sln in LeddarPy folder and build the solution (Visual studio 2017)
 
 ## 5 - ROS package

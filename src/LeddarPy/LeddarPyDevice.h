@@ -98,7 +98,7 @@ PyObject *StartDataThread( sLeddarDevice *self, PyObject *args );
 PyObject *StopDataThread( sLeddarDevice *self, PyObject *args );
 PyObject *SetDataThreadDelay( sLeddarDevice *self, PyObject *args );
 
-PyObject *PackageEchoes( LeddarConnection::LdResultEchoes *aResultEchoes );
+PyObject *PackageEchoes( LeddarDevice::LdSensor *aResultEchoes );
 PyObject *PackageStates( LeddarConnection::LdResultStates *aResultStatess );
 PyObject *StartStopRecording( sLeddarDevice *self, PyObject *args );
 

@@ -41,7 +41,7 @@ namespace LeddarRecord
         void        SetDeviceType( uint32_t aDeviceType ) { mDeviceType = aDeviceType; }
 
     protected:
-        LdRecordReader(): mSensor( nullptr ), mDeviceType( 0 ), mRecordSize( 0 ) {}
+        LdRecordReader(): mSensor( nullptr ), mDeviceType( 0 ), mRecordSize( 0 ), mCommProtocol( LeddarDevice::LdSensor::P_NONE ) {}
 
         LeddarDevice::LdSensor *mSensor;
 

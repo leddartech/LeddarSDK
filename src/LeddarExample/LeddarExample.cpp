@@ -736,7 +736,7 @@ void testConnection( void )
                 }
 
                 LeddarConnection::LdCanKomodo *lInterface = new LeddarConnection::LdCanKomodo( dynamic_cast<LeddarConnection::LdConnectionInfoCan *>( lList[0] ) );
-                LeddarConnection::LdConnectionUniversalCan *lConnection = new LeddarConnection::LdConnectionUniversalCan( lList[0], lInterface );
+                lConnection = new LeddarConnection::LdConnectionUniversalCan( lList[0], lInterface );
                 lSensor = new LeddarDevice::LdSensorVu8( lConnection );
                 lSensor->Connect();
             }
@@ -750,9 +750,9 @@ void testConnection( void )
                     continue;
                 }
 
-                LeddarConnection::LdConnectionInfoCan *lInfo = dynamic_cast<LeddarConnection::LdConnectionInfoCan *>( lList[0] );
-                LeddarConnection::LdCanKomodo *lInterface = new LeddarConnection::LdCanKomodo( lInfo );
-                LeddarConnection::LdProtocolCan *lConnection = new LeddarConnection::LdProtocolCan( lInfo, lInterface, false );
+                lConnectionInfo = lList[0];
+                LeddarConnection::LdCanKomodo *lInterface = new LeddarConnection::LdCanKomodo( dynamic_cast<LeddarConnection::LdConnectionInfoCan *>( lConnectionInfo ) );
+                lConnection = new LeddarConnection::LdProtocolCan( lConnectionInfo, lInterface, false );
                 lSensor = new LeddarDevice::LdSensorVu8Can( lConnection );
 
                 //Optional second sensor:
@@ -877,7 +877,7 @@ void testConnection( void )
                 }
 
                 LeddarConnection::LdCanKomodo *lInterface = new LeddarConnection::LdCanKomodo( dynamic_cast<LeddarConnection::LdConnectionInfoCan *>( lList[0] ) );
-                LeddarConnection::LdProtocolCan *lConnection = new LeddarConnection::LdProtocolCan( lList[0], lInterface, true );
+                lConnection = new LeddarConnection::LdProtocolCan( lList[0], lInterface, true );
                 lSensor = new LeddarDevice::LdSensorM16Can( lConnection );
 
                 //Optional second sensor:
@@ -964,7 +964,7 @@ void testConnection( void )
                 uint32_t lIndexSelected = 0;
                 std::cin >> lIndexSelected;
 
-                if( lIndexSelected > lConnectionsList.size() || lIndexSelected <= 0 )
+                if( lIndexSelected > lConnectionsList.size() || lIndexSelected == 0 )
                 {
                     deleteAllButOneConnections( lConnectionsList );
                     continue;
@@ -991,7 +991,7 @@ void testConnection( void )
                 uint32_t lIndexSelected = 0;
                 std::cin >> lIndexSelected;
 
-                if( lIndexSelected > lConnectionsList.size() || lIndexSelected <= 0 )
+                if( lIndexSelected > lConnectionsList.size() || lIndexSelected == 0 )
                 {
                     deleteAllButOneConnections( lConnectionsList );
                     continue;
@@ -1047,6 +1047,7 @@ void testConnection( void )
             {
                 lSensor->GetConstants();
                 lSensor->GetConfig();
+                lSensor->GetCalib();
             }
 
             if( lSensor2 != nullptr )

@@ -31,8 +31,10 @@ namespace LeddarDevice
         virtual void Disconnect( void );
         virtual LeddarConnection::LdConnection *GetConnection( void ) { return mConnection; }
         LeddarCore::LdPropertiesContainer *GetProperties( void ) { return mProperties; }
+
+
     protected:
-        LdDevice( LeddarConnection::LdConnection *aConnection, LeddarCore::LdPropertiesContainer *aProperties = nullptr );
+        explicit LdDevice( LeddarConnection::LdConnection *aConnection, LeddarCore::LdPropertiesContainer *aProperties = nullptr );
         LeddarCore::LdPropertiesContainer *mProperties;
         bool mDeleteConnection;
 

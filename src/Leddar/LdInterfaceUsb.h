@@ -50,7 +50,7 @@ namespace LeddarConnection
         ///
         /// \since   January 2017
         // *****************************************************************************
-        LdInterfaceUsb( const LdConnectionInfoUsb *aConnectionInfo, LdConnection *aInterface = nullptr ) :
+        explicit LdInterfaceUsb( const LdConnectionInfoUsb *aConnectionInfo, LdConnection *aInterface = nullptr ) :
             LdConnection( aConnectionInfo, aInterface ),
             mConnectionInfoUsb( aConnectionInfo ) {}
 

@@ -200,23 +200,6 @@ LdResultEchoes::GetEchoAmplitude( size_t aIndex ) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn LeddarUtils::LtMathUtils::LtPointXYZ LeddarConnection::LdResultEchoes::GetEchoCoordinates( size_t aIndex ) const
-///
-/// \brief  Gets echo cartesian coordinates
-///
-/// \param  aIndex  Zero-based index of the echo.
-///
-/// \return The echo cartesian coordinates.
-///
-/// \author David Levy
-/// \date   November 2018
-////////////////////////////////////////////////////////////////////////////////////////////////////
-LeddarUtils::LtMathUtils::LtPointXYZ LeddarConnection::LdResultEchoes::GetEchoCoordinates( size_t aIndex ) const
-{
-    return static_cast< EchoBuffer * >( mDoubleBuffer.GetConstBuffer( B_GET )->mBuffer )->mEchoes[aIndex].ToXYZ( mHFOV, mVFOV, mHChan, mVChan, mDistanceScale );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \fn float LdResultEchoes::GetEchoBase( size_t aIndex ) const
 ///
 /// \brief  Get echoes base at index
@@ -285,42 +268,6 @@ LeddarConnection::LdResultEchoes::GetCurrentLedPower( eBuffer aBuffer ) const
     {
         return static_cast<uint32_t>( mCurrentLedPower.Value( 1 ) );
     }
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn LeddarUtils::LtMathUtils::LtPointXYZ LeddarConnection::LdEcho::ToXYZ( double aHFOV, double aVFOV, uint16_t aHChanNbr, uint16_t aVChanNbr, uint32_t aDistanceScale ) const
-///
-/// \brief  Converts an echo to cartesian coordinates (from spherical coordinates)
-///
-/// \exception  std::out_of_range   Thrown when the input argument are out of range (from SphericalToCartesian)
-///
-/// \param  aHFOV           The horizontal field of view.
-/// \param  aVFOV           The vertical field of view.
-/// \param  aHChanNbr       The horizontal channel number.
-/// \param  aVChanNbr       The vertical channel number.
-/// \param  aDistanceScale  The distance scale.
-///
-/// \return The given data converted to a LeddarConnection::LdPointXYZ.
-///
-/// \author David Levy
-/// \date   November 2018
-////////////////////////////////////////////////////////////////////////////////////////////////////
-LeddarUtils::LtMathUtils::LtPointXYZ LeddarConnection::LdEcho::ToXYZ( double aHFOV, double aVFOV, uint16_t aHChanNbr, uint16_t aVChanNbr, uint32_t aDistanceScale ) const
-{
-    if( aHFOV < 0 || aVFOV < 0 || aHChanNbr == 0 || aVChanNbr == 0 )
-    {
-        throw std::invalid_argument( "Argument out of allowed values" );
-    }
-
-    //First get the angles from channel number
-    uint16_t lHIndex = mChannelIndex % aHChanNbr;
-    uint16_t lVIndex = mChannelIndex / aHChanNbr;
-
-    //angle taken from this page : https://upload.wikimedia.org/wikipedia/commons/8/8c/Spherical_Coordinates_%28Latitude%2C_Longitude%29.svg but rotate axis so z is the sensor axis
-    double theta = LeddarUtils::LtMathUtils::DegreeToRadian( lHIndex * aHFOV / aHChanNbr + aHFOV / ( 2.0 * aHChanNbr ) - aHFOV / 2 ); //angle from sensor axis on horizontal plane
-    double delta = LeddarUtils::LtMathUtils::DegreeToRadian( lVIndex * aVFOV / aVChanNbr + aVFOV / ( 2.0 * aVChanNbr ) - aVFOV / 2 ); //angle from the point to the horizontal plane
-
-    return LeddarUtils::LtMathUtils::SphericalToCartesian( double( mDistance ) / aDistanceScale, theta, delta );
 }
 
 #ifdef _DEBUG

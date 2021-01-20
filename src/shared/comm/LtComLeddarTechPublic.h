@@ -278,9 +278,11 @@ namespace LtComLeddarTechPublic
 
         LT_COMM_ID_AUTO_SYSTEM_TIME                     = 0x259B,    ///< (0x259B) {uint64_t} Timestamp in microseconds since 1970/01/01
         LT_COMM_ID_AUTO_TIME_SYNC_METHOD                = 0x259C,    ///< (0x259C) {uint8_t} Time synchronization method to be used: 0 = none, 1 = PTP, 2 = PPS
+        LT_COMM_ID_AUTO_PPS_RISING_EDGE  = 0x259D, ///< (0x259D) {uint8_t} Transition edge to use for PPS. 0 = falling edge, 1 = rising edge
 
         LT_COMM_ID_AUTO_XTALK_INTER_TILE_ENABLE         = 0x25B0,    ///< (0x25B0) {BOOL} Inter tile xtalk algorithm enable
         LT_COMM_ID_AUTO_SPACIAL_FILTER_ENABLE           = 0x25B1,    ///< (0x25B1) {BOOL} Spacial filtering algorithm enable
+        LT_COMM_ID_AUTO_CORRECT_DISTANCE_AT_TILES_INTERSECTIONS_ENABLE   = 0x25B2,  ///< (0x25B2) {BOOL} Correct Distance At Tiles Intersections algorithm enable
 
 
         //LT_COMM_ID_AUTO_ACQUISITION_MODE = 0x9876,
@@ -298,6 +300,8 @@ namespace LtComLeddarTechPublic
         LT_COMM_ID_AUTO_V3M_TEMP = 0x2719,                          ///< (0x2719) {LtFixedPoint} - Temperature of the V3M (photodiode) without scaling
         LT_COMM_ID_AUTO_PMIC_TEMP = 0x2720,                         ///< (0x2720) {LtFixedPoint} - Temperature of the PMIC without scaling
         LT_COMM_ID_AUTO_TIMESTAMP64 = 0x2721,                       ///< (0x2721) {LtUInt64} - TimeStamp with 64 bits resolution for PTP
+
+        LT_COMM_ID_AUTO_EXTERNAL_TRIGGER = 0x2900,                   ///< (0x2900) {BOOL} - enable/disable  external trigger
 
         // Command parameters
         LT_COM_ID_PARAM_GROUP_CATEGORY = 0x3000,                    ///< (0x3000) {uint32_t} - Parameter for the command LT_COMM_CFGSRV_REQUEST_RESET_CONFIG see eLtResetCategoryGroup

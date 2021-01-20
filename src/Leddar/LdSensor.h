@@ -20,6 +20,12 @@
 #include "LdResultEchoes.h"
 #include "LdResultStates.h"
 
+namespace LeddarRecord
+{
+    class LdLjrRecordReader;
+    class LdPrvLtlRecordReader;
+}
+
 namespace LeddarDevice
 {
     ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -46,9 +52,9 @@ namespace LeddarDevice
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     class LdSensor : public LdDevice
     {
+        friend class LeddarRecord::LdLjrRecordReader;
+        friend class LeddarRecord::LdPrvLtlRecordReader;
     public:
-
-
         /// \brief  Available data mask
         enum eDataMask
         {
@@ -111,7 +117,8 @@ namespace LeddarDevice
         virtual void UpdateFirmware( eFirmwareType, const LdFirmwareData &, LeddarCore::LdIntegerProperty *, LeddarCore::LdBoolProperty * ) { throw std::logic_error( "Firmware update not implemented for this sensor" ); }
 
     protected:
-        LdSensor( LeddarConnection::LdConnection *aConnection, LeddarCore::LdPropertiesContainer *aProperties = nullptr );
+        explicit LdSensor( LeddarConnection::LdConnection *aConnection, LeddarCore::LdPropertiesContainer *aProperties = nullptr );
+        virtual void ComputeCartesianCoordinates();
         LeddarConnection::LdResultEchoes mEchoes;
         LeddarConnection::LdResultStates mStates;
 

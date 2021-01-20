@@ -175,6 +175,7 @@ LdSensorVu8Modbus::GetEchoes( void )
         throw LeddarException::LtComException( "Not enough data received, size: " + LeddarUtils::LtStringUtils::IntToString( lReceivedSize ) );
     }
 
+    ComputeCartesianCoordinates();
     mEchoes.Swap();
     mEchoes.UpdateFinished();
     return true;
@@ -727,7 +728,8 @@ LdSensorVu8Modbus::InitProperties( void )
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE, LdPropertyIds::ID_COM_SERIAL_PORT_DATA_BITS, 0, 1, "Serial Port Data Bits" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_SERIAL_PORT_PARITY, 0, 1,
                               "Serial Port Parity: 0 = None - 1 = Odd - 2 = Even" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE, LdPropertyIds::ID_COM_SERIAL_PORT_STOP_BITS, 0, 1, "Serial port number of stop bits" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE, LdPropertyIds::ID_COM_SERIAL_PORT_STOP_BITS, 0, 1,
+                              "Serial port number of stop bits" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_COM_SERIAL_PORT_ADDRESS, 0, 1,
                               "Serial Port Serial Port Address" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE, LdPropertyIds::ID_COM_SERIAL_PORT_FLOW_CONTROL, 0, 1,
@@ -755,7 +757,8 @@ LdSensorVu8Modbus::InitProperties( void )
                               "CAN Port Distance Resolution" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_COM_CAN_PORT_MAILBOX_DELAY, 0, 2,
                               "CAN Port Inter-Message Delay" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_COM_CAN_PORT_PORT_ACQCYCLE_DELAY, 0, 2,
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_COM_CAN_PORT_PORT_ACQCYCLE_DELAY, 0,
+                              2,
                               "CAN Port Inter-Cycle Delay" ) );
 
     mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_CARRIER_PART_NUMBER, 0, 32, LdTextProperty::TYPE_ASCII,

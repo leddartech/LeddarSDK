@@ -264,8 +264,6 @@ void LeddarCore::LdProperty::SetRawValue( size_t aIndex, int32_t aValue )
 ///
 /// \exception  std::runtime_error  Raised when the property was not initialized.
 ///
-/// \return A const void.
-///
 /// \author Patrick Boulay
 /// \date   November 2018
 ////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -18,6 +18,7 @@
 #include "LdIntegerProperty.h"
 #include "LtFileUtils.h"
 #include "LtStringUtils.h"
+#include "LtMathUtils.h"
 
 #include "LdPropertyIds.h"
 #include "comm/LtComLeddarTechPublic.h"
@@ -98,6 +99,55 @@ LdSensor::GetData( void )
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LeddarDevice::LdSensor::ComputeCartesianCoordinates()
+///
+/// \brief  Updates echo vector with cartesian coordinates.
+///
+/// \author David Lévy
+/// \date   November 2018
+///
+/// \exception  std::invalid_argument   Thrown when an invalid argument error condition occurs.
+/// \exception  std::out_of_range       Thrown when the input argument are out of range (from SphericalToCartesian)
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void LeddarDevice::LdSensor::ComputeCartesianCoordinates()
+{
+    //This is a generic conversion
+    // A better one can be provided by overridding this function in the corresponding sensor class
+
+    GetResultEchoes()->Lock( LeddarConnection::B_SET );
+    double lHFoV = GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_HFOV )->Value();
+    double lVFoV = GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_VFOV )->Value();
+    int32_t lHChanNumber = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_HSEGMENT )->Value();
+    double lDistanceScale = static_cast<double>( GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_DISTANCE_SCALE )->Value() );
+
+    if( lHFoV <= 0 || lVFoV <= 0 || lHChanNumber == 0 )
+    {
+        throw std::invalid_argument( "Argument out of allowed values" );
+    }
+
+    std::vector<LeddarConnection::LdEcho> &lEchoes = *GetResultEchoes()->GetEchoes( LeddarConnection::B_SET );
+
+    for( size_t i = 0; i < GetResultEchoes()->GetEchoCount( LeddarConnection::B_SET ); ++i )
+    {
+        uint16_t lHIndex = lEchoes[i].mChannelIndex % lHChanNumber;
+        uint16_t lVIndex = lEchoes[i].mChannelIndex / lHChanNumber;
+
+        //angle taken from this page : https://upload.wikimedia.org/wikipedia/commons/8/8c/Spherical_Coordinates_%28Latitude%2C_Longitude%29.svg but rotate axis so z is the sensor axis
+        //angle from sensor axis on horizontal plane
+        double theta = LeddarUtils::LtMathUtils::DegreeToRadian( lHIndex * lHFoV / lHChanNumber + lHFoV / ( 2.0 * lHChanNumber ) - lHFoV / 2 );
+        //angle from the point to the horizontal plane
+        double delta = LeddarUtils::LtMathUtils::DegreeToRadian( lVIndex * lVFoV / lHChanNumber + lVFoV / ( 2.0 * lHChanNumber ) - lVFoV / 2 );
+
+        LeddarUtils::LtMathUtils::LtPointXYZ lPoint = LeddarUtils::LtMathUtils::SphericalToCartesian( double( lEchoes[i].mDistance ) / lDistanceScale, theta, delta );
+        lEchoes[i].mX = lPoint.x;
+        lEchoes[i].mY = lPoint.y;
+        lEchoes[i].mZ = lPoint.z;
+    }
+
+    GetResultEchoes()->UnLock( LeddarConnection::B_SET );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \fn LeddarDefines::sLicense LeddarDevice::LdSensor::GetVolatileLicense()
 ///
 /// \brief  Gets volatile license
@@ -114,7 +164,7 @@ LeddarDefines::sLicense LeddarDevice::LdSensor::GetVolatileLicense()
     LeddarCore::LdIntegerProperty *lLicenseInfo = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_VOLATILE_LICENSE_INFO );
     LeddarCore::LdBufferProperty *lLicenseProp = GetProperties()->GetBufferProperty( LeddarCore::LdPropertyIds::ID_VOLATILE_LICENSE );
 
-    LeddarDefines::sLicense lLicense;
+    LeddarDefines::sLicense lLicense = LeddarDefines::sLicense();
 
     if( lLicenseInfo != nullptr && lLicenseInfo->Count() > 0 && lLicenseProp != nullptr && lLicenseProp->Count() > 0 )
     {
@@ -232,7 +282,7 @@ LeddarDevice::LdSensor::InitProperties( void )
                               "Vertical field of view. Default value is 3 for module but actual value is between 0.3 and 7.5" ) );
     mProperties->GetFloatProperty( LdPropertyIds::ID_VFOV )->ForceValue( 0, 3 );
     mProperties->GetFloatProperty( LdPropertyIds::ID_VFOV )->SetClean();
-    mProperties->GetFloatProperty( LdPropertyIds::ID_VFOV )->ForceValue( 0,
+    mProperties->GetFloatProperty( LdPropertyIds::ID_HFOV )->ForceValue( 0,
             45 ); //Default value for Vu8 can bus and M16 modbus/canbus sensor. It is not the correct value, but we need one for ROS
-    mProperties->GetFloatProperty( LdPropertyIds::ID_VFOV )->SetClean();
+    mProperties->GetFloatProperty( LdPropertyIds::ID_HFOV )->SetClean();
 }

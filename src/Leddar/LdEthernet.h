@@ -33,7 +33,7 @@ namespace LeddarConnection
     class LdEthernet : public LdInterfaceEthernet
     {
     public:
-        LdEthernet( const LdConnectionInfoEthernet *aConnectionInfo, LdConnection *aInterface = nullptr );
+        explicit LdEthernet( const LdConnectionInfoEthernet *aConnectionInfo, LdConnection *aInterface = nullptr );
         virtual ~LdEthernet( void );
 
         // TCP/IP

@@ -31,9 +31,13 @@ using namespace LeddarConnection;
 ///
 /// \since   January 2018
 /// *****************************************************************************
-LdDoubleBuffer::LdDoubleBuffer() : mTimestamp( nullptr ), mGetBuffer( new DataBuffer ), mSetBuffer( new DataBuffer ),
+LdDoubleBuffer::LdDoubleBuffer() :
+    mTimestamp( nullptr ),
+    mTimestamp64( nullptr ),
     mFrameId( LeddarCore::LdProperty::CAT_INFO, LeddarCore::LdProperty::F_SAVE, LeddarCore::LdPropertyIds::ID_RS_FRAME_ID, LtComLeddarTechPublic::LT_COMM_ID_FRAME_ID,
-              sizeof( uint64_t ), "Frame id" )
+              sizeof( uint64_t ), "Frame id" ),
+    mGetBuffer( new DataBuffer ),
+    mSetBuffer( new DataBuffer )
 {
     mFrameId.SetCount( 2 );
     mFrameId.ForceValue( 0, 0 );
@@ -57,19 +61,19 @@ LdDoubleBuffer::~LdDoubleBuffer()
     mSetBuffer = nullptr;
 }
 
-/// *****************************************************************************
-/// Function: LdDoubleBuffer::Init
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LdDoubleBuffer::Init( void *aGetBuffer, void *aSetBuffer, LeddarCore::LdIntegerProperty *aTimestamp, LeddarCore::LdIntegerProperty *aTimestamp64 )
 ///
-/// \brief   Initialize the buffer. Must be called before using the class.
+/// \brief  Initialize the buffer. Must be called before using the class.
 ///
-/// \param aGetBuffer : Pointer to the first buffer
-/// \param aSetBuffer : Pointer to the other buffer
-/// \param aTimestamp : (optional) pointer to the timestamp integer property that will be associated to the buffers
+/// \author David Lévy
+/// \date   January 2018
 ///
-/// \author  David Levy
-///
-/// \since   January 2018
-/// *****************************************************************************
+/// \param [in,out] aGetBuffer      Pointer to the first buffer
+/// \param [in,out] aSetBuffer      Pointer to the other buffer
+/// \param [in,out] aTimestamp      (optional) pointer to the timestamp integer property that will be associated to the buffers
+/// \param [in,out] aTimestamp64    (optional) pointer to the timestamp64 integer property that will be associated to the buffers
+////////////////////////////////////////////////////////////////////////////////////////////////////
 void
 LdDoubleBuffer::Init( void *aGetBuffer, void *aSetBuffer, LeddarCore::LdIntegerProperty *aTimestamp, LeddarCore::LdIntegerProperty *aTimestamp64 )
 {

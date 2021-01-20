@@ -787,6 +787,7 @@ bool LeddarDevice::LdSensorDTec::ProcessEchoes( void )
     }
 
     mEchoes.UnLock( LeddarConnection::B_SET );
+    ComputeCartesianCoordinates();
     mEchoes.Swap();
     mEchoes.UpdateFinished();
 

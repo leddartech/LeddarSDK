@@ -325,7 +325,7 @@ LeddarCore::LdPropertiesContainer::AddProperty( LeddarCore::LdProperty *aPropert
 
     if( aProperty->GetDeviceId() != 0 )
     {
-        for( std::map< uint32_t, LeddarCore::LdProperty *>::iterator it = mProperties.begin(); it != mProperties.end(); it++ ) //begin/end -> cbegin/cend for c++98
+        for( std::map< uint32_t, LeddarCore::LdProperty *>::iterator it = mProperties.begin(); it != mProperties.end(); ++it ) //begin/end -> cbegin/cend for c++98
         {
             if( it->second->GetDeviceId() == aProperty->GetDeviceId() )
             {
@@ -711,9 +711,9 @@ LeddarCore::LdPropertiesContainer::AddPropertiesFromFile( std::string aFilename 
                     }
 
                     // If the property has a count > 1 and only one value is specified, fill the value for all count
-                    for( uint32_t i = 0; i < lNewProperty->Count(); ++i )
+                    for( uint32_t j = 0; j < lNewProperty->Count(); ++j )
                     {
-                        lNewProperty->ForceStringValue( i, lValue );
+                        lNewProperty->ForceStringValue( j, lValue );
                     }
                 }
                 else //Array

@@ -43,6 +43,7 @@ namespace LeddarRecord
         LeddarConnection::LdResultEchoes *GetResultEchoes( void ) { return mEchoes; }
         LeddarConnection::LdResultStates *GetResultStates( void ) { return mStates; }
         LeddarCore::LdPropertiesContainer *GetProperties( void ) { return mProperties; }
+        LeddarDevice::LdSensor *GetSensor( void ) {return mSensor;}
 
     protected:
         LdRecordPlayer();

@@ -38,7 +38,10 @@ namespace LeddarConnection
         virtual void     CloseUDPSocket( void ) = 0;
 
     protected:
-        LdInterfaceEthernet( const LdConnectionInfoEthernet *aConnectionInfo, LdConnection *aInterface = 0 ) : LdConnection( aConnectionInfo, aInterface ), mConnectionInfoEthernet( aConnectionInfo ) {};
+        explicit LdInterfaceEthernet( const LdConnectionInfoEthernet *aConnectionInfo, LdConnection *aInterface = 0 ) :
+            LdConnection( aConnectionInfo, aInterface ),
+            mConnectionInfoEthernet( aConnectionInfo )
+        {};
 
         const LdConnectionInfoEthernet *mConnectionInfoEthernet;
     };
