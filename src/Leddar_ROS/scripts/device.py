@@ -57,12 +57,14 @@ if __name__ == '__main__':
     pub_specs.publish(specs)
     pub_cloud = rospy.Publisher('scan_cloud', PointCloud2, queue_size=100)
     pub_raw = rospy.Publisher('scan_raw', PointCloud2, queue_size=100)
+    frame_id = rospy.get_param('~frame_id', 'map')"
+    
     def echoes_callback(echo):
         echo['data'] = echo['data'][np.bitwise_and(echo['data']['flags'], 0x01).astype(np.bool)] #keep valid echoes only
         indices, flags, distances, amplitudes, x, y, z = [echo['data'][x] for x in ['indices', 'flags', 'distances', 'amplitudes', 'x', 'y', 'z']]
         stamp = rospy.Time.now()
         #rospy.loginfo('pixell: echoes callback')
-        exportation_echoes.add_sample(echo)
+
         if pub_raw.get_num_connections() > 0:
             pub_raw.publish(ros_numpy.msgify(PointCloud2, echo['data'], stamp, frame_id))
 
