@@ -57,7 +57,7 @@ if __name__ == '__main__':
     pub_specs.publish(specs)
     pub_cloud = rospy.Publisher('scan_cloud', PointCloud2, queue_size=100)
     pub_raw = rospy.Publisher('scan_raw', PointCloud2, queue_size=100)
-    frame_id = rospy.get_param('~frame_id', 'map')"
+    frame_id = rospy.get_param('~frame_id', 'map')
     
     def echoes_callback(echo):
         echo['data'] = echo['data'][np.bitwise_and(echo['data']['flags'], 0x01).astype(np.bool)] #keep valid echoes only
