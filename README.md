@@ -32,6 +32,7 @@ To build the LeddarSDK using CMakeList.txt, as mentionned above we recommand an 
 
 ```bash
 cd "LEDDARSDK_INSTALLATION_PATH"/src
+cd release/
 mkdir release
 cmake ..
 make
