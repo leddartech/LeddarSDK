@@ -184,11 +184,12 @@ static char *Device_doc = LEDDAR_DEVICE_DOC;
 #ifdef HAVE_HEAP_TYPES
 static PyType_Slot Device_slots[] =
 {
-    {Py_tp_dealloc, (void *)Device_dealloc},
-    {Py_tp_methods, (void *)Device_methods},
-    {Py_tp_init,    (void *)Device_init},
-    {Py_tp_new,     (void *)Device_new},
-    {Py_tp_doc,     Device_doc},
+    {Py_tp_dealloc,  (void *)Device_dealloc},
+    {Py_tp_methods,  (void *)Device_methods},
+    {Py_tp_init,     (void *)Device_init},
+    {Py_tp_new,      (void *)Device_new},
+    {Py_tp_traverse, (void *)Device_traverse},
+    {Py_tp_doc,      Device_doc},
     {0, NULL},  //Sentinel
 };
 
@@ -197,7 +198,8 @@ static PyType_Spec LeddarDeviceTypeSpec =
     LEDDAR_DEVICE_TYPE_NAME,                  //name
     sizeof(sLeddarDevice),                    //basicsize
     0,                                        //itemsize
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HEAPTYPE, //flags
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HEAPTYPE  //flags
+    | Py_TPFLAGS_HAVE_GC,
     Device_slots,                             //slots
 };
 #else  //Use static type
@@ -437,6 +439,13 @@ PyObject *Device_new( PyTypeObject *type, PyObject *args, PyObject *kwds )
     return ( PyObject * )self;
 }
 
+int Device_traverse( PyObject *self, visitproc visit, void *arg )
+{
+    PyTypeObject *tp = Py_TYPE(self);
+    Py_VISIT(tp);
+    return 0;
+}
+
 int Device_init( PyObject *self, PyObject *args, PyObject *kwds )
 {
     const char *lSensorName;
@@ -473,6 +482,7 @@ int Device_init( PyObject *self, PyObject *args, PyObject *kwds )
 void Device_dealloc( sLeddarDevice *self )
 {
     DebugTrace( "Destructing device." );
+    PyObject_GC_UnTrack(self);
 
     Py_XDECREF( self->mDataThreadSharedData.mCallBackState );
     Py_XDECREF( self->mDataThreadSharedData.mCallBackEcho );

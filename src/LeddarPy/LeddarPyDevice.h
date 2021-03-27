@@ -82,6 +82,7 @@ typedef struct sLeddarDevice
 void Device_dealloc( sLeddarDevice *self );
 PyObject *Device_new( PyTypeObject *type, PyObject *args, PyObject *kwds );
 int Device_init( PyObject *self, PyObject *args, PyObject *kwds );
+int Device_traverse( PyObject *self, visitproc visit, void *arg );
 PyObject *Connect( sLeddarDevice *self, PyObject *args );
 PyObject *Disconnect( sLeddarDevice *self, PyObject *args );
 
