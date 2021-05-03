@@ -137,6 +137,9 @@ void LeddarDevice::LdSensorVu8Can::InitProperties()
     mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_SEGMENT_ENABLE,
                               LtComCanBus::VU_ID_SEGMENT_ENABLE, 4,
                               "Segment enable (sensor) - Enable on 0" ) );
+
+    
+    GetResultEchoes()->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_CURRENT_LED_INTENSITY, 0, 1, "Current Led power" ) );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -606,7 +609,7 @@ bool LeddarDevice::LdSensorVu8Can::GetEchoes( void )
     uint32_t lTimestamp = *reinterpret_cast<uint32_t *>( &lNextData.mFrame.Cmd.mArg[2] );
 
     std::vector<LeddarConnection::LdEcho> *lEchoes = mEchoes.GetEchoes( LeddarConnection::B_SET );
-    mEchoes.Lock( LeddarConnection::B_SET );
+    auto lLock = mEchoes.GetUniqueLock( LeddarConnection::B_SET );
     mEchoes.SetEchoCount( lEchoCount );
 
     uint8_t i = 0;
@@ -649,13 +652,12 @@ bool LeddarDevice::LdSensorVu8Can::GetEchoes( void )
 
     if( i != lEchoCount )
     {
-        mEchoes.UnLock( LeddarConnection::B_SET );
         throw std::runtime_error( "Missing echoes" );
     }
 
-    mEchoes.SetCurrentLedPower( lCrurrentLedPower );
+    mEchoes.SetPropertyValue( LeddarCore::LdPropertyIds::ID_CURRENT_LED_INTENSITY, 0, lCrurrentLedPower );
     mEchoes.SetTimestamp( lTimestamp );
-    mEchoes.UnLock( LeddarConnection::B_SET );
+    lLock.unlock();
 
     if( lTimestamp != mLastTimestamp ) // Trigg callbacks only if its a new frame
     {

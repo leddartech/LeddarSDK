@@ -14,8 +14,8 @@
 
 #include "rapidjson/writer.h"
 
-#include <ctime>
 #include <cerrno>
+#include <ctime>
 #include <iostream>
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -28,13 +28,14 @@
 /// \author David Levy
 /// \date   October 2018
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-LeddarRecord::LdLjrRecorder::LdLjrRecorder( LeddarDevice::LdSensor *aSensor ) : LdRecorder( aSensor ),
-    mOutStream( nullptr ),
-    mFile( nullptr ),
-    mLastTimestamp( 0 )
+LeddarRecord::LdLjrRecorder::LdLjrRecorder( LeddarDevice::LdSensor *aSensor )
+    : LdRecorder( aSensor )
+    , mOutStream( nullptr )
+    , mFile( nullptr )
+    , mLastTimestamp( 0 )
 {
     mStringBuffer = new rapidjson::StringBuffer;
-    mWriter = new rapidjson::Writer<rapidjson::StringBuffer, rapidjson::UTF8<char>, rapidjson::UTF8<char>, rapidjson::CrtAllocator, 0>( *mStringBuffer );
+    mWriter       = new rapidjson::Writer<rapidjson::StringBuffer, rapidjson::UTF8<char>, rapidjson::UTF8<char>, rapidjson::CrtAllocator, 0>( *mStringBuffer );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -85,8 +86,9 @@ std::string LeddarRecord::LdLjrRecorder::StartRecording( const std::string &aPat
         throw std::logic_error( "Already recording" );
     }
 
+    const std::lock_guard<std::mutex> lock( mWriterMutex );
     std::string lPath = aPath;
-    bool lIsDir = LeddarUtils::LtSystemUtils::DirectoryExists( lPath );
+    bool lIsDir       = LeddarUtils::LtSystemUtils::DirectoryExists( lPath );
 
     if( lIsDir )
     {
@@ -114,15 +116,21 @@ std::string LeddarRecord::LdLjrRecorder::StartRecording( const std::string &aPat
         std::strftime( lStr, sizeof( lStr ), "%Y-%m-%d_%H-%M-%S", std::localtime( &lTime ) );
 
         if( mSensor->GetProperties()->FindProperty( LeddarCore::LdPropertyIds::ID_DEVICE_NAME ) != nullptr &&
-                mSensor->GetProperties()->FindProperty( LeddarCore::LdPropertyIds::ID_DEVICE_NAME )->Count() > 0 )
-            lPath = mSensor->GetProperties()->GetTextProperty( LeddarCore::LdPropertyIds::ID_DEVICE_NAME )->GetStringValue() + "_" + std::string( lStr );
+            mSensor->GetProperties()->FindProperty( LeddarCore::LdPropertyIds::ID_DEVICE_NAME )->Count() > 0 )
+        {
+            lPath += mSensor->GetProperties()->GetTextProperty( LeddarCore::LdPropertyIds::ID_DEVICE_NAME )->GetStringValue() + "_" + std::string( lStr );
+        }
+        else if( mSensor->GetProperties()->FindProperty( LeddarCore::LdPropertyIds::ID_SERIAL_NUMBER ) != nullptr &&
+                 mSensor->GetProperties()->FindProperty( LeddarCore::LdPropertyIds::ID_SERIAL_NUMBER )->Count() > 0 )
+        {
+            lPath += mSensor->GetProperties()->GetTextProperty( LeddarCore::LdPropertyIds::ID_SERIAL_NUMBER )->GetStringValue() + "_" + std::string( lStr );
+        }
         else
             lPath += "UnknownDevice_" + std::string( lStr );
     }
 
     if( LeddarUtils::LtStringUtils::ToLower( aPath ) != "stdout" &&
-            ( ( lPath.length() >= 4 && LeddarUtils::LtStringUtils::ToLower( lPath ).compare( lPath.length() - 4, 4, ".ljr" ) ) ||
-              lPath.length() < 4 ) )
+        ( ( lPath.length() >= 4 && LeddarUtils::LtStringUtils::ToLower( lPath ).compare( lPath.length() - 4, 4, ".ljr" ) ) || lPath.length() < 4 ) )
     {
         lPath += ".ljr";
     }
@@ -143,7 +151,7 @@ std::string LeddarRecord::LdLjrRecorder::StartRecording( const std::string &aPat
         }
 
         mFile = new std::ofstream;
-        mFile->open( lPath.c_str(), std::ios_base::out ); //c_str for c++98
+        mFile->open( lPath.c_str(), std::ios_base::out ); // c_str for c++98
 
         if( !mFile->is_open() )
         {
@@ -157,6 +165,7 @@ std::string LeddarRecord::LdLjrRecorder::StartRecording( const std::string &aPat
 
     AddFileHeader();
     AddAllProperties();
+    mStartingTime = std::chrono::steady_clock::now();
     return lPath;
 }
 
@@ -170,16 +179,61 @@ std::string LeddarRecord::LdLjrRecorder::StartRecording( const std::string &aPat
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void LeddarRecord::LdLjrRecorder::StopRecording()
 {
-    if( !mWriter->IsComplete() && mStringBuffer->GetSize() != 0 ) //Last frame should still be open - Need to check size, because a reset mWriter is not complete
+    if( mOutStream != nullptr )
     {
-        mWriter->EndObject(); //frame
-        mWriter->EndObject(); //main object
-        *mOutStream << mStringBuffer->GetString() << std::endl;
+        const std::lock_guard<std::mutex> lock( mWriterMutex );
+        if( !mWriter->IsComplete() && mStringBuffer->GetSize() != 0 ) // Last frame should still be open - Need to check size, because a reset mWriter is not complete
+        {
+            mWriter->EndObject(); // frame
+            mWriter->EndObject(); // main object
+            *mOutStream << mStringBuffer->GetString() << std::endl;
+            delete mOutStream;
+        }
     }
-
-    if( mFile->is_open() )
+    if( mFile && mFile->is_open() )
     {
         mFile->close();
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn uint64_t LeddarRecord::LdLjrRecorder::GetCurrentRecordingSize() const
+///
+/// \brief  Gets current recording size in bytes
+///
+/// \author David Lévy
+/// \date   November 2020
+///
+/// \returns    The current recording size.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+uint64_t LeddarRecord::LdLjrRecorder::GetCurrentRecordingSize() const
+{
+    if( mOutStream == nullptr )
+        return 0;
+    else
+    {
+        return mOutStream->tellp();
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn uint64_t LeddarRecord::LdLjrRecorder::GetElapsedTimeMs() const
+///
+/// \brief  Gets the elapsed time in milliseconds
+///
+/// \author David Lévy
+/// \date   November 2020
+///
+/// \returns    The elapsed time.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+uint64_t LeddarRecord::LdLjrRecorder::GetElapsedTimeMs() const
+{
+    if( mOutStream == nullptr )
+        return 0;
+    else
+    {
+        auto now = std::chrono::steady_clock::now();
+        return std::chrono::duration_cast<std::chrono::milliseconds>( now - mStartingTime ).count();
     }
 }
 
@@ -193,9 +247,9 @@ void LeddarRecord::LdLjrRecorder::StopRecording()
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void LeddarRecord::LdLjrRecorder::AddFileHeader()
 {
-    mWriter->StartObject(); //Main object
+    mWriter->StartObject(); // Main object
     mWriter->Key( "header" );
-    mWriter->StartObject(); //header object
+    mWriter->StartObject(); // header object
     mWriter->Key( "prot_version" );
     mWriter->Uint( LeddarRecord::LJR_PROT_VERSION );
     mWriter->Key( "devicetype" );
@@ -204,8 +258,8 @@ void LeddarRecord::LdLjrRecorder::AddFileHeader()
     mWriter->Uint( mSensor->GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_CONNECTION_TYPE )->ValueT<uint16_t>( 0 ) );
     mWriter->Key( "timestamp" );
     mWriter->Uint64( std::time( nullptr ) );
-    mWriter->EndObject();//header object
-    mWriter->EndObject(); //Main object
+    mWriter->EndObject(); // header object
+    mWriter->EndObject(); // Main object
 
     if( !mWriter->IsComplete() )
     {
@@ -227,11 +281,11 @@ void LeddarRecord::LdLjrRecorder::AddFileHeader()
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void LeddarRecord::LdLjrRecorder::AddAllProperties()
 {
-    mWriter->StartObject(); //Main object
+    mWriter->StartObject(); // Main object
     mWriter->Key( "prop" );
-    mWriter->StartArray(); //Prop array
+    mWriter->StartArray(); // Prop array
 
-    std::vector<LeddarCore::LdProperty *> lProperties =  mSensor->GetProperties()->FindPropertiesByFeature( LeddarCore::LdProperty::F_SAVE );
+    std::vector<LeddarCore::LdProperty *> lProperties = mSensor->GetProperties()->FindPropertiesByFeature( LeddarCore::LdProperty::F_SAVE );
 
     for( std::vector<LeddarCore::LdProperty *>::iterator lIter = lProperties.begin(); lIter != lProperties.end(); ++lIter )
     {
@@ -293,9 +347,9 @@ void LeddarRecord::LdLjrRecorder::AddAllProperties()
         mWriter->EndObject(); // a single property
     }
 
-    mWriter->EndArray(); //Prop array
+    mWriter->EndArray(); // Prop array
 
-    mWriter->EndObject(); //Main object
+    mWriter->EndObject(); // Main object
 
     if( !mWriter->IsComplete() )
     {
@@ -333,71 +387,71 @@ void LeddarRecord::LdLjrRecorder::AddPropertyValues( const LeddarCore::LdPropert
 
     switch( aProperty->GetType() )
     {
-        case LeddarCore::LdProperty::TYPE_BITFIELD:
-            for( size_t i = 0; i < aProperty->Count(); ++i )
+    case LeddarCore::LdProperty::TYPE_BITFIELD:
+        for( size_t i = 0; i < aProperty->Count(); ++i )
+        {
+            mWriter->Uint64( dynamic_cast<const LeddarCore::LdBitFieldProperty *>( aProperty )->Value( i ) );
+        }
+
+        break;
+
+    case LeddarCore::LdProperty::TYPE_BOOL:
+        for( size_t i = 0; i < aProperty->Count(); ++i )
+        {
+            mWriter->Bool( dynamic_cast<const LeddarCore::LdBoolProperty *>( aProperty )->Value( i ) );
+        }
+
+        break;
+
+    case LeddarCore::LdProperty::TYPE_ENUM:
+        for( size_t i = 0; i < aProperty->Count(); ++i )
+        {
+            mWriter->Uint64( dynamic_cast<const LeddarCore::LdEnumProperty *>( aProperty )->Value( i ) );
+        }
+
+        break;
+
+    case LeddarCore::LdProperty::TYPE_FLOAT:
+        for( size_t i = 0; i < aProperty->Count(); ++i )
+        {
+            mWriter->Double( dynamic_cast<const LeddarCore::LdFloatProperty *>( aProperty )->Value( i ) );
+        }
+
+        break;
+
+    case LeddarCore::LdProperty::TYPE_INTEGER:
+        for( size_t i = 0; i < aProperty->Count(); ++i )
+        {
+            if( dynamic_cast<const LeddarCore::LdIntegerProperty *>( aProperty )->Signed() )
             {
-                mWriter->Uint64( dynamic_cast<const LeddarCore::LdBitFieldProperty *>( aProperty )->Value( i ) );
+                mWriter->Int64( dynamic_cast<const LeddarCore::LdIntegerProperty *>( aProperty )->ValueT<int32_t>( i ) );
             }
-
-            break;
-
-        case LeddarCore::LdProperty::TYPE_BOOL:
-            for( size_t i = 0; i < aProperty->Count(); ++i )
+            else
             {
-                mWriter->Bool( dynamic_cast<const LeddarCore::LdBoolProperty *>( aProperty )->Value( i ) );
+                mWriter->Uint64( dynamic_cast<const LeddarCore::LdIntegerProperty *>( aProperty )->ValueT<uint64_t>( i ) );
             }
+        }
 
-            break;
+        break;
 
-        case LeddarCore::LdProperty::TYPE_ENUM:
-            for( size_t i = 0; i < aProperty->Count(); ++i )
-            {
-                mWriter->Uint64( dynamic_cast<const LeddarCore::LdEnumProperty *>( aProperty )->Value( i ) );
-            }
+    case LeddarCore::LdProperty::TYPE_TEXT:
+        for( size_t i = 0; i < aProperty->Count(); ++i )
+        {
+            mWriter->String( dynamic_cast<const LeddarCore::LdTextProperty *>( aProperty )->GetStringValue( i ).c_str() );
+        }
 
-            break;
+        break;
 
-        case LeddarCore::LdProperty::TYPE_FLOAT:
-            for( size_t i = 0; i < aProperty->Count(); ++i )
-            {
-                mWriter->Double( dynamic_cast<const LeddarCore::LdFloatProperty *>( aProperty )->Value( i ) );
-            }
+    case LeddarCore::LdProperty::TYPE_BUFFER:
+        for( size_t i = 0; i < aProperty->Count(); ++i )
+        {
+            mWriter->String( dynamic_cast<const LeddarCore::LdBufferProperty *>( aProperty )->GetStringValue( i ).c_str() );
+        }
 
-            break;
+        break;
 
-        case LeddarCore::LdProperty::TYPE_INTEGER:
-            for( size_t i = 0; i < aProperty->Count(); ++i )
-            {
-                if( dynamic_cast<const LeddarCore::LdIntegerProperty *>( aProperty )->Signed() )
-                {
-                    mWriter->Int64( dynamic_cast<const LeddarCore::LdIntegerProperty *>( aProperty )->ValueT<int32_t>( i ) );
-                }
-                else
-                {
-                    mWriter->Uint64( dynamic_cast<const LeddarCore::LdIntegerProperty *>( aProperty )->ValueT<uint64_t>( i ) );
-                }
-            }
-
-            break;
-
-        case LeddarCore::LdProperty::TYPE_TEXT:
-            for( size_t i = 0; i < aProperty->Count(); ++i )
-            {
-                mWriter->String( dynamic_cast<const LeddarCore::LdTextProperty *>( aProperty )->GetStringValue( i ).c_str() );
-            }
-
-            break;
-
-        case LeddarCore::LdProperty::TYPE_BUFFER:
-            for( size_t i = 0; i < aProperty->Count(); ++i )
-            {
-                mWriter->String( dynamic_cast<const LeddarCore::LdBufferProperty *>( aProperty )->GetStringValue( i ).c_str() );
-            }
-
-            break;
-
-        default:
-            throw std::logic_error( "Unhandled property type" );
+    default:
+        throw std::logic_error( "Unhandled property type" );
     }
 
     if( aProperty->Count() > 1 )
@@ -419,13 +473,13 @@ void LeddarRecord::LdLjrRecorder::AddPropertyValues( const LeddarCore::LdPropert
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void LeddarRecord::LdLjrRecorder::AddProperty( const LeddarCore::LdProperty *aProperty )
 {
-    mWriter->StartObject(); //a single property
+    mWriter->StartObject(); // a single property
     mWriter->Key( "id" );
     mWriter->Uint( aProperty->GetId() );
 
     AddPropertyValues( aProperty );
 
-    mWriter->EndObject();//a single property
+    mWriter->EndObject(); // a single property
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -445,6 +499,7 @@ void LeddarRecord::LdLjrRecorder::Callback( LdObject *aSender, const SIGNALS aSi
     if( mOutStream == nullptr )
         return;
 
+    const std::lock_guard<std::mutex> lock( mMutex );
     if( aSignal == LeddarCore::LdObject::NEW_DATA )
     {
         if( aSender == mStates )
@@ -456,7 +511,7 @@ void LeddarRecord::LdLjrRecorder::Callback( LdObject *aSender, const SIGNALS aSi
                     EndFrame();
                 }
 
-                StartFrame( mStates );
+                StartFrame();
             }
 
             StatesCallback();
@@ -471,7 +526,7 @@ void LeddarRecord::LdLjrRecorder::Callback( LdObject *aSender, const SIGNALS aSi
                     EndFrame();
                 }
 
-                StartFrame( mEchoes );
+                StartFrame();
             }
 
             EchoesCallback();
@@ -480,33 +535,35 @@ void LeddarRecord::LdLjrRecorder::Callback( LdObject *aSender, const SIGNALS aSi
     }
     else if( aSignal == LeddarCore::LdObject::VALUE_CHANGED && dynamic_cast<LeddarCore::LdProperty *>( aSender ) != nullptr )
     {
-        if( mLastTimestamp != 0 )
-        {
-            EndFrame();
-        }
+        // Only save sensor properties here, echoes/states are saved in their own key
+        LeddarCore::LdProperty *lSenderProp = dynamic_cast<LeddarCore::LdProperty *>( aSender );
 
-        PropertyCallback( dynamic_cast<LeddarCore::LdProperty *>( aSender ) );
-        mLastTimestamp = 0; //To be sure we start a new frame without closing one
+        if( mSensor->GetProperties()->FindProperty( lSenderProp->GetId() ) )
+        {
+            if( mLastTimestamp != 0 )
+            {
+                EndFrame();
+            }
+
+            PropertyCallback( lSenderProp );
+            mLastTimestamp = 0; // To be sure we start a new frame without closing one
+        }
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarRecord::LdLjrRecorder::StartFrame( LeddarConnection::LdResultProvider *aResults )
+/// \fn void LeddarRecord::LdLjrRecorder::StartFrame()
 ///
 /// \brief  Starts a frame record
-///
-/// \param [in,out] aResults    Result provider for the timestamp
 ///
 /// \author David Levy
 /// \date   October 2018
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void LeddarRecord::LdLjrRecorder::StartFrame( LeddarConnection::LdResultProvider *aResults )
+void LeddarRecord::LdLjrRecorder::StartFrame()
 {
-    mWriter->StartObject(); //main object
+    mWriter->StartObject(); // main object
     mWriter->Key( "frame" );
-    mWriter->StartObject(); //frame
-    mWriter->Key( "ts" );
-    mWriter->Uint( aResults->GetTimestamp() );
+    mWriter->StartObject(); // frame
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -519,8 +576,8 @@ void LeddarRecord::LdLjrRecorder::StartFrame( LeddarConnection::LdResultProvider
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void LeddarRecord::LdLjrRecorder::EndFrame()
 {
-    mWriter->EndObject(); //frame
-    mWriter->EndObject(); //main object
+    mWriter->EndObject(); // frame
+    mWriter->EndObject(); // main object
     *mOutStream << mStringBuffer->GetString() << std::endl;
     mStringBuffer->Clear();
     mWriter->Reset( *mStringBuffer );
@@ -538,9 +595,9 @@ void LeddarRecord::LdLjrRecorder::EndFrame()
 void LeddarRecord::LdLjrRecorder::StatesCallback()
 {
     mWriter->Key( "states" );
-    mWriter->StartArray(); //states
+    mWriter->StartArray(); // states
 
-    std::vector<LeddarCore::LdProperty *> lProperties =  mStates->GetProperties()->FindPropertiesByFeature( LeddarCore::LdProperty::F_SAVE );
+    std::vector<LeddarCore::LdProperty *> lProperties = mStates->GetProperties()->FindPropertiesByFeature( LeddarCore::LdProperty::F_SAVE );
 
     for( std::vector<LeddarCore::LdProperty *>::iterator lIter = lProperties.begin(); lIter != lProperties.end(); ++lIter )
     {
@@ -548,7 +605,7 @@ void LeddarRecord::LdLjrRecorder::StatesCallback()
             AddProperty( *lIter );
     }
 
-    mWriter->EndArray(); //states
+    mWriter->EndArray(); // states
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -563,26 +620,43 @@ void LeddarRecord::LdLjrRecorder::StatesCallback()
 void LeddarRecord::LdLjrRecorder::EchoesCallback()
 {
     mWriter->Key( "echoes" );
-    mWriter->StartArray(); //echoes
+    mWriter->StartArray(); // echoes
 
-    mEchoes->Lock( LeddarConnection::B_GET );
+    // cppcheck-suppress unreadVariable
+    auto lLock                                     = mEchoes->GetUniqueLock( LeddarConnection::B_GET );
     std::vector<LeddarConnection::LdEcho> &lEchoes = *( mEchoes->GetEchoes( LeddarConnection::B_GET ) );
-    double lAmpScale = static_cast<double>( mEchoes->GetAmplitudeScale() );
-    double lDistScale = static_cast<double>( mEchoes->GetDistanceScale() );
+    double lAmpScale                               = static_cast<double>( mEchoes->GetAmplitudeScale() );
+    double lDistScale                              = static_cast<double>( mEchoes->GetDistanceScale() );
 
     for( size_t i = 0; i < mEchoes->GetEchoCount( LeddarConnection::B_GET ); ++i )
     {
-        mWriter->StartArray(); //echo
+        mWriter->StartArray(); // echo
         mWriter->Uint( lEchoes[i].mChannelIndex );
         mWriter->Double( lEchoes[i].mDistance / lDistScale );
         mWriter->Double( lEchoes[i].mAmplitude / lAmpScale );
         mWriter->Uint( lEchoes[i].mFlag );
-        mWriter->EndArray(); //echo
+        mWriter->Double( lEchoes[i].mX );
+        mWriter->Double( lEchoes[i].mY );
+        mWriter->Double( lEchoes[i].mZ );
+        mWriter->Uint64( lEchoes[i].mTimestamp );
+        mWriter->EndArray(); // echo
     }
 
-    mEchoes->UnLock( LeddarConnection::B_GET );
+    mWriter->EndArray(); // echoes
 
-    mWriter->EndArray(); //echoes
+    std::vector<const LeddarCore::LdProperty *> lProperties = mEchoes->GetProperties()->FindPropertiesByFeature( LeddarCore::LdProperty::F_SAVE );
+
+    if( lProperties.size() > 0 )
+    {
+        mWriter->Key( "echoes_prop" );
+        mWriter->StartArray(); // echoes_prop
+        for( const auto &lProp : lProperties )
+        {
+            if( lProp->Count() > 0 )
+                AddProperty( lProp );
+        }
+        mWriter->EndArray(); // echoes_prop
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -595,18 +669,16 @@ void LeddarRecord::LdLjrRecorder::EchoesCallback()
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void LeddarRecord::LdLjrRecorder::PropertyCallback( LeddarCore::LdProperty *aProperty )
 {
-    mWriter->StartObject(); //Main object
+    mWriter->StartObject(); // Main object
     mWriter->Key( "prop" );
 
-    mWriter->StartArray(); //Prop array
+    mWriter->StartArray(); // Prop array
     AddProperty( aProperty );
-    mWriter->EndArray(); //Prop array
+    mWriter->EndArray(); // Prop array
 
-    mWriter->EndObject(); //Main object
+    mWriter->EndObject(); // Main object
 
     *mOutStream << mStringBuffer->GetString() << std::endl;
     mStringBuffer->Clear();
     mWriter->Reset( *mStringBuffer );
 }
-
-

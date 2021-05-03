@@ -33,7 +33,7 @@ namespace LeddarConnection
         virtual void ReadAnswer( void ) override;
 
     protected:
-        virtual void Read( uint32_t ) override;
+        virtual uint32_t Read( uint32_t ) override;
 
 
     private:

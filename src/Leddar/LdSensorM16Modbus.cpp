@@ -135,7 +135,7 @@ LdSensorM16Modbus::GetEchoes0x41( void )
 
             uint16_t lLedPower = *reinterpret_cast<uint16_t *>( &lResponse[MODBUS_DATA_OFFSET + lEchoCount * sizeof( LtComLeddarM16Modbus::sLeddarM16Detections0x41 ) + 4] );
             mEchoes.SetTimestamp( lTimeStamp );
-            mEchoes.SetCurrentLedPower( lLedPower );
+            mEchoes.SetPropertyValue( LeddarCore::LdPropertyIds::ID_CURRENT_LED_INTENSITY, 0, lLedPower );
             ComputeCartesianCoordinates();
             mEchoes.Swap();
             mEchoes.UpdateFinished();
@@ -207,7 +207,7 @@ LdSensorM16Modbus::GetEchoes0x6A( void )
 
             uint16_t lLedPower = *reinterpret_cast<uint16_t *>( &lResponse[MODBUS_DATA_OFFSET + lEchoCount * sizeof( LtComLeddarM16Modbus::sLeddarM16Detections0x6A ) + 4] );
             mEchoes.SetTimestamp( lTimeStamp );
-            mEchoes.SetCurrentLedPower( lLedPower );
+            mEchoes.SetPropertyValue( LeddarCore::LdPropertyIds::ID_CURRENT_LED_INTENSITY, 0, lLedPower );
             ComputeCartesianCoordinates();
             mEchoes.Swap();
             mEchoes.UpdateFinished();
@@ -547,10 +547,10 @@ LdSensorM16Modbus::InitProperties( void )
                               LtComLeddarM16Modbus::DID_COM_SERIAL_PORT_ECHOES_RES, 2, true, "Distance resolution" ) );
     mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_SEGMENT_ENABLE_COM,
                               LtComLeddarM16Modbus::DID_SEGMENT_ENABLE_COM, 2, "Enable / disable communication about selected channels" ) );
-    GetProperties()->GetBitProperty( LdPropertyIds::ID_SEGMENT_ENABLE_COM )->SetLimit( ( 1 << GetProperties()->GetIntegerProperty( LdPropertyIds::ID_HSEGMENT )->Value() ) - 1 );
+    GetProperties()->GetBitProperty( LdPropertyIds::ID_SEGMENT_ENABLE_COM )->SetLimit( ( uint64_t(1) << GetProperties()->GetIntegerProperty( LdPropertyIds::ID_HSEGMENT )->ValueT<uint8_t>() ) - 1 );
     mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE, LdPropertyIds::ID_SEGMENT_ENABLE,
                               LtComLeddarM16Modbus::DID_SEGMENT_ENABLE_DEVICE, 2, "Enable / disable selected channels pair on the device (enable = 0)" ) );
-    GetProperties()->GetBitProperty( LdPropertyIds::ID_SEGMENT_ENABLE )->SetLimit( ( 1 << GetProperties()->GetIntegerProperty( LdPropertyIds::ID_HSEGMENT )->Value() ) - 1 );
+    GetProperties()->GetBitProperty( LdPropertyIds::ID_SEGMENT_ENABLE )->SetLimit( (  uint64_t(1) << GetProperties()->GetIntegerProperty( LdPropertyIds::ID_HSEGMENT )->ValueT<uint8_t>() ) - 1 );
     mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_COM_SERIAL_PORT_STOP_BITS,
                               LtComLeddarM16Modbus::DID_COM_SERIAL_PORT_STOP_BITS, 1, true, "Modbus stop bit" ) );
     mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_COM_SERIAL_PORT_PARITY,
@@ -621,6 +621,8 @@ LdSensorM16Modbus::InitProperties( void )
     //States
     GetResultStates()->GetProperties()->AddProperty( new LdFloatProperty( LdProperty::CAT_INFO, LdProperty::F_NONE, LdPropertyIds::ID_RS_SYSTEM_TEMP, 0, 4, 0, 1,
             "System Temperature" ) );
+    
+    GetResultEchoes()->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_CURRENT_LED_INTENSITY, 0, 2, "Current Led power" ) );
 }
 
 #endif

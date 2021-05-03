@@ -33,15 +33,14 @@ double LeddarUtils::LtMathUtils::DegreeToRadian( double aAngle )
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \fn LeddarUtils::LtMathUtils::LtPointXYZ LeddarUtils::LtMathUtils::SphericalToCartesian( double aRho, double aTheta, double aDelta )
 ///
-/// \brief  Convert spherical to cartesian coordinates angle taken from this page :
-///     https://upload.wikimedia.org/wikipedia/commons/8/8c/Spherical_Coordinates_%28Latitude%2C_Longitude%29.svg but rotate axis so z is the
-///     sensor axis
+/// \brief  Convert spherical to cartesian. The following image illustrate the representation of each variables used in this formula :
+///     https://upload.wikimedia.org/wikipedia/commons/8/8c/Spherical_Coordinates_%28Latitude%2C_Longitude%29.svg
 ///
 /// \exception  std::out_of_range   Thrown when the input argument are out of range
 ///
 /// \param  aRho    Distance to the point.
-/// \param  aTheta  Angle from sensor axis on horizontal plane.
-/// \param  aDelta  Angle from the point to the horizontal plane.
+/// \param  aTheta  Azimuthal angle from X axis to Y axis counterclockwise
+/// \param  aDelta  Elevation angle from XY plane to the point
 ///
 /// \return The spherical coordinates.
 ///
@@ -55,9 +54,10 @@ LeddarUtils::LtMathUtils::LtPointXYZ LeddarUtils::LtMathUtils::SphericalToCartes
         throw std::out_of_range( "Out of range arguments. Required: rho > 0, -pi < theta < pi, -pi/2 < delta < pi/2" );
     }
 
-    const double x = aRho * cos( aDelta ) * sin( aTheta );
-    const double y = aRho * sin( aDelta );
-    const double z = aRho * cos( aDelta ) * cos( aTheta );
+    const double x = aRho * cos( aDelta ) * cos( aTheta );
+    const double y = aRho * cos( aDelta ) * sin( aTheta );
+    const double z = aRho * sin( aDelta );
+    
 
     return LeddarUtils::LtMathUtils::LtPointXYZ( x, y, z );
 }

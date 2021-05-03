@@ -14,11 +14,9 @@
 
 #pragma once
 
-#include "LdIntegerProperty.h"
 #include "LdResultProvider.h"
 
-#include <cassert>
-
+#include "LdPropertiesContainer.h"
 
 namespace LeddarConnection
 {
@@ -26,13 +24,19 @@ namespace LeddarConnection
     {
     public:
         LdResultStates( void );
-        ~LdResultStates();
+        ~LdResultStates() = default;
 
         void Init( uint32_t aTemperatureScale, uint32_t aCpuLoadScale );
         bool IsInitialized( void ) const { return mIsInitialized;  }
         std::string ToString( void ) const;
 
+        uint32_t GetTimestamp( void ) const;
+        virtual void SetTimestamp( uint32_t aTimestamp );
+
+        LeddarCore::LdPropertiesContainer *GetProperties( void ) { return &mProperties; }
+
     private:
         bool     mIsInitialized;
+        LeddarCore::LdPropertiesContainer mProperties;
     };
 }

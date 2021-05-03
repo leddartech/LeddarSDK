@@ -13,8 +13,8 @@
 // *****************************************************************************
 
 #include "LdFloatProperty.h"
-#include "LtStringUtils.h"
 #include "LtScope.h"
+#include "LtStringUtils.h"
 
 #include <cassert>
 #include <iomanip>
@@ -23,6 +23,16 @@
 #include <math.h>
 #include <sstream>
 #include <string>
+
+LeddarCore::LdFloatProperty::LdFloatProperty( const LdFloatProperty &aProperty )
+    : LdProperty( aProperty )
+{
+    std::lock_guard<std::recursive_mutex> lock( aProperty.mPropertyMutex );
+    mMinValue = aProperty.mMinValue;
+    mMaxValue = aProperty.mMaxValue;
+    mScale    = aProperty.mScale;
+    mDecimals = aProperty.mDecimals;
+}
 
 // *****************************************************************************
 // Function: LdFloatProperty::LdFloatProperty
@@ -49,21 +59,19 @@
 ///
 /// \since   August 2014
 // *****************************************************************************
-LeddarCore::LdFloatProperty::LdFloatProperty( LdProperty::eCategories aCategory,
-        uint32_t aFeatures, uint32_t aId,
-        uint16_t aDeviceId, uint32_t aUnitSize,
-        uint32_t aScale, uint32_t aDecimals, const std::string &aDescription ) :
-    LdProperty( LdProperty::TYPE_FLOAT, aCategory, aFeatures, aId, aDeviceId, aUnitSize, sizeof( int32_t ), aDescription ),
-    mMinValue( -std::numeric_limits<float>::max() ),
-    mMaxValue( std::numeric_limits<float>::max() ),
-    mScale( aScale ),
-    mDecimals( aDecimals )
+LeddarCore::LdFloatProperty::LdFloatProperty( LdProperty::eCategories aCategory, uint32_t aFeatures, uint32_t aId, uint16_t aDeviceId, uint32_t aUnitSize, uint32_t aScale,
+                                              uint32_t aDecimals, const std::string &aDescription )
+    : LdProperty( LdProperty::TYPE_FLOAT, aCategory, aFeatures, aId, aDeviceId, aUnitSize, sizeof( int32_t ), aDescription )
+    , mMinValue( -std::numeric_limits<float>::max() )
+    , mMaxValue( std::numeric_limits<float>::max() )
+    , mScale( aScale )
+    , mDecimals( aDecimals )
 {
     SetMaxLimits();
 }
 
 // *****************************************************************************
-// Function: LdFloatProperty::Value
+// Function: LdFloatProperty::PerformValue
 //
 /// \brief   Return the current value of the property at the given index.
 ///
@@ -75,21 +83,20 @@ LeddarCore::LdFloatProperty::LdFloatProperty( LdProperty::eCategories aCategory,
 ///
 /// \since   January 2016
 // *****************************************************************************
-float
-LeddarCore::LdFloatProperty::Value( size_t aIndex ) const
+float LeddarCore::LdFloatProperty::PerformValue( size_t aIndex ) const
 {
     VerifyInitialization();
 
-    if( aIndex >= Count() )
+    if( aIndex >= PerformCount() )
     {
-        throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
     // If scale is 0 value is a float directly. Otherwise it is a fixed-point
     // that we must transform into a float.
     if( mScale != 0 )
     {
-        return static_cast<float>( RawValue( aIndex ) ) / mScale;
+        return static_cast<float>( PerformRawValue( aIndex ) ) / mScale;
     }
 
     // cppcheck-suppress invalidPointerCast
@@ -97,7 +104,7 @@ LeddarCore::LdFloatProperty::Value( size_t aIndex ) const
 }
 
 // *****************************************************************************
-// Function: LdFloatProperty::DeviceValue
+// Function: LdFloatProperty::PerformDeviceValue
 //
 /// \brief   Return the backup value (that is the value in the device).
 ///
@@ -109,21 +116,20 @@ LeddarCore::LdFloatProperty::Value( size_t aIndex ) const
 ///
 /// \since   January 2016
 // *****************************************************************************
-float
-LeddarCore::LdFloatProperty::DeviceValue( size_t aIndex ) const
+float LeddarCore::LdFloatProperty::PerformDeviceValue( size_t aIndex ) const
 {
     VerifyInitialization();
 
-    if( aIndex >= Count() )
+    if( aIndex >= PerformCount() )
     {
-        throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
     // If scale is 0 value is a float directly. Otherwise it is a fixed-point
     // that we must transform into a float.
     if( mScale != 0 )
     {
-        return static_cast<float>( RawDeviceValue( aIndex ) ) / mScale;
+        return static_cast<float>( PerformRawDeviceValue( aIndex ) ) / mScale;
     }
 
     // cppcheck-suppress invalidPointerCast
@@ -131,7 +137,7 @@ LeddarCore::LdFloatProperty::DeviceValue( size_t aIndex ) const
 }
 
 // *****************************************************************************
-// Function: LdFloatProperty::GetStringValue
+// Function: LdFloatProperty::PerformGetStringValue
 //
 /// \brief   Utility function to transform a float value to text in a standard
 ///          way.
@@ -144,16 +150,15 @@ LeddarCore::LdFloatProperty::DeviceValue( size_t aIndex ) const
 ///
 /// \since   January 2016
 // *****************************************************************************
-std::string
-LeddarCore::LdFloatProperty::GetStringValue( size_t aIndex ) const
+std::string LeddarCore::LdFloatProperty::PerformGetStringValue( size_t aIndex ) const
 {
     std::stringstream lResult;
-    lResult << std::fixed << std::setprecision( mDecimals ) << Value( aIndex );
+    lResult << std::fixed << std::setprecision( mDecimals ) << PerformValue( aIndex );
     return lResult.str();
 }
 
 // *****************************************************************************
-// Function: LdFloatProperty::SetMaxLimits
+// Function: LdFloatProperty::PerformSetMaxLimits
 //
 /// \brief   Set the limits to the maximum range from the current scale and
 ///          unit size.
@@ -162,27 +167,26 @@ LeddarCore::LdFloatProperty::GetStringValue( size_t aIndex ) const
 ///
 /// \since   January 2016
 // *****************************************************************************
-void
-LeddarCore::LdFloatProperty::SetMaxLimits( void )
+void LeddarCore::LdFloatProperty::PerformSetMaxLimits( void )
 {
     if( mScale != 0 )
     {
-        switch( UnitSize() )
+        switch( PerformUnitSize() )
         {
-            case 1:
-                mMinValue = std::numeric_limits<char>::min() / static_cast<float>( mScale );
-                mMaxValue = std::numeric_limits<char>::max() / static_cast<float>( mScale );
-                break;
+        case 1:
+            mMinValue = std::numeric_limits<char>::min() / static_cast<float>( mScale );
+            mMaxValue = std::numeric_limits<char>::max() / static_cast<float>( mScale );
+            break;
 
-            case 2:
-                mMinValue = std::numeric_limits<int16_t>::min() / static_cast<float>( mScale );
-                mMaxValue = std::numeric_limits<int16_t>::max() / static_cast<float>( mScale );
-                break;
+        case 2:
+            mMinValue = std::numeric_limits<int16_t>::min() / static_cast<float>( mScale );
+            mMaxValue = std::numeric_limits<int16_t>::max() / static_cast<float>( mScale );
+            break;
 
-            case 4:
-                mMinValue = std::numeric_limits<int32_t>::min() / static_cast<float>( mScale );
-                mMaxValue = std::numeric_limits<int32_t>::max() / static_cast<float>( mScale );
-                break;
+        case 4:
+            mMinValue = std::numeric_limits<int32_t>::min() / static_cast<float>( mScale );
+            mMaxValue = std::numeric_limits<int32_t>::max() / static_cast<float>( mScale );
+            break;
         }
 
         // Truncate to the nearest value according to the decimals
@@ -194,7 +198,7 @@ LeddarCore::LdFloatProperty::SetMaxLimits( void )
 }
 
 // *****************************************************************************
-// Function: LdFloatProperty::SetLimits
+// Function: LdFloatProperty::PerformSetLimits
 //
 /// \brief   Change the minimum and maximum allowed values.
 ///
@@ -207,8 +211,7 @@ LeddarCore::LdFloatProperty::SetMaxLimits( void )
 ///
 /// \since   January 2016
 // *****************************************************************************
-void
-LeddarCore::LdFloatProperty::SetLimits( float aMin, float aMax )
+void LeddarCore::LdFloatProperty::PerformSetLimits( float aMin, float aMax )
 {
     if( aMin > aMax )
     {
@@ -223,19 +226,19 @@ LeddarCore::LdFloatProperty::SetLimits( float aMin, float aMax )
         // Clip current values only if the property was initialized
         if( IsInitialized() )
         {
-            const size_t lCount = Count();
+            const size_t lCount = PerformCount();
 
             for( size_t i = 0; i < lCount; ++i )
             {
-                const float lValue = Value( i );
+                const float lValue = PerformValue( i );
 
                 if( lValue < mMinValue )
                 {
-                    SetValue( i, mMinValue );
+                    PerformSetValue( i, mMinValue );
                 }
                 else if( lValue > mMaxValue )
                 {
-                    SetValue( i, mMaxValue );
+                    PerformSetValue( i, mMaxValue );
                 }
             }
         }
@@ -245,7 +248,7 @@ LeddarCore::LdFloatProperty::SetLimits( float aMin, float aMax )
 }
 
 // *****************************************************************************
-// Function: LdFloatProperty::SetRawLimits
+// Function: LdFloatProperty::PerformSetRawLimits
 //
 /// \brief   Change the minimum and maximum allowed values using raw values.
 ///
@@ -258,17 +261,59 @@ LeddarCore::LdFloatProperty::SetLimits( float aMin, float aMax )
 ///
 /// \since   March 2016
 // *****************************************************************************
-void
-LeddarCore::LdFloatProperty::SetRawLimits( int32_t aMin, int32_t aMax )
+void LeddarCore::LdFloatProperty::PerformSetRawLimits( int32_t aMin, int32_t aMax )
 {
     float lMinValue = mScale == 0 ? aMin : aMin / static_cast<float>( mScale );
     float lMaxValue = mScale == 0 ? aMax : aMax / static_cast<float>( mScale );
 
-    SetLimits( lMinValue, lMaxValue );
+    PerformSetLimits( lMinValue, lMaxValue );
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LeddarCore::LdFloatProperty::PerformSetAnyValue( size_t aIndex, const boost::any &aNewValue )
+///
+/// \brief  Set the property value
+///
+/// \author David Lévy
+/// \date   February 2021
+///
+/// \exception  std::invalid_argument   Thrown when an invalid argument error condition occurs.
+///
+/// \param  aIndex      Zero-based index of the.
+/// \param  aNewValue   The new value.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void LeddarCore::LdFloatProperty::PerformSetAnyValue( size_t aIndex, const boost::any &aNewValue )
+{
+    if( aNewValue.type() == typeid( float ) )
+    {
+        PerformSetValue( aIndex, boost::any_cast<float>( aNewValue ) );
+    }
+    else if( aNewValue.type() == typeid( double ) )
+    {
+        PerformSetValue( aIndex, boost::any_cast<double>( aNewValue ) );
+    }
+    else if( aNewValue.type() == typeid( int ) )
+    {
+        PerformSetValue( aIndex, boost::any_cast<int>( aNewValue ) );
+    }
+    else
+        throw std::invalid_argument( "Invalid value type" );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn	LeddarCore::LdProperty *LeddarCore::LdFloatProperty::PerformClone()
+///
+/// \brief	Performs the clone action
+///
+/// \returns	Null if it fails, else a pointer to a LeddarCore::LdProperty.
+///
+/// \author	Alain Ferron
+/// \date	March 2021
+////////////////////////////////////////////////////////////////////////////////////////////////////
+LeddarCore::LdProperty *LeddarCore::LdFloatProperty::PerformClone() { return new LdFloatProperty( *this ); }
+
 // *****************************************************************************
-// Function: LdFloatProperty::SetRawValue
+// Function: LdFloatProperty::PerformSetRawValue
 //
 /// \brief   Change the current raw value at the given index.
 ///
@@ -284,30 +329,29 @@ LeddarCore::LdFloatProperty::SetRawLimits( int32_t aMin, int32_t aMax )
 ///
 /// \since   January 2016
 // *****************************************************************************
-void
-LeddarCore::LdFloatProperty::SetRawValue( size_t aIndex, int32_t aValue )
+void LeddarCore::LdFloatProperty::PerformSetRawValue( size_t aIndex, int32_t aValue )
 {
     CanEdit();
 
     // Initialize the count to 1 on the fist SetValue if not done before.
-    if( Count() == 0 && aIndex == 0 )
+    if( PerformCount() == 0 && aIndex == 0 )
     {
-        SetCount( 1 );
+        PerformSetCount( 1 );
     }
 
     assert( mScale != 0 );
 
-    if( aIndex >= Count() )
+    if( aIndex >= PerformCount() )
     {
         throw std::out_of_range( "Invalid property count." );
     }
 
     if( ( aValue < mMinValue * mScale ) || ( aValue > mMaxValue * mScale ) )
     {
-        throw std::out_of_range( "Value outside the limits. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "Value outside the limits. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
-    if( !IsInitialized() || aValue != RawValue( aIndex ) )
+    if( !IsInitialized() || aValue != PerformRawValue( aIndex ) )
     {
         reinterpret_cast<int32_t *>( Storage() )[aIndex] = aValue;
         SetInitialized( true );
@@ -316,7 +360,7 @@ LeddarCore::LdFloatProperty::SetRawValue( size_t aIndex, int32_t aValue )
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdFloatProperty::ForceRawValue( size_t aIndex, int32_t aValue )
+/// \fn void LeddarCore::LdFloatProperty::PerformForceRawValue( size_t aIndex, int32_t aValue )
 ///
 /// \brief  Force raw value
 ///
@@ -331,16 +375,15 @@ LeddarCore::LdFloatProperty::SetRawValue( size_t aIndex, int32_t aValue )
 /// \author David Levy
 /// \date   March 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarCore::LdFloatProperty::ForceRawValue( size_t aIndex, int32_t aValue )
+void LeddarCore::LdFloatProperty::PerformForceRawValue( size_t aIndex, int32_t aValue )
 {
     LeddarUtils::LtScope<bool> lForceEdit( &mCheckEditable, true );
     mCheckEditable = false;
-    SetRawValue( aIndex, aValue );
+    PerformSetRawValue( aIndex, aValue );
 }
 
 // *****************************************************************************
-// Function: LdFloatProperty::SetValue
+// Function: LdFloatProperty::PerformSetValue
 //
 /// \brief   Change the current value at the given index.
 ///
@@ -355,35 +398,33 @@ LeddarCore::LdFloatProperty::ForceRawValue( size_t aIndex, int32_t aValue )
 ///
 /// \since   January 2016
 // *****************************************************************************
-void
-LeddarCore::LdFloatProperty::SetValue( size_t aIndex, float aValue )
+void LeddarCore::LdFloatProperty::PerformSetValue( size_t aIndex, float aValue )
 {
     CanEdit();
 
     // Initialize the count to 1 on the fist SetValue if not done before.
-    if( Count() == 0 && aIndex == 0 )
+    if( PerformCount() == 0 && aIndex == 0 )
     {
-        SetCount( 1 );
+        PerformSetCount( 1 );
     }
 
-    if( aIndex >= Count() )
+    if( aIndex >= PerformCount() )
     {
-        throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
-    if( ( aValue < mMinValue )
-            || ( aValue > mMaxValue ) )
+    if( ( aValue < mMinValue ) || ( aValue > mMaxValue ) )
     {
-        throw std::out_of_range( "Value outside the limits. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "Value outside the limits. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
     if( mScale == 0 )
     {
-        if( !IsInitialized() ||  aValue != Value( aIndex ) )
+        if( !IsInitialized() || aValue != PerformValue( aIndex ) )
         {
             // cppcheck-suppress invalidPointerCast
             float &lFloatValue = reinterpret_cast<float *>( Storage() )[aIndex];
-            lFloatValue = aValue;
+            lFloatValue        = aValue;
             SetInitialized( true );
             EmitSignal( LdObject::VALUE_CHANGED );
         }
@@ -397,7 +438,7 @@ LeddarCore::LdFloatProperty::SetValue( size_t aIndex, float aValue )
 
         if( IsInitialized() )
         {
-            lOldValueStream << Value( aIndex );
+            lOldValueStream << PerformValue( aIndex );
         }
 
         if( !IsInitialized() || lNewValueStream.str() != lOldValueStream.str() )
@@ -405,13 +446,13 @@ LeddarCore::LdFloatProperty::SetValue( size_t aIndex, float aValue )
             // Must put a 0.5 offset to have rounding instead of truncating.
             const int32_t lRaw = static_cast<int32_t>( aValue * mScale + ( aValue >= 0 ? 0.5f : -0.5f ) );
 
-            SetRawValue( aIndex, lRaw );
+            PerformSetRawValue( aIndex, lRaw );
         }
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdFloatProperty::ForceValue( size_t aIndex, float aValue )
+/// \fn void LeddarCore::LdFloatProperty::PerformForceValue( size_t aIndex, float aValue )
 ///
 /// \brief  Force value
 ///
@@ -423,16 +464,15 @@ LeddarCore::LdFloatProperty::SetValue( size_t aIndex, float aValue )
 /// \author David Levy
 /// \date   March 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarCore::LdFloatProperty::ForceValue( size_t aIndex, float aValue )
+void LeddarCore::LdFloatProperty::PerformForceValue( size_t aIndex, float aValue )
 {
     LeddarUtils::LtScope<bool> lForceEdit( &mCheckEditable, true );
     mCheckEditable = false;
-    SetValue( aIndex, aValue );
+    PerformSetValue( aIndex, aValue );
 }
 
 // *****************************************************************************
-// Function: LdFloatProperty::SetStringValue
+// Function: LdFloatProperty::PerformSetStringValue
 //
 /// \brief   Property writer for the value as text.
 ///
@@ -451,14 +491,13 @@ LeddarCore::LdFloatProperty::ForceValue( size_t aIndex, float aValue )
 ///
 /// \since   January 2016
 // *****************************************************************************
-void
-LeddarCore::LdFloatProperty::SetStringValue( size_t aIndex, const std::string &aValue )
+void LeddarCore::LdFloatProperty::PerformSetStringValue( size_t aIndex, const std::string &aValue )
 {
     CanEdit();
     std::string lCurrent = "";
 
     if( IsInitialized() )
-        lCurrent = GetStringValue( aIndex );
+        lCurrent = PerformGetStringValue( aIndex );
 
     if( !IsInitialized() || lCurrent != aValue )
     {
@@ -475,13 +514,13 @@ LeddarCore::LdFloatProperty::SetStringValue( size_t aIndex, const std::string &a
 
         if( lNormalizedStream.str() != lCurrent )
         {
-            SetValue( aIndex, lValue );
+            PerformSetValue( aIndex, lValue );
         }
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdFloatProperty::ForceStringValue( size_t aIndex, const std::string &aValue )
+/// \fn void LeddarCore::LdFloatProperty::PerformForceStringValue( size_t aIndex, const std::string &aValue )
 ///
 /// \brief  Force string value
 ///
@@ -494,10 +533,122 @@ LeddarCore::LdFloatProperty::SetStringValue( size_t aIndex, const std::string &a
 /// \author David Levy
 /// \date   March 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarCore::LdFloatProperty::ForceStringValue( size_t aIndex, const std::string &aValue )
+void LeddarCore::LdFloatProperty::PerformForceStringValue( size_t aIndex, const std::string &aValue )
 {
     LeddarUtils::LtScope<bool> lForceEdit( &mCheckEditable, true );
     mCheckEditable = false;
-    SetStringValue( aIndex, aValue );
+    PerformSetStringValue( aIndex, aValue );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LeddarCore::LdFloatProperty::PerformSetRawStorage( uint8_t *aBuffer, size_t aCount, uint32_t aSize )
+///
+/// \brief  Set storage directly in memory
+///
+/// \param [in,out] aBuffer Buffer to copy.
+/// \param          aCount  Number of element in the buffer.
+/// \param          aSize   Size of each element in the buffer.
+///
+/// \author David Lévy
+/// \date   November 2020
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void LeddarCore::LdFloatProperty::PerformSetRawStorage( uint8_t *aBuffer, size_t aCount, uint32_t aSize )
+{
+    if( aSize == 4 || aSize == PerformStride() )
+        LdProperty::PerformSetRawStorage( aBuffer, aCount, aSize );
+    else
+    {
+        CanEdit();
+
+        if( PerformCount() != aCount )
+        {
+            PerformSetCount( aCount );
+        }
+
+        if( aSize > sizeof( uint64_t ) )
+        {
+            throw std::invalid_argument( "Unable to SetRawStorage, invalid size: " + LeddarUtils::LtStringUtils::IntToString( aSize ) +
+                                         " id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
+        }
+
+        for( uint32_t i = 0; i < aCount; i++ )
+        {
+            int64_t lValue( 0 );
+
+            if( aSize == sizeof( int8_t ) )
+            {
+                lValue = reinterpret_cast<int8_t *>( aBuffer )[i];
+            }
+            else if( aSize == sizeof( int16_t ) )
+            {
+                lValue = reinterpret_cast<int16_t *>( aBuffer )[i];
+            }
+            else if( aSize == sizeof( int64_t ) )
+            {
+                lValue = reinterpret_cast<int64_t *>( aBuffer )[i];
+            }
+            else
+            {
+                throw std::logic_error( "Couldnt set storage value - Invalid size: " + LeddarUtils::LtStringUtils::IntToString( aSize ) +
+                                        " id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
+            }
+
+            if( mStride == sizeof( int8_t ) )
+            {
+                reinterpret_cast<int8_t *>( &Storage()[0] )[i] = static_cast<int8_t>( lValue );
+            }
+            else if( mStride == sizeof( int16_t ) )
+            {
+                reinterpret_cast<int16_t *>( &Storage()[0] )[i] = static_cast<int16_t>( lValue );
+            }
+            else if( mStride == sizeof( int32_t ) )
+            {
+                reinterpret_cast<int32_t *>( &Storage()[0] )[i] = static_cast<int32_t>( lValue );
+            }
+            else if( mStride == sizeof( int64_t ) )
+            {
+                reinterpret_cast<int64_t *>( &Storage()[0] )[i] = static_cast<int64_t>( lValue );
+            }
+            else
+            {
+                throw std::logic_error( "Couldnt set storage value - Invalid stride: " + LeddarUtils::LtStringUtils::IntToString( mStride ) +
+                                        " id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
+            }
+        }
+    }
+
+    SetInitialized( true );
+    EmitSignal( LdObject::VALUE_CHANGED );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn int32_t LeddarCore::LdFloatProperty::PerformRawValue( size_t aIndex ) const
+///
+/// \brief  Gets the raw value (not scaled)
+///
+/// \exception  std::logic_error    Raised when a logic error condition occurs.
+///
+/// \param  aIndex  Index of the value to get.
+///
+/// \returns    An int32_t.
+///
+/// \author David Lévy
+/// \date   February 2021
+////////////////////////////////////////////////////////////////////////////////////////////////////
+int32_t LeddarCore::LdFloatProperty::PerformRawValue( size_t aIndex ) const
+{
+    switch( PerformStride() )
+    {
+    case sizeof( int8_t ):
+        return reinterpret_cast<const int8_t *>( CStorage() )[aIndex];
+        break;
+    case sizeof( int16_t ):
+        return reinterpret_cast<const int16_t *>( CStorage() )[aIndex];
+        break;
+    case sizeof( int32_t ):
+        return reinterpret_cast<const int32_t *>( CStorage() )[aIndex];
+        break;
+    default:
+        throw std::logic_error( "Raw value only valid with size 1, 2 or 4" );
+    }
 }

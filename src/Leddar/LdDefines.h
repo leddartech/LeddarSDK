@@ -38,9 +38,10 @@ namespace LeddarDefines
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     enum eResetOptions
     {
-        RO_NO_OPTION,
-        RO_MAIN,        ///< Reset the sensor to the standard firmware
-        RO_FACTORY      ///< Reset the sensor to the backup factory firmware
+        RO_NO_OPTION = 0,
+        RO_MAIN      = 1 << 1, ///< Reset the sensor to the standard firmware
+        RO_FACTORY   = 1 << 2, ///< Reset the sensor to the backup factory firmware
+        RO_SAFEMODE  = 1 << 3  ///< Reset safe mode state
     };
 
     struct sLicense

@@ -71,7 +71,6 @@ static PyObject *EnableDebugTrace( PyObject *self, PyObject *args )
 PyObject *GetDeviceTypeDict( PyObject *self, PyObject *args )
 {
     PyObject *lDeviceType = PyDict_New();
-
     if( !lDeviceType )
         return nullptr;
 
@@ -93,7 +92,6 @@ PyObject *GetDeviceTypeDict( PyObject *self, PyObject *args )
 PyObject *GetPropertyIdDict( PyObject *self, PyObject *args )
 {
     PyObject *lPropertyId = PyDict_New();
-
     if( !lPropertyId )
         return nullptr;
 
@@ -178,11 +176,21 @@ PyObject *GetPropertyIdDict( PyObject *self, PyObject *args )
     return lPropertyId;
 }
 
+PyObject *GetProtocolTypeDict( PyObject *self, PyObject *args )
+{
+    PyObject *lCom = PyDict_New();
+
+    //Comm
+    PyDict_SetItemString( lCom, "LT_COMM_PROTOCOL_INVALID", PyLong_FromLong( LtComLeddarTechPublic::LT_COMM_PROTOCOL_INVALID ) );
+    PyDict_SetItemString( lCom, "LT_COMM_PROTOCOL_TCP", PyLong_FromLong( LtComLeddarTechPublic::LT_COMM_PROTOCOL_TCP ) );
+    PyDict_SetItemString( lCom, "LT_COMM_PROTOCOL_UDP", PyLong_FromLong( LtComLeddarTechPublic::LT_COMM_PROTOCOL_UDP ) );
+
+    return lCom;
+}
 
 PyObject *GetMaskDict( PyObject *self, PyObject *args )
 {
     PyObject *lMask = PyDict_New();
-
     if( !lMask )
         return nullptr;
 
@@ -197,7 +205,6 @@ PyObject *GetMaskDict( PyObject *self, PyObject *args )
 PyObject *GetCalibTypeDict( PyObject *self, PyObject *args )
 {
     PyObject *lCalib = PyDict_New();
-
     if( !lCalib )
         return nullptr;
 
@@ -253,7 +260,6 @@ static PyObject *GetDevices( PyObject *self, PyObject *args )
             return nullptr;
 
         PyObject *lList = PyList_New( lConnectionsList.size() );
-
         if( !lList )
             return nullptr;
 
@@ -263,8 +269,9 @@ static PyObject *GetDevices( PyObject *self, PyObject *args )
             PyObject *lConnection = PyDict_New();
             std::string lName;
 
-            if( !lList ) {
-                Py_DECREF(lList);
+            if( !lConnection )
+            {
+                Py_DECREF( lList );
                 return nullptr;
             }
 
@@ -311,21 +318,6 @@ static PyObject *GetDevices( PyObject *self, PyObject *args )
 
 }
 
-int to_positive( int i, int n )
-{
-    if( i >= n || i < -n )
-        throw std::runtime_error( "index out of bounds" );
-
-    if( i < 0 )
-    {
-        if( i < -n )
-            throw std::runtime_error( "index out of bounds" );
-
-        i = n + i;
-    }
-
-    return i;
-}
 
 //List all functions available to Python
 static PyMethodDef leddar_Methods[] =
@@ -381,7 +373,8 @@ PyMODINIT_FUNC initleddar( void )
     import_array();
 
     PyTypeObject *deviceType = InitDeviceType();
-    if( !deviceType ) {
+    if( !deviceType )
+    {
         Py_DECREF( lModule );
         return RETURN_VALUE( nullptr );
     }

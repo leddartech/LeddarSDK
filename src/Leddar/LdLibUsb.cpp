@@ -354,6 +354,10 @@ LdLibUsb::VerifyError( int aCode )
     {
         throw LeddarException::LtTimeoutException( std::string( "LibUsb error: " ) + libusb_error_name( aCode ) + "(" + LeddarUtils::LtStringUtils::IntToString( aCode ) + ")" );
     }
+    else if( aCode == LIBUSB_ERROR_IO)
+    {
+        throw LeddarException::LtComException( std::string( "LibUsb connection error: " ) + libusb_error_name( aCode ) + "(" + LeddarUtils::LtStringUtils::IntToString( aCode ) + ")", aCode, true );
+    }
     else if( aCode < 0 )
     {
         throw LeddarException::LtComException( std::string( "LibUsb error: " ) + libusb_error_name( aCode ) + "(" + LeddarUtils::LtStringUtils::IntToString( aCode ) + ")", aCode );
@@ -383,22 +387,23 @@ LdLibUsb::Context( void )
     return mContext;
 }
 
-// *****************************************************************************
-// Function: LdLibUsb::Read
-//
-/// \brief   Read data
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn uint32_t LdLibUsb::Read( uint8_t aEndPoint, uint8_t *aData, uint32_t aSize )
 ///
-/// \param   aEndPoint Endpoint of the usb transfert
-/// \param   aData   Buffer to store device reading
-/// \param   aSize   Size of the buffer to read
+/// \brief  Reads
 ///
-/// \author  Patrick Boulay
+/// \exception  std::runtime_error  Raised when a runtime error condition occurs.
 ///
-/// \since   February 2017
-// *****************************************************************************
-
-void
-LdLibUsb::Read( uint8_t aEndPoint, uint8_t *aData, uint32_t aSize )
+/// \param          aEndPoint   Endpoint of the usb transfert
+/// \param [in,out] aData       Buffer to store device reading
+/// \param          aSize       Size of the buffer to read
+///
+/// \returns    Number of bytes read
+///
+/// \author Patrick Boulay
+/// \date   February 2017
+////////////////////////////////////////////////////////////////////////////////////////////////////
+uint32_t LdLibUsb::Read( uint8_t aEndPoint, uint8_t *aData, uint32_t aSize )
 {
     int lLen = 0;
     // Add the direction bit to the endpoint, bit 7: 0 = Write, 1 = Read
@@ -413,6 +418,7 @@ LdLibUsb::Read( uint8_t aEndPoint, uint8_t *aData, uint32_t aSize )
     {
         throw std::runtime_error( "Receive buffer is too small" );
     }
+    return lLen;
 }
 
 // *****************************************************************************

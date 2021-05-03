@@ -31,7 +31,7 @@ namespace LeddarRecord
 
     class LdRecordPlayer
     {
-    public:
+      public:
         explicit LdRecordPlayer( const std::string &aFile );
         virtual ~LdRecordPlayer();
 
@@ -39,27 +39,30 @@ namespace LeddarRecord
         void ReadPrevious();
         void MoveTo( uint32_t aFrame );
         uint32_t GetRecordSize() const;
+        uint32_t GetCurrentPosition() const;
 
         LeddarConnection::LdResultEchoes *GetResultEchoes( void ) { return mEchoes; }
         LeddarConnection::LdResultStates *GetResultStates( void ) { return mStates; }
         LeddarCore::LdPropertiesContainer *GetProperties( void ) { return mProperties; }
-        LeddarDevice::LdSensor *GetSensor( void ) {return mSensor;}
+        LeddarDevice::LdSensor *GetSensor( void ) { return mSensor; }
+        uint32_t GetRecordTimeStamp() const;
 
-    protected:
+      protected:
         LdRecordPlayer();
+        void Init();
         static LdRecordReader *FileToReader( const std::string &aFile );
 
-        LeddarDevice::LdSensor *mSensor; //The reader owns it
-        LdRecordReader         *mReader;
+        LeddarDevice::LdSensor *mSensor; // The reader owns it
+        LdRecordReader *mReader;
 
         LeddarConnection::LdResultEchoes *mEchoes;
         LeddarConnection::LdResultStates *mStates;
 
         LeddarCore::LdPropertiesContainer *mProperties;
 
-    private:
-        //disable copy constructor and equal operator
-        explicit LdRecordPlayer( const LdRecordPlayer & );
-        LdRecordPlayer &operator=( const LdRecordPlayer & );
+      private:
+        // disable copy constructor and equal operator
+        explicit LdRecordPlayer( const LdRecordPlayer & ) = delete;
+        LdRecordPlayer &operator=( const LdRecordPlayer & ) = delete;
     };
-}
+} // namespace LeddarRecord

@@ -103,8 +103,9 @@ private:
             lLastTimeStamp = lResultStates->GetTimestamp();
         }
         else if( aSender == mEchoes ) {
-            mEchoes->Lock( LeddarConnection::B_GET );
-            std::cout << "Channel\tDistance\tAmplitude - Count = " << mEchoes->GetEchoCount() << " @ " << mEchoes->GetTimestamp() << std::endl;
+            // cppcheck-suppress unreadVariable
+            auto lLock = mEchoes->GetUniqueLock( LeddarConnection::B_GET );
+            std::cout << "Channel\tDistance\tAmplitude\tX\t\tY\t\tZ\t#Echoes: " << mEchoes->GetEchoCount() << " @ " << mEchoes->GetTimestamp() << std::endl;
             std::vector<LeddarConnection::LdEcho> &lEchoes = *( mEchoes->GetEchoes() );
 
             uint32_t lIncrement = 1;
@@ -115,18 +116,21 @@ private:
             else if( mEchoes->GetEchoCount() > 100 )
                 lIncrement = 100;
 
-            for( uint32_t i = 0; i < mEchoes->GetEchoCount(); i = i + lIncrement ) {
+            for( uint32_t i = 0; i < mEchoes->GetEchoCount(); i = i + lIncrement )
+            {
                 std::cout << lEchoes[i].mChannelIndex;
-                std::cout << "\t" << std::setprecision( 3 ) << ( ( float )lEchoes[i].mDistance / ( float )mDistanceScale );
-                std::cout << "\t\t" << std::setprecision( 3 ) << ( ( float )lEchoes[i].mAmplitude / ( float )mAmplitudeScale );
+                std::cout << "\t" << std::setprecision( 2 ) << ( (float)lEchoes[i].mDistance / (float)mDistanceScale );
+                std::cout << "\t\t" << std::setprecision( 2 ) << ( (float)lEchoes[i].mAmplitude / (float)mAmplitudeScale );
+                // Reading and displaying the X, Y, Z coordinates
+                std::cout << "\t\t" << std::setprecision( 2 ) << (float)lEchoes[i].mX;
+                std::cout << "\t\t" << std::setprecision( 2 ) << (float)lEchoes[i].mY;
+                std::cout << "\t\t" << std::setprecision( 2 ) << (float)lEchoes[i].mZ;
 
                 if( lEchoes[i].mTimestamp != 0 )
                     std::cout << "\t@" << lEchoes[i].mTimestamp << std::endl;
 
                 std::cout << std::endl;
             }
-
-            mEchoes->UnLock( LeddarConnection::B_GET );
         }
     }
 };
@@ -256,25 +260,27 @@ void displayEchoes( const std::string &aSensorName, LeddarDevice::LdSensor *aSen
         LeddarConnection::LdResultEchoes *lResultEchoes = aSensor->GetResultEchoes();
         uint32_t lDistanceScale = lResultEchoes->GetDistanceScale();
         uint32_t lAmplitudeScale = lResultEchoes->GetAmplitudeScale();
-        lResultEchoes->Lock( LeddarConnection::B_GET );
+        // cppcheck-suppress unreadVariable
+        auto lLock = lResultEchoes->GetUniqueLock( LeddarConnection::B_GET );
 
         std::cout << aSensorName << std::endl;
-        std::cout << "Channel\tDistance\tAmplitude" << std::endl;
+        std::cout << "Channel\tDistance\tAmplitude\tX\t\tY\t\tZ\t#Echoes: " << lResultEchoes->GetEchoCount() << " @ " << lResultEchoes->GetTimestamp() << std::endl;
         std::vector<LeddarConnection::LdEcho> &lEchoes = *( lResultEchoes->GetEchoes() );
 
         for( uint32_t i = 0; i < lResultEchoes->GetEchoCount(); ++i )
         {
             std::cout << lEchoes[i].mChannelIndex;
-            std::cout << "\t" << std::setprecision( 3 ) << ( ( float )lEchoes[i].mDistance / ( float )lDistanceScale );
-            std::cout << "\t\t" << std::setprecision( 3 ) << ( ( float )lEchoes[i].mAmplitude / ( float )lAmplitudeScale );
-
+            std::cout << "\t" << std::setprecision( 4 ) << ( ( float )lEchoes[i].mDistance / ( float )lDistanceScale );
+            std::cout << "\t\t" << std::setprecision( 4 ) << ( ( float )lEchoes[i].mAmplitude / ( float )lAmplitudeScale );
+            // Reading and displaying the X, Y, Z coordinates
+            std::cout << "\t\t" << std::setprecision( 2 ) << (float)lEchoes[i].mX;
+            std::cout << "\t\t" << std::setprecision( 2 ) << (float)lEchoes[i].mY;
+            std::cout << "\t\t" << std::setprecision( 2 ) << (float)lEchoes[i].mZ;
             if( lEchoes[i].mTimestamp != 0 )
                 std::cout << "\t@" << lEchoes[i].mTimestamp << std::endl;
 
             std::cout << std::endl;
         }
-
-        lResultEchoes->UnLock( LeddarConnection::B_GET );
     }
 
 }
@@ -391,7 +397,7 @@ void connectedMenu( LeddarDevice::LdSensor *aSensor, LeddarDevice::LdSensor *aSe
 {
     try
     {
-        std::string lValidKey = "12345D";
+        std::string lValidKey = "123456D";
 
         char lPressedKey = 0;
         LeddarRecord::LdRecorder *lRecorder = nullptr;
@@ -405,6 +411,7 @@ void connectedMenu( LeddarDevice::LdSensor *aSensor, LeddarDevice::LdSensor *aSe
             std::cout << "3 - Read Configuration" << std::endl;
             std::cout << "4 - Change Configuration" << std::endl;
             std::cout << "5 - Start / Stop recording" << std::endl;
+            std::cout << "6 - Update firmware" << std::endl;
 
             std::cout << std::endl << "D - Disconnect" << std::endl << std::endl;
             std::cout << std::endl << "Select: ";
@@ -535,6 +542,30 @@ void connectedMenu( LeddarDevice::LdSensor *aSensor, LeddarDevice::LdSensor *aSe
                     lRecorder = new LeddarRecord::LdLjrRecorder( aSensor );
                     lRecorder->StartRecording();
                     std::cout << "Starting recorder." << std::endl;
+                }
+            }
+            else if( 6 == lChoice )
+            {
+                std::string lFilename;
+                std::cout << "Filename: ";
+                std::cin.ignore();
+                std::getline( std::cin, lFilename );
+
+                if( lFilename.at( 0 ) == '"' && lFilename.at( lFilename.size() - 1 ) == '"' )
+                {
+                    lFilename.erase( 0, 1 );
+                    lFilename.erase( lFilename.size() - 1, 1 );
+                }
+
+                try
+                {
+                    std::cout << "Updating firmware...";
+                    aSensor->UpdateFirmware( lFilename, nullptr, nullptr );
+                    std::cout << "completed!" << std::endl;
+                }
+                catch( std::exception &e )
+                {
+                    std::cout << std::endl << "Error: " << e.what() << std::endl;
                 }
             }
 

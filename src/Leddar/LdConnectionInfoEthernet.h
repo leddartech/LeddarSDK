@@ -24,7 +24,7 @@ namespace LeddarConnection
 {
     class LdConnectionInfoEthernet : public LdConnectionInfo
     {
-    public:
+      public:
         enum eProtocolType
         {
             PT_TCP,
@@ -40,7 +40,8 @@ namespace LeddarConnection
         };
 
         ////////////////////////////////////////////////////////////////////////////////////////////////////
-        /// \fn LeddarConnection::LdConnectionInfoEthernet::LdConnectionInfoEthernet( const std::string &aIP, const uint32_t aPort, const std::string &aDescription, const eConnectionType aType,
+        /// \fn LeddarConnection::LdConnectionInfoEthernet::LdConnectionInfoEthernet( const std::string &aIP, const uint32_t aPort, const std::string &aDescription, const
+        /// eConnectionType aType,
         ///     const eProtocolType aProtocolType = PT_TCP, eStatus aStatus = S_UNDEF, uint32_t aTimeout = 1000, const std::string &aDisplayName = "" )
         ///
         /// \brief  Constructor
@@ -57,41 +58,44 @@ namespace LeddarConnection
         /// \author David Levy
         /// \date   November 2018
         ////////////////////////////////////////////////////////////////////////////////////////////////////
-        LdConnectionInfoEthernet( const std::string &aIP, const uint32_t aPort, const std::string &aDescription, const eConnectionType aType, const eProtocolType aProtocolType = PT_TCP,
-                                  eStatus aStatus = S_UNDEF, uint32_t aTimeout = 1000, const std::string &aDisplayName = "" ) :
-            LdConnectionInfo( aType, aDisplayName ),
-            mIP( aIP ),
-            mPort( aPort ),
-            mDescription( aDescription ),
-            mTimeout( aTimeout ),
-            mUsed( aStatus ),
-            mProtocolType( aProtocolType ),
-            mDeviceType( 0 ) 
-            {
-                SetAddress(aIP);
-            }
+        LdConnectionInfoEthernet( const std::string &aIP, const uint32_t aPort, const std::string &aDescription, const eConnectionType aType,
+                                  const eProtocolType aProtocolType = PT_TCP, eStatus aStatus = S_UNDEF, uint32_t aTimeout = 1000, const std::string &aDisplayName = "" )
+            : LdConnectionInfo( aType, aDisplayName )
+            , mIP( aIP )
+            , mPort( aPort )
+            , mDescription( aDescription )
+            , mTimeout( aTimeout )
+            , mUsed( aStatus )
+            , mProtocolType( aProtocolType )
+            , mDeviceType( 0 )
+        {
+            SetAddress( aIP );
+        }
 
         ~LdConnectionInfoEthernet() {}
 
-        std::string     GetIP( void ) const { return mIP; }
-        uint32_t        GetPort( void ) const { return mPort;}
-        std::string     GetDescription( void ) const { return mDescription; }
-        uint32_t        GetTimeout( void ) const { return mTimeout; }
-        void            SetTimeout( uint32_t aTimeout ) { mTimeout = aTimeout; } //To be used before connect
-        eStatus         GetUsed( void ) const { return mUsed; }
-        eProtocolType   GetProtocoleType( void ) const { return mProtocolType; }
-        uint32_t        GetDeviceType( void ) const { return mDeviceType; }
-        void            SetDeviceType( uint32_t aDeviceType ) { mDeviceType = aDeviceType; }
+        std::string GetIP( void ) const { return mIP; }
+        std::string GetMulticastIPGroup( void ) const { return mMulticastIPGroup; }
+        uint32_t GetPort( void ) const { return mPort; }
+        std::string GetDescription( void ) const { return mDescription; }
+        uint32_t GetTimeout( void ) const { return mTimeout; }
+        void SetTimeout( uint32_t aTimeout ) { mTimeout = aTimeout; } // To be used before connect
+        eStatus GetUsed( void ) const { return mUsed; }
+        eProtocolType GetProtocoleType( void ) const { return mProtocolType; }
+        uint32_t GetDeviceType( void ) const { return mDeviceType; }
+        void SetDeviceType( uint32_t aDeviceType ) { mDeviceType = aDeviceType; }
+        void SetMulticastIPGroup( const std::string &aMulticastIPGroup ) { mMulticastIPGroup = aMulticastIPGroup; }
 
-    protected:
-        std::string     mIP;
-        uint32_t        mPort;
-        std::string     mDescription;
-        uint32_t        mTimeout;
-        eStatus         mUsed;
-        eProtocolType   mProtocolType;
-        uint32_t        mDeviceType;
+      protected:
+        std::string mIP;
+        std::string mMulticastIPGroup;
+        uint32_t mPort;
+        std::string mDescription;
+        uint32_t mTimeout;
+        eStatus mUsed;
+        eProtocolType mProtocolType;
+        uint32_t mDeviceType;
     };
-}
+} // namespace LeddarConnection
 
 #endif

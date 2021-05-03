@@ -6,13 +6,12 @@
 
 #include "LdLjrRecordReader.h"
 
-#include "LtStringUtils.h"
 #include "LdLjrDefines.h"
 #include "LdPropertyIds.h"
+#include "LtStringUtils.h"
 
 #include "LdDeviceFactory.h"
 #include "LdSensorM16.h"
-
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push
@@ -39,11 +38,11 @@
 /// \author David Levy
 /// \date   October 2018
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-LeddarRecord::LdLjrRecordReader::LdLjrRecordReader( const std::string &aFile ) : LdRecordReader(),
-    mFile(),
-    mCurrentLine( 0 )
+LeddarRecord::LdLjrRecordReader::LdLjrRecordReader( const std::string &aFile )
+    : LdRecordReader()
+    , mFile()
 {
-    mFile.open( aFile.c_str(), std::ios_base::in ); //c_str() for c++98
+    mFile.open( aFile, std::ios_base::in );
 
     if( !mFile.is_open() )
     {
@@ -88,6 +87,54 @@ LeddarRecord::LdLjrRecordReader::~LdLjrRecordReader()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn uint32_t LeddarRecord::LdLjrRecordReader::DeviceTypeFromProperties( const std::string &aFile )
+///
+/// \brief  Read the properties and get the device type
+///
+/// \param  aFile   The recording.
+///
+/// \returns    The device type.
+///
+/// \author David Lévy
+/// \date   March 2021
+////////////////////////////////////////////////////////////////////////////////////////////////////
+uint32_t LeddarRecord::LdLjrRecordReader::DeviceTypeFromHeader( const std::string &aFile )
+{
+    std::ifstream lFile;
+    lFile.open( aFile, std::ios_base::in );
+
+    if( !lFile.is_open() )
+    {
+        throw std::logic_error( "Could not open file - Error code: " + LeddarUtils::LtStringUtils::IntToString( errno ) );
+    }
+
+    std::string lLine;
+
+    if( !std::getline( lFile, lLine ) )
+        throw std::runtime_error( "Cannot read first line of the file" );
+
+    rapidjson::Document lDOM;
+    lDOM.Parse( lLine.c_str() );
+
+    if( lDOM.HasParseError() )
+    {
+        throw std::runtime_error( "Error parsing header" + std::string( rapidjson::GetParseError_En( lDOM.GetParseError() ) ) );
+    }
+
+    if( !lDOM.HasMember( "header" ) )
+    {
+        throw std::runtime_error( "First line of the file is not the header" );
+    }
+
+    if( lDOM["header"]["prot_version"].GetUint() != LeddarRecord::LJR_PROT_VERSION )
+    {
+        throw std::runtime_error( "Invalid ljr protocol version" );
+    }
+
+    return lDOM["header"]["devicetype"].GetUint();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \fn void LeddarRecord::LdLjrRecordReader::ReadNext()
 ///
 /// \brief  Reads the next frame
@@ -108,10 +155,10 @@ void LeddarRecord::LdLjrRecordReader::ReadNext()
 
     ++mCurrentLine;
 
-    //Check first characters if its a frame or a property update
+    // Check first characters if its a frame or a property update
     if( lLine.compare( 2, 5, "frame" ) != 0 )
     {
-        ReadProperties( lLine );
+        ReadProperties( lLine, PC_Sensor );
         ReadNext();
         return;
     }
@@ -127,10 +174,7 @@ void LeddarRecord::LdLjrRecordReader::ReadNext()
 /// \author David Levy
 /// \date   October 2018
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void LeddarRecord::LdLjrRecordReader::ReadPrevious()
-{
-    MoveTo( mCurrentLine - 1 - LJR_HEADER_LINES );
-}
+void LeddarRecord::LdLjrRecordReader::ReadPrevious() { MoveTo( mCurrentLine - 1 - LJR_HEADER_LINES ); }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \fn void LeddarRecord::LdLjrRecordReader::MoveTo( uint32_t aFrame )
@@ -151,7 +195,7 @@ void LeddarRecord::LdLjrRecordReader::MoveTo( uint32_t aFrame )
         throw std::out_of_range( "Requested frame larger than record size" );
     }
 
-    //Not the fastest way, but the easiest to do.
+    // Not the fastest way, but the easiest to do.
     mFile.clear();
     mFile.seekg( 0, std::ifstream::beg );
     mCurrentLine = 0;
@@ -181,11 +225,24 @@ void LeddarRecord::LdLjrRecordReader::MoveTo( uint32_t aFrame )
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 LeddarDevice::LdSensor *LeddarRecord::LdLjrRecordReader::CreateSensor()
 {
-    //Create the sensor from the device type
+    // Create the sensor from the device type
     mSensor = LeddarDevice::LdDeviceFactory::CreateSensorForRecording( GetDeviceType(), GetCommProtocol() );
     InitProperties();
+    ReadNext();
     return mSensor;
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn uint32_t LeddarRecord::LdLjrRecordReader::GetCurrentPosition() const
+///
+/// \brief  Gets current frame
+///
+/// \returns    The current frame.
+///
+/// \author David Lévy
+/// \date   November 2020
+////////////////////////////////////////////////////////////////////////////////////////////////////
+uint32_t LeddarRecord::LdLjrRecordReader::GetCurrentPosition() const { return mCurrentLine - LJR_HEADER_LINES; }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \fn void LeddarRecord::LdLjrRecordReader::InitProperties()
@@ -202,24 +259,24 @@ void LeddarRecord::LdLjrRecordReader::InitProperties()
 {
     std::string lLine;
     ++mCurrentLine;
-    std::getline( mFile, lLine ); //Line2
+    std::getline( mFile, lLine ); // Line2
 
-    ReadProperties( lLine ); //Read all properties
-    mSensor->UpdateConstants(); //Update the scale
-    ReadProperties( lLine ); //Re-read the properties so they have the correct values with the scale
+    ReadProperties( lLine, PC_Sensor ); // Read all properties
+    mSensor->UpdateConstants();         // Update the scale
+    ReadProperties( lLine, PC_Sensor ); // Re-read the properties so they have the correct values with the scale
 
-    //Init states/echoes/traces buffers
+    // Init states/echoes/traces buffers
     uint16_t lVSegments = 1, lHSegments = 1;
     uint16_t lRefSeg = 0;
 
     if( mSensor->GetProperties()->FindProperty( LeddarCore::LdPropertyIds::ID_VSEGMENT ) &&
-            mSensor->GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_VSEGMENT )->Count() > 0 )
+        mSensor->GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_VSEGMENT )->Count() > 0 )
     {
         lVSegments = mSensor->GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_VSEGMENT )->ValueT<uint16_t>();
     }
 
     if( mSensor->GetProperties()->FindProperty( LeddarCore::LdPropertyIds::ID_RSEGMENT ) != nullptr &&
-            mSensor->GetProperties()->FindProperty( LeddarCore::LdPropertyIds::ID_RSEGMENT )->Count() > 0 )
+        mSensor->GetProperties()->FindProperty( LeddarCore::LdPropertyIds::ID_RSEGMENT )->Count() > 0 )
     {
         lRefSeg = mSensor->GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_RSEGMENT )->ValueT<uint16_t>();
     }
@@ -229,7 +286,7 @@ void LeddarRecord::LdLjrRecordReader::InitProperties()
         lHSegments = mSensor->GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_HSEGMENT )->ValueT<uint16_t>();
     }
 
-    uint32_t lTotalSegments = lVSegments * lHSegments + lRefSeg;
+    uint32_t lTotalSegments  = lVSegments * lHSegments + lRefSeg;
     uint32_t lMaxTotalEchoes = 0;
 
     if( mSensor->GetProperties()->FindProperty( LeddarCore::LdPropertyIds::ID_MAX_ECHOES_PER_CHANNEL ) )
@@ -255,18 +312,18 @@ void LeddarRecord::LdLjrRecordReader::InitProperties()
     uint32_t lCpuLoadScale = 0, lTemperatureScale = 0;
 
     if( mSensor->GetProperties()->FindProperty( LeddarCore::LdPropertyIds::ID_CPU_LOAD_SCALE ) &&
-            mSensor->GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_CPU_LOAD_SCALE )->Count() > 0 )
+        mSensor->GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_CPU_LOAD_SCALE )->Count() > 0 )
     {
         lCpuLoadScale = mSensor->GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_CPU_LOAD_SCALE )->ValueT<uint32_t>();
     }
 
     if( mSensor->GetProperties()->FindProperty( LeddarCore::LdPropertyIds::ID_TEMPERATURE_SCALE ) &&
-            mSensor->GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_TEMPERATURE_SCALE )->Count() > 0 )
+        mSensor->GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_TEMPERATURE_SCALE )->Count() > 0 )
     {
         lTemperatureScale = mSensor->GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_TEMPERATURE_SCALE )->ValueT<uint32_t>();
     }
 
-#if defined(BUILD_M16) && defined(BUILD_USB)
+#if defined( BUILD_M16 ) && defined( BUILD_USB )
     else if( dynamic_cast<LeddarDevice::LdSensorM16 *>( mSensor ) && mSensor->GetProperties()->FindProperty( LeddarCore::LdPropertyIds::ID_DISTANCE_SCALE ) )
     {
         lTemperatureScale = mSensor->GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_DISTANCE_SCALE )->ValueT<uint32_t>();
@@ -310,7 +367,7 @@ void LeddarRecord::LdLjrRecordReader::ReadHeader( const std::string &aLine )
 
     SetDeviceType( lDOM["header"]["devicetype"].GetUint() );
     SetCommProtocol( static_cast<LeddarDevice::LdSensor::eProtocol>( lDOM["header"]["protocol"].GetUint() ) );
-    lDOM["header"]["timestamp"].GetUint();   //EPOCH timestamp, not used yet
+    SetRecordTimestamp( lDOM["header"]["timestamp"].GetUint64() );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -326,7 +383,7 @@ void LeddarRecord::LdLjrRecordReader::ReadHeader( const std::string &aLine )
 /// \author David Levy
 /// \date   October 2018
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void LeddarRecord::LdLjrRecordReader::ReadProperties( const std::string &aLine, bool aFromStates )
+void LeddarRecord::LdLjrRecordReader::ReadProperties( const std::string &aLine, ePropContainer aContainer )
 {
     rapidjson::Document lDOM;
     lDOM.Parse( aLine.c_str() );
@@ -336,38 +393,55 @@ void LeddarRecord::LdLjrRecordReader::ReadProperties( const std::string &aLine, 
         throw std::runtime_error( "Error parsing properties" + std::string( rapidjson::GetParseError_En( lDOM.GetParseError() ) ) );
     }
 
-    LeddarCore::LdPropertiesContainer *lProperties = nullptr;
+    LeddarCore::LdPropertiesContainer *lProperties                                    = nullptr;
+    const rapidjson::GenericArray<false, rapidjson::Value::ValueType> *lPropArrayInit = nullptr;
 
-    if( aFromStates )
+    if( aContainer == PC_States )
     {
         if( !lDOM["frame"].HasMember( "states" ) || !lDOM["frame"]["states"].IsArray() )
         {
             throw std::runtime_error( "Could not read states properties." );
         }
 
-        lProperties = mSensor->GetResultStates()->GetProperties();
+        lProperties    = mSensor->GetResultStates()->GetProperties();
+        lPropArrayInit = new const rapidjson::GenericArray<false, rapidjson::Value::ValueType>( lDOM["frame"]["states"].GetArray() );
     }
-    else
+    else if( aContainer == PC_Echoes )
+    {
+        if( !lDOM["frame"].HasMember( "echoes_prop" ) || !lDOM["frame"]["echoes_prop"].IsArray() )
+        {
+            throw std::runtime_error( "Could not read echoes properties." );
+        }
+
+        ReadEchoProperties( aLine );
+        return;
+    }
+    else if( aContainer == PC_Sensor )
     {
         if( !lDOM.HasMember( "prop" ) || !lDOM["prop"].IsArray() )
         {
             throw std::runtime_error( "Record line is not a properties line." );
         }
 
-        lProperties = mSensor->GetProperties();
+        lProperties    = mSensor->GetProperties();
+        lPropArrayInit = new const rapidjson::GenericArray<false, rapidjson::Value::ValueType>( lDOM["prop"].GetArray() );
+    }
+    else
+    {
+        throw std::invalid_argument( "Invalid property container" );
     }
 
-    const rapidjson::GenericArray<false, rapidjson::Value::ValueType> lPropArray = aFromStates ? lDOM["frame"]["states"].GetArray() : lDOM["prop"].GetArray();
+    const rapidjson::GenericArray<false, rapidjson::Value::ValueType> &lPropArray = *lPropArrayInit;
 
     for( unsigned i = 0; i < lPropArray.Size(); ++i )
     {
         if( !lPropArray[i].HasMember( "id" ) || !lPropArray[i].HasMember( "val" ) )
             continue;
 
-        LeddarCore::LdProperty *lProp = lProperties->GetProperty( lPropArray[i]["id"].GetUint() );
-
-        switch( lProp->GetType() )
+        if( auto *lProp = lProperties->FindProperty( lPropArray[i]["id"].GetUint() ) )
         {
+            switch( lProp->GetType() )
+            {
             case LeddarCore::LdProperty::TYPE_BITFIELD:
                 if( lPropArray[i]["val"].IsArray() )
                 {
@@ -408,11 +482,14 @@ void LeddarRecord::LdLjrRecordReader::ReadProperties( const std::string &aLine, 
 
             case LeddarCore::LdProperty::TYPE_ENUM:
             {
-                rapidjson::GenericObject<false, rapidjson::Value::ValueType> lEnumValues = lPropArray[i]["enum"].GetObject();
-
-                for( rapidjson::Value::ConstMemberIterator itr = lEnumValues.MemberBegin(); itr != lEnumValues.MemberEnd(); ++itr )
+                if( lPropArray[i].HasMember( "enum" ) ) // Should be here only on the full properties line, not when a value is updated
                 {
-                    dynamic_cast<LeddarCore::LdEnumProperty *>( lProp )->AddEnumPair( itr->value.GetUint64(), itr->name.GetString() );
+                    rapidjson::GenericObject<false, rapidjson::Value::ValueType> lEnumValues = lPropArray[i]["enum"].GetObject();
+
+                    for( rapidjson::Value::ConstMemberIterator itr = lEnumValues.MemberBegin(); itr != lEnumValues.MemberEnd(); ++itr )
+                    {
+                        dynamic_cast<LeddarCore::LdEnumProperty *>( lProp )->AddEnumPair( itr->value.GetUint64(), itr->name.GetString() );
+                    }
                 }
 
                 if( lPropArray[i]["val"].IsArray() )
@@ -431,13 +508,13 @@ void LeddarRecord::LdLjrRecordReader::ReadProperties( const std::string &aLine, 
                 }
             }
 
-            lProp->SetClean();
-            break;
+                lProp->SetClean();
+                break;
 
             case LeddarCore::LdProperty::TYPE_FLOAT:
                 if( lPropArray[i].HasMember( "limits" ) )
                     dynamic_cast<LeddarCore::LdFloatProperty *>( lProp )->SetLimits( static_cast<float>( lPropArray[i]["limits"][0].GetDouble() ),
-                            static_cast<float>( lPropArray[i]["limits"][1].GetDouble() ) );
+                                                                                     static_cast<float>( lPropArray[i]["limits"][1].GetDouble() ) );
 
                 if( lPropArray[i]["val"].IsArray() )
                 {
@@ -465,7 +542,6 @@ void LeddarRecord::LdLjrRecordReader::ReadProperties( const std::string &aLine, 
                 {
                     throw std::logic_error( "Signed / unsigned property mismatch" );
                 }
-
 
                 if( lSigned )
                 {
@@ -556,8 +632,198 @@ void LeddarRecord::LdLjrRecordReader::ReadProperties( const std::string &aLine, 
 
             default:
                 throw std::logic_error( "Unsupported property type" );
+            }
         }
+    }
 
+    delete lPropArrayInit;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LeddarRecord::LdLjrRecordReader::ReadEchoProperties( const std::string &aLine )
+///
+/// \brief  Reads echo properties
+///
+/// \param  aLine   The line.
+///
+/// \author David Lévy
+/// \date   March 2021
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void LeddarRecord::LdLjrRecordReader::ReadEchoProperties( const std::string &aLine )
+{
+    rapidjson::Document lDOM;
+    lDOM.Parse( aLine.c_str() );
+
+    if( lDOM.HasParseError() )
+    {
+        throw std::runtime_error( "Error parsing properties" + std::string( rapidjson::GetParseError_En( lDOM.GetParseError() ) ) );
+    }
+
+    auto lPropArray     = lDOM["frame"]["echoes_prop"].GetArray();
+    auto *lResultEchoes = mSensor->GetResultEchoes();
+
+    for( unsigned i = 0; i < lPropArray.Size(); ++i )
+    {
+        if( !lPropArray[i].HasMember( "id" ) || !lPropArray[i].HasMember( "val" ) )
+            continue;
+
+        if( auto *lProp = lResultEchoes->GetProperties()->FindProperty( lPropArray[i]["id"].GetUint() ) )
+        {
+            switch( lProp->GetType() )
+            {
+            case LeddarCore::LdProperty::TYPE_BITFIELD:
+                if( lPropArray[i]["val"].IsArray() )
+                {
+                    lResultEchoes->SetPropertyCount( lProp->GetId(), lPropArray[i]["val"].GetArray().Size() );
+                    for( unsigned j = 0; j < lPropArray[i]["val"].GetArray().Size(); ++j )
+                    {
+                        lResultEchoes->SetPropertyValue( lProp->GetId(), j, lPropArray[i]["val"].GetArray()[j].GetUint64() );
+                    }
+                }
+                else
+                {
+                    lResultEchoes->SetPropertyCount( lProp->GetId(), 1 );
+                    lResultEchoes->SetPropertyValue( lProp->GetId(), 0, lPropArray[i]["val"].GetUint64() );
+                }
+                break;
+
+            case LeddarCore::LdProperty::TYPE_ENUM:
+                if( lPropArray[i]["val"].IsArray() )
+                {
+                    lResultEchoes->SetPropertyCount( lProp->GetId(), lPropArray[i]["val"].GetArray().Size() );
+                    for( unsigned j = 0; j < lPropArray[i]["val"].GetArray().Size(); ++j )
+                    {
+                        lResultEchoes->SetPropertyValue( lProp->GetId(), j, lPropArray[i]["val"].GetArray()[j].GetUint64() );
+                    }
+                }
+                else
+                {
+                    lResultEchoes->SetPropertyCount( lProp->GetId(), 1 );
+                    lResultEchoes->SetPropertyValue( lProp->GetId(), 0, lPropArray[i]["val"].GetUint64() );
+                }
+                break;
+
+            case LeddarCore::LdProperty::TYPE_BOOL:
+                if( lPropArray[i]["val"].IsArray() )
+                {
+                    lResultEchoes->SetPropertyCount( lProp->GetId(), lPropArray[i]["val"].GetArray().Size() );
+
+                    for( unsigned j = 0; j < lPropArray[i]["val"].GetArray().Size(); ++j )
+                    {
+                        lResultEchoes->SetPropertyValue( lProp->GetId(), j, lPropArray[i]["val"].GetArray()[j].GetBool() );
+                    }
+                }
+                else
+                {
+                    lResultEchoes->SetPropertyCount( lProp->GetId(), 1 );
+                    lResultEchoes->SetPropertyValue( lProp->GetId(), 0, lPropArray[i]["val"].GetBool() );
+                }
+                break;
+
+            case LeddarCore::LdProperty::TYPE_FLOAT:
+                if( lPropArray[i]["val"].IsArray() )
+                {
+                    lResultEchoes->SetPropertyCount( lProp->GetId(), lPropArray[i]["val"].GetArray().Size() );
+
+                    for( unsigned j = 0; j < lPropArray[i]["val"].GetArray().Size(); ++j )
+                    {
+                        lResultEchoes->SetPropertyValue( lProp->GetId(), j, lPropArray[i]["val"].GetArray()[j].GetFloat() );
+                    }
+                }
+                else
+                {
+                    lResultEchoes->SetPropertyCount( lProp->GetId(), 1 );
+                    lResultEchoes->SetPropertyValue( lProp->GetId(), 0, lPropArray[i]["val"].GetFloat() );
+                }
+
+                break;
+
+            case LeddarCore::LdProperty::TYPE_INTEGER:
+            {
+                bool lSigned = lProp->Signed();
+
+                if( lPropArray[i].HasMember( "signed" ) && lSigned != lPropArray[i]["signed"].GetBool() )
+                {
+                    throw std::logic_error( "Signed / unsigned property mismatch" );
+                }
+
+                if( lSigned )
+                {
+                    if( lPropArray[i]["val"].IsArray() )
+                    {
+                        lResultEchoes->SetPropertyCount( lProp->GetId(), lPropArray[i]["val"].GetArray().Size() );
+
+                        for( unsigned j = 0; j < lPropArray[i]["val"].GetArray().Size(); ++j )
+                        {
+                            lResultEchoes->SetPropertyValue( lProp->GetId(), j, lPropArray[i]["val"].GetArray()[j].GetInt64() );
+                        }
+                    }
+                    else
+                    {
+                        lResultEchoes->SetPropertyCount( lProp->GetId(), 1 );
+                        lResultEchoes->SetPropertyValue( lProp->GetId(), 0, lPropArray[i]["val"].GetInt64() );
+                    }
+                }
+                else
+                {
+                    if( lPropArray[i]["val"].IsArray() )
+                    {
+                        lResultEchoes->SetPropertyCount( lProp->GetId(), lPropArray[i]["val"].GetArray().Size() );
+
+                        for( unsigned j = 0; j < lPropArray[i]["val"].GetArray().Size(); ++j )
+                        {
+                            lResultEchoes->SetPropertyValue( lProp->GetId(), j, lPropArray[i]["val"].GetArray()[j].GetUint64() );
+                        }
+                    }
+                    else
+                    {
+                        lResultEchoes->SetPropertyCount( lProp->GetId(), 1 );
+                        lResultEchoes->SetPropertyValue( lProp->GetId(), 0, lPropArray[i]["val"].GetUint64() );
+                    }
+                }
+            }
+            break;
+
+            case LeddarCore::LdProperty::TYPE_TEXT:
+                if( lPropArray[i]["val"].IsArray() )
+                {
+                    lResultEchoes->SetPropertyCount( lProp->GetId(), lPropArray[i]["val"].GetArray().Size() );
+
+                    for( unsigned j = 0; j < lPropArray[i]["val"].GetArray().Size(); ++j )
+                    {
+                        lResultEchoes->SetPropertyValue( lProp->GetId(), j, lPropArray[i]["val"].GetArray()[j].GetString() );
+                    }
+                }
+                else
+                {
+                    lResultEchoes->SetPropertyCount( lProp->GetId(), 1 );
+                    lResultEchoes->SetPropertyValue( lProp->GetId(), 0, lPropArray[i]["val"].GetString() );
+                }
+
+                break;
+
+            case LeddarCore::LdProperty::TYPE_BUFFER:
+                if( lPropArray[i]["val"].IsArray() )
+                {
+                    lResultEchoes->SetPropertyCount( lProp->GetId(), lPropArray[i]["val"].GetArray().Size() );
+
+                    for( unsigned j = 0; j < lPropArray[i]["val"].GetArray().Size(); ++j )
+                    {
+                        lResultEchoes->SetPropertyValue( lProp->GetId(), j, lPropArray[i]["val"].GetArray()[j].GetString() );
+                    }
+                }
+                else
+                {
+                    lResultEchoes->SetPropertyCount( lProp->GetId(), 1 );
+                    lResultEchoes->SetPropertyValue( lProp->GetId(), 0, lPropArray[i]["val"].GetString() );
+                }
+
+                break;
+
+            default:
+                throw std::logic_error( "Unsupported property type" );
+            }
+        }
     }
 }
 
@@ -576,6 +842,13 @@ void LeddarRecord::LdLjrRecordReader::ReadFrame( const std::string &aLine )
     rapidjson::Document lDOM;
     lDOM.Parse( aLine.c_str() );
 
+    uint32_t lTimestamp = 0;
+
+    if( lDOM.HasMember( "frame" ) && lDOM["frame"].HasMember( "ts" ) ) //For retro compatiblity - Field does not exist anymore
+    {
+        lTimestamp = lDOM["frame"]["ts"].GetUint();
+    }
+
     if( lDOM.HasParseError() )
     {
         throw std::runtime_error( "Error parsing frame" + std::string( rapidjson::GetParseError_En( lDOM.GetParseError() ) ) );
@@ -586,40 +859,51 @@ void LeddarRecord::LdLjrRecordReader::ReadFrame( const std::string &aLine )
         throw std::runtime_error( "Record line is not a frame." );
     }
 
-    uint32_t lTimestamp = lDOM["frame"]["ts"].GetUint();
-
     if( lDOM["frame"].HasMember( "states" ) )
     {
-        mSensor->GetResultStates()->SetTimestamp( lTimestamp );
-        ReadProperties( aLine, true );
+        if(lTimestamp != 0)
+            mSensor->GetResultStates()->SetTimestamp(lTimestamp);
+
+        ReadProperties( aLine, PC_States );
+    }
+
+    if( lDOM["frame"].HasMember( "echoes_prop" ) )
+    {
+        ReadProperties( aLine, PC_Echoes );
     }
 
     if( lDOM["frame"].HasMember( "echoes" ) )
     {
+        if(lTimestamp != 0)
+            mSensor->GetResultEchoes()->SetTimestamp(lTimestamp);
+
         rapidjson::GenericArray<false, rapidjson::Value::ValueType> lEchoesArray = lDOM["frame"]["echoes"].GetArray();
 
-        LeddarConnection::LdResultEchoes *lResultEchoes = mSensor->GetResultEchoes();
-        lResultEchoes->Lock( LeddarConnection::B_SET );
+        auto *lResultEchoes = mSensor->GetResultEchoes();
+        auto lLock          = lResultEchoes->GetUniqueLock( LeddarConnection::B_SET );
         lResultEchoes->SetEchoCount( lEchoesArray.Size() );
-        lResultEchoes->SetTimestamp( lTimestamp );
 
         std::vector<LeddarConnection::LdEcho> &lEchoes = *( lResultEchoes->GetEchoes( LeddarConnection::B_SET ) );
-        uint32_t lDistanceScale = lResultEchoes->GetDistanceScale();
-        uint32_t lAmplitudeScale = lResultEchoes->GetAmplitudeScale();
+        uint32_t lDistanceScale                        = lResultEchoes->GetDistanceScale();
+        uint32_t lAmplitudeScale                       = lResultEchoes->GetAmplitudeScale();
 
         for( unsigned i = 0; i < lEchoesArray.Size(); ++i )
         {
             LeddarConnection::LdEcho lEcho = {};
-            lEcho.mChannelIndex = lEchoesArray[i][0].GetUint();
-            lEcho.mDistance = static_cast<int32_t>( lEchoesArray[i][1].GetDouble() * lDistanceScale );
-            lEcho.mAmplitude = static_cast<uint32_t>( lEchoesArray[i][2].GetDouble() * lAmplitudeScale );
-            lEcho.mFlag = static_cast<uint16_t>( lEchoesArray[i][3].GetUint() );
-            lEchoes[i] = lEcho;
+            lEcho.mChannelIndex            = lEchoesArray[i][0].GetUint();
+            lEcho.mDistance                = static_cast<int32_t>( lEchoesArray[i][1].GetDouble() * lDistanceScale );
+            lEcho.mAmplitude               = static_cast<uint32_t>( lEchoesArray[i][2].GetDouble() * lAmplitudeScale );
+            lEcho.mFlag                    = static_cast<uint16_t>( lEchoesArray[i][3].GetUint() );
+            lEcho.mX                       = static_cast<float>( lEchoesArray[i][4].GetDouble() );
+            lEcho.mY                       = static_cast<float>( lEchoesArray[i][5].GetDouble() );
+            lEcho.mZ                       = static_cast<float>( lEchoesArray[i][6].GetDouble() );
+            lEcho.mTimestamp               = lEchoesArray[i][7].GetUint64();
+            lEchoes[i]                     = lEcho;
         }
 
+        lLock.unlock();
         mSensor->ComputeCartesianCoordinates();
-
-        lResultEchoes->UnLock( LeddarConnection::B_SET );
         lResultEchoes->Swap();
+        lResultEchoes->UpdateFinished();
     }
 }

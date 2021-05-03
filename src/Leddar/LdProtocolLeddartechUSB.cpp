@@ -96,9 +96,9 @@ void LdProtocolLeddartechUSB::Write( uint32_t aSize )
 /// \author David Levy
 /// \date   March 2017
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void LdProtocolLeddartechUSB::Read( uint32_t /*aSize*/ )
+uint32_t LdProtocolLeddartechUSB::Read( uint32_t /*aSize*/ )
 {
-    mInterfaceUSB->Read( mEndPoint, mTransferOutputBuffer, mTransferBufferSize );
+    return mInterfaceUSB->Read( mEndPoint, mTransferOutputBuffer, mTransferBufferSize );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

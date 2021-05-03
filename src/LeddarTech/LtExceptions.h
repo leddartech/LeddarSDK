@@ -70,8 +70,8 @@ namespace LeddarException
             mErrType( aErrType )
         {};
         explicit LtComException( std::exception aException, bool aDisconnect = false ) : LtException( aException ), mDisconnect( aDisconnect ), mErrType( 0 ) {};
-        bool GetDisconnect( void ) { return mDisconnect;  }
-        int GetErrType( void ) { return mErrType; }
+        bool GetDisconnect( void ) const { return mDisconnect;  }
+        int GetErrType( void ) const { return mErrType; }
     protected:
         bool mDisconnect;
         int mErrType;
@@ -80,35 +80,35 @@ namespace LeddarException
     class LtTimeoutException : public LtComException
     {
     public:
-        explicit LtTimeoutException( const std::string &aErrorMsg, bool aDisconnect = false ) : LtComException( aErrorMsg, aDisconnect ) {};
+        explicit LtTimeoutException( const std::string &aErrorMsg, bool aDisconnect = false ) : LtComException( aErrorMsg, ERROR_COM_UNKNOWN, aDisconnect ) {};
         explicit LtTimeoutException( std::exception aException, bool aDisconnect = false ) : LtComException( aException, aDisconnect ) {};
     };
 
     class LtConnectionFailed : public LtComException
     {
     public:
-        explicit LtConnectionFailed( const std::string &aErrorMsg, bool aDisconnect = false ) : LtComException( aErrorMsg, aDisconnect ) {};
+        explicit LtConnectionFailed( const std::string &aErrorMsg, bool aDisconnect = false ) : LtComException( aErrorMsg, ERROR_COM_UNKNOWN, aDisconnect ) {};
         explicit LtConnectionFailed( std::exception aException, bool aDisconnect = false ) : LtComException( aException, aDisconnect ) {};
     };
 
     class LtNotConnectedException : public LtComException
     {
     public:
-        explicit LtNotConnectedException( const std::string &aErrorMsg, bool aDisconnect = false ) : LtComException( aErrorMsg, aDisconnect ) {};
+        explicit LtNotConnectedException( const std::string &aErrorMsg, bool aDisconnect = false ) : LtComException( aErrorMsg, ERROR_COM_UNKNOWN, aDisconnect ) {};
         explicit LtNotConnectedException( std::exception aException, bool aDisconnect = false ) : LtComException( aException, aDisconnect ) {};
     };
 
     class LtConfigException : public LtComException
     {
     public:
-        explicit LtConfigException( const std::string &aErrorMsg, bool aDisconnect = false ) : LtComException( aErrorMsg, aDisconnect ) {};
+        explicit LtConfigException( const std::string &aErrorMsg, bool aDisconnect = false ) : LtComException( aErrorMsg, ERROR_COM_UNKNOWN, aDisconnect ) {};
         explicit LtConfigException( std::exception aException, bool aDisconnect = false ) : LtComException( aException, aDisconnect ) {};
     };
 
     class LtCrcException : public LtComException
     {
     public:
-        explicit LtCrcException( const std::string &aErrorMsg, bool aDisconnect = false ) : LtComException( aErrorMsg, aDisconnect ) {};
+        explicit LtCrcException( const std::string &aErrorMsg, bool aDisconnect = false ) : LtComException( aErrorMsg, ERROR_COM_UNKNOWN, aDisconnect ) {};
         explicit LtCrcException( std::exception aException, bool aDisconnect = false ) : LtComException( aException, aDisconnect ) {};
     };
 

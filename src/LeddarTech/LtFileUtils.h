@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include "LtIntelHex.h"
+
 #include <stdint.h>
 #include <vector>
 #include <string>
@@ -26,6 +28,9 @@ namespace LeddarUtils
     {
         std::vector<uint8_t> ReadFileToBuffer( const std::string &aFilename );
         std::string FileExtension( const std::string &aFilename );
+        
+        IntelHEX::IntelHexMem *LoadHex( const std::string &aFilename );
+        IntelHEX::IntelHexMem *LoadHexFromBuffer( const uint8_t *aBuffer, uint32_t aSize );
 
         ////////////////////////////////////////////////////////////////////////////////////////////////////
         /// \class  LtLtbReader.
@@ -44,13 +49,14 @@ namespace LeddarUtils
             uint16_t GetDeviceType() const { return mDeviceType; }
 
             // Access the Firmwares
-            const std::list< std::pair <uint32_t, std::vector<uint8_t> > > &GetFirmwares( void ) const { return mFirmwares; }
+            std::list< std::pair <uint32_t, std::vector<uint8_t> > > GetFirmwares( void ) const { return mFirmwares; }
 
             //Enum and struct used in ltb files
             enum eLTB
             {
                 LT_DOCUMENT_VERSION = 0x3,
                 LT_DOCUMENT_VERSION_SDK = 0x4,
+                LT_DOCUMENT_VERSION_SDK_POST_DOUBLE_BUFFER_REWORK = 0x5,
 
 
                 LTB_SIGNATURE = 0x43218765,

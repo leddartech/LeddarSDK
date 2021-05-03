@@ -24,12 +24,12 @@ namespace LeddarConnection
 {
     class LdConnectionInfoModbus : public LdConnectionInfo
     {
-    public:
+      public:
         enum eParity
         {
-            MB_PARITY_NONE,
-            MB_PARITY_EVEN,
-            MB_PARITY_ODD
+            MB_PARITY_NONE = 0,
+            MB_PARITY_EVEN = 1,
+            MB_PARITY_ODD  = 2
         };
 
         // *****************************************************************************
@@ -49,68 +49,45 @@ namespace LeddarConnection
         ///
         /// \since   July 2016
         // *****************************************************************************
-        LdConnectionInfoModbus( const std::string &aSerialPort, const std::string &aDescription, uint32_t aBaud, eParity aParity, uint8_t aDataBits, uint8_t aStopBits, uint8_t aModbusAddr ) :
-            LdConnectionInfo( CT_LIB_MODBUS, aSerialPort ),
-            mSerialPort( aSerialPort ),
-            mDescription( aDescription ),
-            mBaud( aBaud ),
-            mParity( aParity ),
-            mDataBits( aDataBits ),
-            mStopBits( aStopBits ),
-            mModbusAddr( aModbusAddr ) 
-            {
-                SetAddress(aSerialPort);
-            }
+        LdConnectionInfoModbus( const std::string &aSerialPort, const std::string &aDescription, uint32_t aBaud, eParity aParity, uint8_t aDataBits, uint8_t aStopBits,
+                                uint8_t aModbusAddr )
+            : LdConnectionInfo( CT_LIB_MODBUS, aSerialPort )
+            , mSerialPort( aSerialPort )
+            , mDescription( aDescription )
+            , mBaud( aBaud )
+            , mParity( aParity )
+            , mDataBits( aDataBits )
+            , mStopBits( aStopBits )
+            , mModbusAddr( aModbusAddr )
+        {
+            SetAddress( aSerialPort );
+        }
 
         virtual ~LdConnectionInfoModbus() {}
 
-        virtual std::string GetSerialPort( void ) const {
-            return mSerialPort;
-        }
-        virtual std::string GetDescription( void ) const {
-            return mDescription;
-        }
+        virtual std::string GetSerialPort( void ) const { return mSerialPort; }
+        virtual std::string GetDescription( void ) const { return mDescription; }
 
-        virtual uint32_t GetBaud( void ) const {
-            return mBaud;
-        }
-        virtual void SetBaud( uint32_t aBaud ) {
-            mBaud = aBaud;
-        }
-        virtual eParity GetParity( void ) const {
-            return mParity;
-        }
-        virtual void SetParity( eParity aParity ) {
-            mParity = aParity;
-        }
-        virtual uint8_t GetDataBits( void ) const {
-            return mDataBits;
-        }
-        virtual void SetDataBits( uint8_t aDataBits ) {
-            mDataBits = aDataBits;
-        }
-        virtual uint8_t GetStopBits( void ) const {
-            return mStopBits;
-        }
-        virtual void SetStopBits( uint8_t aStopBits ) {
-            mStopBits = aStopBits;
-        }
-        virtual uint8_t GetModbusAddr( void ) const {
-            return mModbusAddr;
-        }
-        virtual void SetModbusAddr( uint8_t aModbusAddr ) {
-            mModbusAddr = aModbusAddr;
-        }
+        virtual uint32_t GetBaud( void ) const { return mBaud; }
+        virtual void SetBaud( uint32_t aBaud ) { mBaud = aBaud; }
+        virtual eParity GetParity( void ) const { return mParity; }
+        virtual void SetParity( eParity aParity ) { mParity = aParity; }
+        virtual uint8_t GetDataBits( void ) const { return mDataBits; }
+        virtual void SetDataBits( uint8_t aDataBits ) { mDataBits = aDataBits; }
+        virtual uint8_t GetStopBits( void ) const { return mStopBits; }
+        virtual void SetStopBits( uint8_t aStopBits ) { mStopBits = aStopBits; }
+        virtual uint8_t GetModbusAddr( void ) const { return mModbusAddr; }
+        virtual void SetModbusAddr( uint8_t aModbusAddr ) { mModbusAddr = aModbusAddr; }
 
-    protected:
+      protected:
         std::string mSerialPort;
         std::string mDescription;
-        uint32_t    mBaud;
-        eParity     mParity;
-        uint8_t     mDataBits;
-        uint8_t     mStopBits;
-        uint8_t     mModbusAddr;
+        uint32_t mBaud;
+        eParity mParity;
+        uint8_t mDataBits;
+        uint8_t mStopBits;
+        uint8_t mModbusAddr;
     };
-}
+} // namespace LeddarConnection
 
 #endif

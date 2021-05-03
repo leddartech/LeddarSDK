@@ -30,6 +30,7 @@ LeddarCore::LdObject::LdObject( void )
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 LeddarCore::LdObject::~LdObject( void )
 {
+    std::lock_guard<std::mutex> lock( mObjectMutex );
     DisconnectAll();
 }
 
@@ -45,8 +46,9 @@ LeddarCore::LdObject::~LdObject( void )
 /// \date   January 2016
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void
-LeddarCore::LdObject::ConnectSignal( LdObject *aSender, const SIGNALS aSignal )
+LeddarCore::LdObject::ConnectSignal( LdObject *aSender, const SIGNALS aSignal ) const
 {
+    std::lock_guard<std::mutex> lock( mObjectMutex );
     std::pair<std::multimap< LdObject *, SIGNALS>::iterator, std::multimap< LdObject *, SIGNALS>::iterator> lRange = mReceiverMap.equal_range( aSender );
 
     for( std::multimap< LdObject *, SIGNALS>::iterator lIter = lRange.first; lIter != lRange.second; ++lIter )
@@ -59,7 +61,7 @@ LeddarCore::LdObject::ConnectSignal( LdObject *aSender, const SIGNALS aSignal )
 
     mReceiverMap.insert( std::make_pair( aSender, aSignal ) );
 
-    aSender->mConnectedObject.insert( this );
+    aSender->mConnectedObject.insert( const_cast<LeddarCore::LdObject *>(this) );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -74,8 +76,9 @@ LeddarCore::LdObject::ConnectSignal( LdObject *aSender, const SIGNALS aSignal )
 /// \date   January 2016
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void
-LeddarCore::LdObject::DisconnectSignal( LdObject *aSender, const SIGNALS aSignal )
+LeddarCore::LdObject::DisconnectSignal( LdObject *aSender, const SIGNALS aSignal ) const
 {
+    std::lock_guard<std::mutex> lock( mObjectMutex );
     std::pair<std::multimap< LdObject *, SIGNALS>::iterator, std::multimap< LdObject *, SIGNALS>::iterator> lRange = mReceiverMap.equal_range( aSender );
 
     if( lRange.first == mReceiverMap.end() )
@@ -95,7 +98,7 @@ LeddarCore::LdObject::DisconnectSignal( LdObject *aSender, const SIGNALS aSignal
     // If there is no aSender object, we need to remove this object in the mConnectedObject
     if( mReceiverMap.find( aSender ) == mReceiverMap.end() )
     {
-        aSender->mConnectedObject.erase( this );
+        aSender->mConnectedObject.erase( const_cast<LeddarCore::LdObject *>(this) );
     }
 }
 
@@ -108,18 +111,19 @@ LeddarCore::LdObject::DisconnectSignal( LdObject *aSender, const SIGNALS aSignal
 /// \date   January 2016
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void
-LeddarCore::LdObject::DisconnectAll( void )
+LeddarCore::LdObject::DisconnectAll( void ) const
 {
+    
     // Delete links between the receiver and this object
     for( std::multimap< LdObject *, SIGNALS>::iterator lIter = mReceiverMap.begin(); lIter != mReceiverMap.end(); ++lIter )
     {
-        ( *lIter ).first->mConnectedObject.erase( this );
+        ( *lIter ).first->mConnectedObject.erase( const_cast<LeddarCore::LdObject *>(this) );
     }
 
     // Delete links between this object and receiver
     for( std::set< LdObject * >::iterator lIter = mConnectedObject.begin(); lIter != mConnectedObject.end(); ++lIter )
     {
-        ( *lIter )->mReceiverMap.erase( this );
+        ( *lIter )->mReceiverMap.erase( const_cast<LeddarCore::LdObject *>(this) );
     }
 }
 
@@ -137,6 +141,7 @@ LeddarCore::LdObject::DisconnectAll( void )
 void
 LeddarCore::LdObject::EmitSignal( const SIGNALS aSignal, void *aExtraData )
 {
+    std::lock_guard<std::mutex> lock( mObjectMutex );
     for( std::multimap< LdObject *, SIGNALS>::iterator lIter = mReceiverMap.begin(); lIter != mReceiverMap.end(); ++lIter )
     {
         if( lIter->second == aSignal )

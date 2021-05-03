@@ -6,11 +6,10 @@
 /// Copyright (c) 2019 LeddarTech. All rights reserved.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
 #pragma once
 
 #include "LtDefines.h"
-#if defined(BUILD_ETHERNET) && defined(BUILD_AUTO)
+#if defined( BUILD_ETHERNET ) && defined( BUILD_AUTO )
 
 #include "LdSensorLeddarAuto.h"
 
@@ -18,10 +17,11 @@ namespace LeddarDevice
 {
     class LdSensorPixell : virtual public LdSensorLeddarAuto
     {
-    public:
+      public:
         explicit LdSensorPixell( LeddarConnection::LdConnection *aConnection );
         ~LdSensorPixell( void );
 
+        void ConnectDataServer( void ) override;
         void GetConstants( void ) override;
         void UpdateConstants( void ) override;
         void GetStatus( void );
@@ -31,12 +31,12 @@ namespace LeddarDevice
         uint32_t SensorChannelIndexToEchoChannelIndex( uint32_t aSensorChannelIndex );
         uint32_t EchoChannelIndexToSensorChannelIndex( uint32_t aEchoChannelIndex );
 
-    protected:
+      protected:
         void ComputeCartesianCoordinates() override;
 
-    private:
+      private:
         void InitProperties( void );
     };
-}
+} // namespace LeddarDevice
 
 #endif

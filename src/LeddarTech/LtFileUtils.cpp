@@ -92,6 +92,67 @@ LeddarUtils::LtFileUtils::FileExtension( const std::string &aFilename )
         return aFilename.substr( aFilename.find_last_of( "." ) + 1 );
 }
 
+
+
+// *****************************************************************************
+// Function: LtFileUtils::LoadHex
+//
+/// \brief   Load a LTB file.
+///
+/// \param  aFilename   Filename
+///
+/// \return An IntelHexMem struct.
+///
+/// \author  Patrick Boulay
+///
+/// \since   April 2016
+// *****************************************************************************
+
+IntelHEX::IntelHexMem *
+LeddarUtils::LtFileUtils::LoadHex( const std::string &aFilename )
+{
+    // Open intel hex file
+    IntelHEX::IntelHexMem *lMem = new IntelHEX::IntelHexMem;
+
+    if( IHEX_Load( aFilename.c_str(), *lMem ) < 0 )
+    {
+        throw std::ios_base::failure( "File " + aFilename + " not found." );
+    }
+
+
+    return lMem;
+}
+
+// *****************************************************************************
+// Function: LtFileUtils::::LoadHexFromBuffer
+//
+/// \brief   Load a Hex file from memory buffer.
+///
+/// \param  aBuffer   Memory buffer
+/// \param  aSize     Buffer size
+///
+/// \return An IntelHexMem struct.
+///
+/// \author  Patrick Boulay
+///
+/// \since   Mai 2016
+// *****************************************************************************
+
+IntelHEX::IntelHexMem *
+LeddarUtils::LtFileUtils::LoadHexFromBuffer( const uint8_t *aBuffer, uint32_t aSize )
+{
+    // Open intel hex file
+    IntelHEX::IntelHexMem *lMem = new IntelHEX::IntelHexMem;
+
+    if( IHEX_LoadFromBuffer( aBuffer, aSize, *lMem ) < 0 )
+    {
+        throw std::ios_base::failure( "Buffer not valid." );
+    }
+
+
+    return lMem;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \fn LeddarUtils::LtFileUtils::LtLtbReader::LtLtbReader( const std::string& aFileName )
 ///
@@ -132,7 +193,7 @@ LeddarUtils::LtFileUtils::LtLtbReader::LtLtbReader( const std::string &aFileName
 
     mFile.read( reinterpret_cast<char *>( &lValue ), sizeof( lValue ) );
 
-    if( lValue != LT_DOCUMENT_VERSION && lValue != LT_DOCUMENT_VERSION_SDK )
+    if( lValue != LT_DOCUMENT_VERSION && lValue != LT_DOCUMENT_VERSION_SDK && lValue != LT_DOCUMENT_VERSION_SDK_POST_DOUBLE_BUFFER_REWORK )
     {
         throw std::logic_error( "Wrong document version." );
     }

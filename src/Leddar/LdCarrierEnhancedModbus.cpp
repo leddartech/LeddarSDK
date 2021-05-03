@@ -162,7 +162,7 @@ LeddarDevice::LdCarrierEnhancedModbus::InitProperties( void )
                                    "Serial Port Distance Resolution" ) );
     mPropertiesSerial.AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE, LdPropertyIds::ID_COM_SERIAL_PORT_DATA_BITS, 0, 1,
                                    "Serial Port Data Bit" ) );
-    mPropertiesSerial.AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_COM_SERIAL_PORT_PARITY, 0, 1,
+    mPropertiesSerial.AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_COM_SERIAL_PORT_PARITY, 0, 1, true,
                                    "Serial Port Parity" ) );
     mPropertiesSerial.AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_COM_SERIAL_PORT_STOP_BITS, 0, 1,
                                    "Serial Port Stop Bit" ) );
@@ -187,6 +187,10 @@ LeddarDevice::LdCarrierEnhancedModbus::InitProperties( void )
     lSerialResolution->AddEnumPair( 100, "cm" );
     lSerialResolution->AddEnumPair( 1000, "mm" );
 
+    LdEnumProperty *lSerialParity = mPropertiesSerial.GetEnumProperty( LeddarCore::LdPropertyIds::ID_COM_SERIAL_PORT_PARITY );
+    lSerialParity->AddEnumPair( 0, "None" );
+    lSerialParity->AddEnumPair( 1, "Odd" );
+    lSerialParity->AddEnumPair( 2, "Even" );
 
     // CAN ports properties
     mPropertiesCAN.AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE, LdPropertyIds::ID_COM_CAN_PORT_LOGICAL_PORT, 0, 1, "CAN Port Logical Port" ) );
@@ -210,6 +214,8 @@ LeddarDevice::LdCarrierEnhancedModbus::InitProperties( void )
     mPropertiesCAN.GetIntegerProperty( LdPropertyIds::ID_COM_CAN_PORT_MAX_ECHOES )->SetLimits( 1, LEDDARVU8_MAX_CAN_DETECTIONS );
     mPropertiesCAN.GetIntegerProperty( LdPropertyIds::ID_COM_CAN_PORT_MAILBOX_DELAY )->SetLimits( 0, std::numeric_limits<uint16_t>::max() );
     mPropertiesCAN.GetIntegerProperty( LdPropertyIds::ID_COM_CAN_PORT_PORT_ACQCYCLE_DELAY )->SetLimits( 0, std::numeric_limits<uint16_t>::max() );
+    mPropertiesCAN.GetIntegerProperty( LdPropertyIds::ID_COM_CAN_PORT_TX_MSG_BASE_ID )->SetLimitsUnsigned( 0, ( uint64_t( 1 ) << 29 ) - 1 );
+    mPropertiesCAN.GetIntegerProperty( LdPropertyIds::ID_COM_CAN_PORT_RX_MSG_BASE_ID )->SetLimitsUnsigned( 0, ( uint64_t( 1 ) << 29 ) - 1 );
 
     LeddarCore::LdEnumProperty *lCanBaud = mPropertiesCAN.GetEnumProperty( LdPropertyIds::ID_COM_CAN_PORT_BAUDRATE );
     lCanBaud->AddEnumPair( 10000, "10000" );
@@ -270,7 +276,7 @@ LeddarDevice::LdCarrierEnhancedModbus::GetConfigSerial( void )
     LdIntegerProperty *lSerialPortMaxEchoes = mProperties.GetIntegerProperty( LdPropertyIds::ID_COM_SERIAL_PORT_MAX_ECHOES );
     LdEnumProperty *lSerialPortEchoesResolution = mProperties.GetEnumProperty( LdPropertyIds::ID_COM_SERIAL_PORT_ECHOES_RES );
     LdIntegerProperty *lSerialPortDataBit = mProperties.GetIntegerProperty( LdPropertyIds::ID_COM_SERIAL_PORT_DATA_BITS );
-    LdIntegerProperty *lSerialPortParity = mProperties.GetIntegerProperty( LdPropertyIds::ID_COM_SERIAL_PORT_PARITY );
+    LdEnumProperty *lSerialPortParity = mProperties.GetEnumProperty( LdPropertyIds::ID_COM_SERIAL_PORT_PARITY );
     LdIntegerProperty *lSerialPortStopBit = mProperties.GetIntegerProperty( LdPropertyIds::ID_COM_SERIAL_PORT_STOP_BITS );
     LdIntegerProperty *lSerialPortFlowControl = mProperties.GetIntegerProperty( LdPropertyIds::ID_COM_SERIAL_PORT_FLOW_CONTROL );
     LdIntegerProperty *lSerialPortLogicalPort = mProperties.GetIntegerProperty( LdPropertyIds::ID_COM_SERIAL_PORT_LOGICAL_PORT );
@@ -327,7 +333,7 @@ LeddarDevice::LdCarrierEnhancedModbus::SetConfigSerial( void )
         LdIntegerProperty *lSerialPortMaxEchoes = mProperties.GetIntegerProperty( LdPropertyIds::ID_COM_SERIAL_PORT_MAX_ECHOES );
         LdEnumProperty *lSerialPortEchoesResolution = mProperties.GetEnumProperty( LdPropertyIds::ID_COM_SERIAL_PORT_ECHOES_RES );
         LdIntegerProperty *lSerialPortDataBit = mProperties.GetIntegerProperty( LdPropertyIds::ID_COM_SERIAL_PORT_DATA_BITS );
-        LdIntegerProperty *lSerialPortParity = mProperties.GetIntegerProperty( LdPropertyIds::ID_COM_SERIAL_PORT_PARITY );
+        LdEnumProperty *lSerialPortParity = mProperties.GetEnumProperty( LdPropertyIds::ID_COM_SERIAL_PORT_PARITY );
         LdIntegerProperty *lSerialPortStopBit = mProperties.GetIntegerProperty( LdPropertyIds::ID_COM_SERIAL_PORT_STOP_BITS );
         LdIntegerProperty *lSerialPortFlowControl = mProperties.GetIntegerProperty( LdPropertyIds::ID_COM_SERIAL_PORT_FLOW_CONTROL );
         LdIntegerProperty *lSerialPortLogicalPort = mProperties.GetIntegerProperty( LdPropertyIds::ID_COM_SERIAL_PORT_LOGICAL_PORT );

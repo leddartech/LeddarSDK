@@ -7,9 +7,9 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "LdResultEchoes.h"
-#include "LtTimeUtils.h"
-#include "LtMathUtils.h"
 #include "LdPropertyIds.h"
+#include "LtMathUtils.h"
+#include "LtTimeUtils.h"
 
 #ifdef _DEBUG
 #include <sstream>
@@ -17,25 +17,27 @@
 using namespace LeddarConnection;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn LdResultEchoes::LdResultEchoes( void ) : mIsInitialized( false ), mDistanceScale( 0 ), mAmplitudeScale( 0 ), mCurrentLedPower( LeddarCore::LdProperty::CAT_INFO, LeddarCore::LdProperty::F_SAVE, LeddarCore::LdPropertyIds::ID_CURRENT_LED_INTENSITY, 0, sizeof( uint16_t ), "Current led power", false )
+/// \fn LdResultEchoes::LdResultEchoes( void )
 ///
 /// \brief  Constructor.
 ///
 /// \author Patrick Boulay
 /// \date   March 2016
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-LdResultEchoes::LdResultEchoes( void ) :
-    mIsInitialized( false ),
-    mDistanceScale( 0 ),
-    mAmplitudeScale( 0 ),
-    mHFOV( 0 ),
-    mVFOV( 0 ),
-    mHChan( 0 ),
-    mVChan( 0 ),
-    mCurrentLedPower( LeddarCore::LdProperty::CAT_INFO, LeddarCore::LdProperty::F_SAVE, LeddarCore::LdPropertyIds::ID_CURRENT_LED_INTENSITY, 0, sizeof( uint16_t ), "Current led power",
-                      false )
+LdResultEchoes::LdResultEchoes( void )
+    : mIsInitialized( false )
+    , mDistanceScale( 0 )
+    , mAmplitudeScale( 0 )
+    , mHFOV( 0 )
+    , mVFOV( 0 )
+    , mHChan( 0 )
+    , mVChan( 0 )
+
 {
-    mCurrentLedPower.ForceValue( 0, 0 );
+    auto *lTS =
+        new LeddarCore::LdIntegerProperty( LeddarCore::LdProperty::CAT_INFO, LeddarCore::LdProperty::F_SAVE  | LeddarCore::LdProperty::F_NO_MODIFIED_WARNING, LeddarCore::LdPropertyIds::ID_RS_TIMESTAMP, 0, 4, "Timestamp" );
+    lTS->ForceValue( 0, 0 );
+    mDoubleBuffer.AddProperty( lTS );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -46,9 +48,7 @@ LdResultEchoes::LdResultEchoes( void ) :
 /// \author Patrick Boulay
 /// \date   March 2016
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-LdResultEchoes::~LdResultEchoes()
-{
-}
+LdResultEchoes::~LdResultEchoes() {}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \fn void LdResultEchoes::Init( uint32_t aDistanceScale, uint32_t aAmplitudeScale, uint32_t aMaxDetections )
@@ -62,8 +62,7 @@ LdResultEchoes::~LdResultEchoes()
 /// \author Patrick Boulay
 /// \date   March 2016
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LdResultEchoes::Init( uint32_t aDistanceScale, uint32_t aAmplitudeScale, uint32_t aMaxDetections )
+void LdResultEchoes::Init( uint32_t aDistanceScale, uint32_t aAmplitudeScale, uint32_t aMaxDetections )
 {
     if( !mIsInitialized )
     {
@@ -73,14 +72,11 @@ LdResultEchoes::Init( uint32_t aDistanceScale, uint32_t aAmplitudeScale, uint32_
             assert( 0 );
         }
 
-        mEchoBuffer1.mEchoes.resize( aMaxDetections );
-        mEchoBuffer2.mEchoes.resize( aMaxDetections );
+        mDoubleBuffer.GetBuffer( B_GET )->Buffer()->mEchoes.resize( aMaxDetections );
+        mDoubleBuffer.GetBuffer( B_SET )->Buffer()->mEchoes.resize( aMaxDetections );
 
-        mDoubleBuffer.Init( &mEchoBuffer1, &mEchoBuffer2, LdResultProvider::mTimestamp, LdResultProvider::mTimestamp64 );
-
-        mDistanceScale = aDistanceScale;
+        mDistanceScale  = aDistanceScale;
         mAmplitudeScale = aAmplitudeScale;
-        mCurrentLedPower.SetCount( 2 );
 
         mIsInitialized = true;
     }
@@ -94,18 +90,7 @@ LdResultEchoes::Init( uint32_t aDistanceScale, uint32_t aAmplitudeScale, uint32_
 /// \author David Levy
 /// \date   May 2018
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarConnection::LdResultEchoes::Swap()
-{
-    if( mCurrentLedPower.Count() == 2 )
-    {
-        int64_t lOldLedPower = mCurrentLedPower.Value( 0 );
-        mCurrentLedPower.ForceValue( 0, mCurrentLedPower.Value( 1 ) );
-        mCurrentLedPower.ForceValue( 1, lOldLedPower );
-    }
-
-    mDoubleBuffer.Swap();
-}
+void LeddarConnection::LdResultEchoes::Swap() { mDoubleBuffer.Swap(); }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \fn uint32_t LdResultEchoes::GetEchoCount( eBuffer aBuffer ) const
@@ -119,15 +104,14 @@ LeddarConnection::LdResultEchoes::Swap()
 /// \author David Levy
 /// \date   January 2018
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-uint32_t
-LdResultEchoes::GetEchoCount( eBuffer aBuffer ) const
+uint32_t LdResultEchoes::GetEchoCount( eBuffer aBuffer ) const
 {
     if( !mIsInitialized )
     {
         assert( 0 );
     }
 
-    return static_cast< const EchoBuffer * >( mDoubleBuffer.GetConstBuffer( aBuffer )->mBuffer )->mCount;
+    return mDoubleBuffer.GetConstBuffer( aBuffer )->Buffer()->mCount;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -142,15 +126,14 @@ LdResultEchoes::GetEchoCount( eBuffer aBuffer ) const
 /// \author David Levy
 /// \date   January 2018
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-std::vector<LdEcho> *
-LdResultEchoes::GetEchoes( eBuffer aBuffer )
+std::vector<LdEcho> *LdResultEchoes::GetEchoes( eBuffer aBuffer )
 {
     if( !mIsInitialized )
     {
         assert( 0 );
     }
 
-    return &static_cast< EchoBuffer * >( mDoubleBuffer.GetBuffer( aBuffer )->mBuffer )->mEchoes;
+    return &( mDoubleBuffer.GetBuffer( aBuffer )->Buffer()->mEchoes );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -165,15 +148,14 @@ LdResultEchoes::GetEchoes( eBuffer aBuffer )
 /// \author David Levy
 /// \date   January 2018
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-float
-LdResultEchoes::GetEchoDistance( size_t aIndex ) const
+float LdResultEchoes::GetEchoDistance( size_t aIndex ) const
 {
     if( !mIsInitialized )
     {
         assert( 0 );
     }
 
-    return static_cast<float>( static_cast< const EchoBuffer * >( mDoubleBuffer.GetConstBuffer( B_GET )->mBuffer )->mEchoes[aIndex].mDistance ) / mDistanceScale;
+    return static_cast<float>( mDoubleBuffer.GetConstBuffer( B_GET )->Buffer()->mEchoes[aIndex].mDistance ) / mDistanceScale;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -188,15 +170,14 @@ LdResultEchoes::GetEchoDistance( size_t aIndex ) const
 /// \author David Levy
 /// \date   January 2018
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-float
-LdResultEchoes::GetEchoAmplitude( size_t aIndex ) const
+float LdResultEchoes::GetEchoAmplitude( size_t aIndex ) const
 {
     if( !mIsInitialized )
     {
         assert( 0 );
     }
-
-    return static_cast<float>( static_cast< EchoBuffer * >( mDoubleBuffer.GetConstBuffer( B_GET )->mBuffer )->mEchoes[aIndex].mAmplitude ) / mAmplitudeScale;
+    
+    return static_cast<float>( mDoubleBuffer.GetConstBuffer( B_GET )->Buffer()->mEchoes[aIndex].mAmplitude ) / mAmplitudeScale;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -211,64 +192,44 @@ LdResultEchoes::GetEchoAmplitude( size_t aIndex ) const
 /// \author David Levy
 /// \date   January 2018
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-float
-LdResultEchoes::GetEchoBase( size_t aIndex ) const
+float LdResultEchoes::GetEchoBase( size_t aIndex ) const
 {
     if( !mIsInitialized )
     {
         assert( 0 );
     }
-
-    return static_cast<float>( static_cast< EchoBuffer * >( mDoubleBuffer.GetConstBuffer( B_GET )->mBuffer )->mEchoes[aIndex].mBase ) / mAmplitudeScale;
+    
+    return static_cast<float>( mDoubleBuffer.GetConstBuffer( B_GET )->Buffer()->mEchoes[aIndex].mBase ) / mAmplitudeScale;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarConnection::LdResultEchoes::SetCurrentLedPower( uint16_t aValue )
+/// \fn uint32_t LeddarConnection::LdResultEchoes::GetTimestamp( eBuffer aBuffer ) const
 ///
-/// \brief  Set the current led power
+/// \brief  Gets a timestamp
 ///
-/// \param [in] aValue  : Current led power.
+/// \author David Lévy
+/// \date   March 2021
 ///
-/// \author David Levy
-/// \date   May 2018
+/// \param  aBuffer The buffer.
+///
+/// \returns    The timestamp.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarConnection::LdResultEchoes::SetCurrentLedPower( uint16_t aValue )
+uint32_t LeddarConnection::LdResultEchoes::GetTimestamp( eBuffer aBuffer ) const
 {
-    if( mCurrentLedPower.Count() < 2 )
-    {
-        mCurrentLedPower.ForceValue( 0, aValue );
-    }
-    else
-    {
-        mCurrentLedPower.ForceValue( 1, aValue );
-    }
+    return mDoubleBuffer.GetProperties( aBuffer )->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_RS_TIMESTAMP )->ValueT<uint32_t>( 0 );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn uint16_t LeddarConnection::LdResultEchoes::GetCurrentLedPower( eBuffer aBuffer ) const
+/// \fn void LeddarConnection::LdResultEchoes::SetTimestamp( uint32_t aTimestamp )
 ///
-/// \brief  Gets current LED power
+/// \brief  Sets a timestamp
 ///
-/// \param  aBuffer The buffer (get or set).
+/// \author David Lévy
+/// \date   March 2021
 ///
-/// \return The current LED power.
-///
-/// \author David Levy
-/// \date   May 2018
+/// \param  aTimestamp  The timestamp.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-uint16_t
-LeddarConnection::LdResultEchoes::GetCurrentLedPower( eBuffer aBuffer ) const
-{
-    if( ( mCurrentLedPower.Count() < 2 || aBuffer == B_GET ) )
-    {
-        return static_cast<uint32_t>( mCurrentLedPower.Value( 0 ) );
-    }
-    else
-    {
-        return static_cast<uint32_t>( mCurrentLedPower.Value( 1 ) );
-    }
-}
+void LeddarConnection::LdResultEchoes::SetTimestamp( uint32_t aTimestamp ) { mDoubleBuffer.SetPropertyValue( LeddarCore::LdPropertyIds::ID_RS_TIMESTAMP, 0, aTimestamp ); }
 
 #ifdef _DEBUG
 // *****************************************************************************
@@ -284,20 +245,18 @@ LeddarConnection::LdResultEchoes::GetCurrentLedPower( eBuffer aBuffer ) const
 /// \author Patrick Boulay
 /// \date   March 2016
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-std::string
-LdResultEchoes::ToString( void )
+std::string LdResultEchoes::ToString( void )
 {
     std::stringstream lResult;
-    mDoubleBuffer.Lock( B_GET );
+    // cppcheck-suppress unreadVariable
+    auto lLock                  = mDoubleBuffer.GetUniqueLock( B_GET );
+    const std::vector<LdEcho> &lEchoes = mDoubleBuffer.GetConstBuffer( B_GET )->Buffer()->mEchoes;
 
-    std::vector<LdEcho> lEchoes = static_cast< EchoBuffer * >( mDoubleBuffer.GetConstBuffer( B_GET )->mBuffer )->mEchoes;
-
-    for( uint32_t i = 0; i < static_cast< EchoBuffer * >( mDoubleBuffer.GetConstBuffer( B_GET )->mBuffer )->mCount; ++i )
+    for( uint32_t i = 0; i < GetEchoCount(B_GET); ++i )
     {
-        lResult << "[" << lEchoes[ i ].mChannelIndex << "]:\t " << lEchoes[ i ].mAmplitude << "\t " << lEchoes[ i ].mDistance << std::endl;
+        lResult << "[" << lEchoes[i].mChannelIndex << "]:\t " << lEchoes[i].mAmplitude << "\t " << lEchoes[i].mDistance << std::endl;
     }
 
-    mDoubleBuffer.UnLock( B_GET );
     return lResult.str();
 }
 

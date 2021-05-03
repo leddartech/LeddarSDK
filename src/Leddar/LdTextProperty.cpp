@@ -14,11 +14,29 @@
 
 #include "LdTextProperty.h"
 #include "LtExceptions.h"
-#include "LtStringUtils.h"
 #include "LtScope.h"
+#include "LtStringUtils.h"
 
 #include <cassert>
 #include <cstring>
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn	LeddarCore::LdTextProperty::LdTextProperty( const LdTextProperty &aProperty )
+///
+/// \brief	Copy constructor
+///
+/// \author	Alain Ferron
+/// \date	December 2020
+///
+/// \param	aProperty	The property.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+LeddarCore::LdTextProperty::LdTextProperty( const LdTextProperty &aProperty )
+    : LdProperty( aProperty )
+{
+    std::lock_guard<std::recursive_mutex> lock( aProperty.mPropertyMutex );
+    mForceUppercase = aProperty.mForceUppercase;
+    mType           = aProperty.mType;
+}
 
 // *****************************************************************************
 // Function: LdTextProperty::LdTextProperty
@@ -38,16 +56,16 @@
 /// \since   May 2014
 // *****************************************************************************
 
-LeddarCore::LdTextProperty::LdTextProperty( LdProperty::eCategories aCategory, uint32_t aFeatures,
-        uint32_t aId, uint16_t aDeviceId, uint32_t aMaxLength, eType aType, const std::string &aDescription ) :
-    LdProperty( LdProperty::TYPE_TEXT, aCategory, aFeatures, aId, aDeviceId, aMaxLength, aMaxLength, aDescription ),
-    mForceUppercase( false ),
-    mType( aType )
+LeddarCore::LdTextProperty::LdTextProperty( LdProperty::eCategories aCategory, uint32_t aFeatures, uint32_t aId, uint16_t aDeviceId, uint32_t aMaxLength, eType aType,
+                                            const std::string &aDescription )
+    : LdProperty( LdProperty::TYPE_TEXT, aCategory, aFeatures, aId, aDeviceId, aMaxLength, aMaxLength, aDescription )
+    , mForceUppercase( false )
+    , mType( aType )
 {
 }
 
 // *****************************************************************************
-// Function: LdTextProperty::SetTextValue
+// Function: LdTextProperty::PerformSetTextValue
 //
 /// \brief   Set the value from a string
 ///
@@ -62,41 +80,40 @@ LeddarCore::LdTextProperty::LdTextProperty( LdProperty::eCategories aCategory, u
 /// \since   June 2014
 // *****************************************************************************
 
-void
-LeddarCore::LdTextProperty::SetValue( size_t aIndex, const std::string &aValue )
+void LeddarCore::LdTextProperty::PerformSetValue( size_t aIndex, const std::string &aValue )
 {
     CanEdit();
 
     // Initialize the count to 1 on the fist SetValue if not done before.
-    if( Count() == 0 && aIndex == 0 )
+    if( PerformCount() == 0 && aIndex == 0 )
     {
-        SetCount( 1 );
+        PerformSetCount( 1 );
     }
 
-    if( aIndex >= Count() )
+    if( aIndex >= PerformCount() )
     {
-        throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
     if( mType == TYPE_ASCII || mType == TYPE_UTF8 )
     {
-        if( aValue.length() > MaxLength() )
-            throw std::out_of_range( "Input string is too long. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        if( aValue.length() > PerformMaxLength() )
+            throw std::out_of_range( "Input string is too long. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
 
-        memset( Storage() + aIndex * MaxLength(), 0, MaxLength() );
-        memcpy( Storage() + aIndex * MaxLength(), aValue.c_str(), aValue.length() );
+        memset( Storage() + aIndex * PerformMaxLength(), 0, PerformMaxLength() );
+        memcpy( Storage() + aIndex * PerformMaxLength(), aValue.c_str(), aValue.length() );
     }
     else
     {
-        if( aValue.length() * 2 > MaxLength() )
-            throw std::out_of_range( "Input string is too long. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        if( aValue.length() * 2 > PerformMaxLength() )
+            throw std::out_of_range( "Input string is too long. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
 
         // Convert UTF8 to UTF16 - note : not really but kept for retro compatibility
-        memset( Storage() + aIndex * MaxLength(), 0, MaxLength() );
+        memset( Storage() + aIndex * PerformMaxLength(), 0, PerformMaxLength() );
 
         for( size_t i = 0; i < aValue.length(); ++i )
         {
-            reinterpret_cast<uint16_t *>( Storage() + aIndex * MaxLength() )[i] = static_cast<uint16_t>( aValue[i] );
+            reinterpret_cast<uint16_t *>( Storage() + aIndex * PerformMaxLength() )[i] = static_cast<uint16_t>( aValue[i] );
         }
     }
 
@@ -105,7 +122,7 @@ LeddarCore::LdTextProperty::SetValue( size_t aIndex, const std::string &aValue )
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdTextProperty::ForceValue( size_t aIndex, const std::string &aValue )
+/// \fn void LeddarCore::LdTextProperty::PerformForceValue( size_t aIndex, const std::string &aValue )
 ///
 /// \brief  Force value for not editable values
 ///
@@ -118,16 +135,15 @@ LeddarCore::LdTextProperty::SetValue( size_t aIndex, const std::string &aValue )
 /// \author David Levy
 /// \date   March 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarCore::LdTextProperty::ForceValue( size_t aIndex, const std::string &aValue )
+void LeddarCore::LdTextProperty::PerformForceValue( size_t aIndex, const std::string &aValue )
 {
     LeddarUtils::LtScope<bool> lForceEdit( &mCheckEditable, true );
     mCheckEditable = false;
-    SetValue( aIndex, aValue );
+    PerformSetValue( aIndex, aValue );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdTextProperty::SetValue( size_t aIndex, const std::wstring &aValue )
+/// \fn void LeddarCore::LdTextProperty::PerformSetValue( size_t aIndex, const std::wstring &aValue )
 ///
 /// \brief   Set the value from a wstring
 ///
@@ -140,55 +156,53 @@ LeddarCore::LdTextProperty::ForceValue( size_t aIndex, const std::string &aValue
 /// \author David Levy
 /// \date   March 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarCore::LdTextProperty::SetValue( size_t aIndex, const std::wstring &aValue )
+void LeddarCore::LdTextProperty::PerformSetValue( size_t aIndex, const std::wstring &aValue )
 {
     CanEdit();
 
     // Initialize the count to 1 on the fist SetValue if not done before.
-    if( Count() == 0 && aIndex == 0 )
+    if( PerformCount() == 0 && aIndex == 0 )
     {
-        SetCount( 1 );
+        PerformSetCount( 1 );
     }
 
-    if( aIndex >= Count() )
+    if( aIndex >= PerformCount() )
     {
-        throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
     if( mType == TYPE_ASCII )
     {
         std::string lASCIIString( aValue.begin(), aValue.end() );
 
-        if( lASCIIString.length() > MaxLength() )
-            throw std::out_of_range( "Input string is too long. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        if( lASCIIString.length() > PerformMaxLength() )
+            throw std::out_of_range( "Input string is too long. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
 
-        memset( Storage() + aIndex * MaxLength(), 0, MaxLength() );
-        memcpy( Storage() + aIndex * MaxLength(), lASCIIString.c_str(), lASCIIString.length() );
+        memset( Storage() + aIndex * PerformMaxLength(), 0, PerformMaxLength() );
+        memcpy( Storage() + aIndex * PerformMaxLength(), lASCIIString.c_str(), lASCIIString.length() );
     }
     else if( mType == TYPE_UTF16 )
     {
-        if( aValue.size() * 2 > MaxLength() )
-            throw std::out_of_range( "Input string is too long. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        if( aValue.size() * 2 > PerformMaxLength() )
+            throw std::out_of_range( "Input string is too long. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
 
-        memset( Storage(), 0, MaxLength() );
+        memset( Storage(), 0, PerformMaxLength() );
 
         for( size_t i = 0; i < aValue.size(); ++i )
         {
-            reinterpret_cast< uint16_t * >( Storage() + aIndex * MaxLength() )[i] = static_cast< uint16_t >( aValue[i] );
+            reinterpret_cast<uint16_t *>( Storage() + aIndex * PerformMaxLength() )[i] = static_cast<uint16_t>( aValue[i] );
         }
-
     }
     else
     {
 #ifdef _WIN32
         std::string lResult = LeddarUtils::LtStringUtils::Utf8Encode( aValue );
 
-        if( lResult.length() > MaxLength() )
-            throw std::out_of_range( "Input string is too long. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        if( lResult.length() > PerformMaxLength() )
+            throw std::out_of_range( "Input string is too long. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
 
-        memset( Storage(), 0, MaxLength() );
-        memcpy( Storage() + aIndex * MaxLength(), lResult.c_str(), lResult.length() );
+        memset( Storage(), 0, PerformMaxLength() );
+        memcpy( Storage() + aIndex * PerformMaxLength(), lResult.c_str(), lResult.length() );
 #else
         throw std::logic_error( "Do not use wstring with UTF8 on non windows platform." );
 #endif
@@ -199,7 +213,38 @@ LeddarCore::LdTextProperty::SetValue( size_t aIndex, const std::wstring &aValue 
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdTextProperty::ForceValue( size_t aIndex, const std::string &aValue )
+/// \fn void LeddarCore::LdTextProperty::PerformSetAnyValue( size_t aIndex, const boost::any &aNewValue )
+///
+/// \brief  Set the property value
+///
+/// \author David Lévy
+/// \date   February 2021
+///
+/// \exception  std::invalid_argument   Thrown when an invalid argument error condition occurs.
+///
+/// \param  aIndex      Zero-based index of the.
+/// \param  aNewValue   The new value.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void LeddarCore::LdTextProperty::PerformSetAnyValue( size_t aIndex, const boost::any &aNewValue )
+{
+    if( aNewValue.type() == typeid( std::string ) )
+    {
+        PerformSetValue( aIndex, boost::any_cast<std::string>( aNewValue ) );
+    }
+    else if( aNewValue.type() == typeid( const char * ) )
+    {
+        PerformSetValue( aIndex, boost::any_cast<const char *>( aNewValue ) );
+    }
+    else if( aNewValue.type() == typeid( std::wstring ) )
+    {
+        PerformSetValue( aIndex, boost::any_cast<std::wstring>( aNewValue ) );
+    }
+    else
+        throw std::invalid_argument( "Invalid value type" );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LeddarCore::LdTextProperty::PerformForceValue( size_t aIndex, const std::string &aValue )
 ///
 /// \brief  Force value for not editable values
 ///
@@ -212,16 +257,27 @@ LeddarCore::LdTextProperty::SetValue( size_t aIndex, const std::wstring &aValue 
 /// \author David Levy
 /// \date   March 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarCore::LdTextProperty::ForceValue( size_t aIndex, const std::wstring &aValue )
+void LeddarCore::LdTextProperty::PerformForceValue( size_t aIndex, const std::wstring &aValue )
 {
     LeddarUtils::LtScope<bool> lForceEdit( &mCheckEditable, true );
     mCheckEditable = false;
-    SetValue( aIndex, aValue );
+    PerformSetValue( aIndex, aValue );
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn	LeddarCore::LdProperty *LeddarCore::LdTextProperty::PerformClone()
+///
+/// \brief	Performs the clone action
+///
+/// \returns	Pointer to a LeddarCore::LdProperty.
+///
+/// \author	Alain Ferron
+/// \date	March 2021
+////////////////////////////////////////////////////////////////////////////////////////////////////
+LeddarCore::LdProperty *LeddarCore::LdTextProperty::PerformClone() { return new LdTextProperty( *this ); }
+
 // *****************************************************************************
-// Function: LdTextProperty::Value
+// Function: LdTextProperty::PerformValue
 //
 /// \brief   Return the string value
 ///
@@ -229,9 +285,7 @@ LeddarCore::LdTextProperty::ForceValue( size_t aIndex, const std::wstring &aValu
 ///
 /// \since   March 2017
 // *****************************************************************************
-
-std::string
-LeddarCore::LdTextProperty::Value( size_t aIndex ) const
+std::string LeddarCore::LdTextProperty::PerformValue( size_t aIndex ) const
 {
     VerifyInitialization();
 
@@ -240,11 +294,11 @@ LeddarCore::LdTextProperty::Value( size_t aIndex ) const
         throw LeddarException::LtException( "Can not return string on UTF16 text property." );
     }
 
-    return std::string( CStorage() + MaxLength() * aIndex, std::find( CStorage() + MaxLength() * aIndex, CStorage() + MaxLength() * ( aIndex + 1 ), '\0' ) );
+    return std::string( CStorage() + PerformMaxLength() * aIndex, std::find( CStorage() + PerformMaxLength() * aIndex, CStorage() + PerformMaxLength() * ( aIndex + 1 ), '\0' ) );
 }
 
 // *****************************************************************************
-// Function: LdTextProperty::WValue
+// Function: LdTextProperty::PerformWValue
 //
 /// \brief   Return the wstring value
 ///
@@ -253,8 +307,7 @@ LeddarCore::LdTextProperty::Value( size_t aIndex ) const
 /// \since   March 2017
 // *****************************************************************************
 
-std::wstring
-LeddarCore::LdTextProperty::WValue( size_t aIndex ) const
+std::wstring LeddarCore::LdTextProperty::PerformWValue( size_t aIndex ) const
 {
     VerifyInitialization();
     std::wstring lResult;
@@ -262,7 +315,8 @@ LeddarCore::LdTextProperty::WValue( size_t aIndex ) const
     if( mType == TYPE_ASCII )
     {
 #ifdef _WIN32
-        std::string lUtf8Str = std::string( CStorage() + MaxLength() * aIndex, std::find( CStorage() + MaxLength() * aIndex, CStorage() + MaxLength() * ( aIndex + 1 ), '\0' ) );
+        std::string lUtf8Str =
+            std::string( CStorage() + PerformMaxLength() * aIndex, std::find( CStorage() + PerformMaxLength() * aIndex, CStorage() + PerformMaxLength() * ( aIndex + 1 ), '\0' ) );
         lResult = LeddarUtils::LtStringUtils::Utf8Decode( lUtf8Str );
 #else
         throw LeddarException::LtException( "Can not return wstring on ASCII text property - Do not use wstring on non Windows platform." );
@@ -271,7 +325,8 @@ LeddarCore::LdTextProperty::WValue( size_t aIndex ) const
     else if( TYPE_UTF8 == mType )
     {
 #ifdef _WIN32
-        std::string lUtf8Str = std::string( CStorage() + MaxLength() * aIndex, std::find( CStorage() + MaxLength() * aIndex, CStorage() + MaxLength() * ( aIndex + 1 ), '\0' ) );
+        std::string lUtf8Str =
+            std::string( CStorage() + PerformMaxLength() * aIndex, std::find( CStorage() + PerformMaxLength() * aIndex, CStorage() + PerformMaxLength() * ( aIndex + 1 ), '\0' ) );
         lResult = LeddarUtils::LtStringUtils::Utf8Decode( lUtf8Str );
 #else
         throw LeddarException::LtException( "Can not return wstring on UTF8 text property - Do not use wstring on non Windows platform." );
@@ -279,8 +334,8 @@ LeddarCore::LdTextProperty::WValue( size_t aIndex ) const
     }
     else
     {
-        const uint16_t *lUTF16Buffer = reinterpret_cast<const uint16_t *>( CStorage() + MaxLength() * aIndex );
-        uint16_t lMaxLength = MaxLength() / 2;
+        const uint16_t *lUTF16Buffer = reinterpret_cast<const uint16_t *>( CStorage() + PerformMaxLength() * aIndex );
+        uint16_t lMaxLength          = PerformMaxLength() / 2;
 
         for( int i = 0; i < lMaxLength; ++i )
         {
@@ -289,14 +344,13 @@ LeddarCore::LdTextProperty::WValue( size_t aIndex ) const
 
             lResult += static_cast<wchar_t>( lUTF16Buffer[i] );
         }
-
     }
 
     return lResult;
 }
 
 // *****************************************************************************
-// Function: LdTextProperty::GetStringValue
+// Function: LdTextProperty::PerformGetStringValue
 //
 /// \brief   Return the string value. If the property is an UTF16,  it will be converted in UTF8.
 ///
@@ -304,20 +358,19 @@ LeddarCore::LdTextProperty::WValue( size_t aIndex ) const
 ///
 /// \since   March 2017
 // *****************************************************************************
-std::string
-LeddarCore::LdTextProperty::GetStringValue( size_t aIndex ) const
+std::string LeddarCore::LdTextProperty::PerformGetStringValue( size_t aIndex ) const
 {
     if( mType == TYPE_UTF16 )
     {
-        std::wstring lWString = WValue( aIndex );
+        std::wstring lWString = PerformWValue( aIndex );
         return std::string( lWString.begin(), lWString.end() );
     }
 
-    return Value( aIndex );
+    return PerformValue( aIndex );
 }
 
 // *****************************************************************************
-// Function: LdProperty::SetRawStorage
+// Function: LdProperty::PerformSetRawStorage
 //
 /// \brief   Set storage directly in memory - This function should be only used when reading ltl recording for pseudo utf16
 ///
@@ -329,14 +382,13 @@ LeddarCore::LdTextProperty::GetStringValue( size_t aIndex ) const
 ///
 /// \since   May 2018
 // *****************************************************************************
-void
-LeddarCore::LdTextProperty::SetRawStorage( uint8_t *aBuffer, size_t aCount, uint32_t aSize )
+void LeddarCore::LdTextProperty::PerformSetRawStorage( uint8_t *aBuffer, size_t aCount, uint32_t aSize )
 {
     CanEdit();
 
-    if( ( mType != TYPE_UTF16 || aSize > 1 ) && aSize == Stride() ) //Size usually > 1 for live sensors, but = 1 for ltl recording utf16
+    if( ( mType != TYPE_UTF16 || aSize > 1 ) && aSize == PerformStride() ) // Size usually > 1 for live sensors, but = 1 for ltl recording utf16
     {
-        LeddarCore::LdProperty::SetRawStorage( aBuffer, aCount, aSize );
+        LeddarCore::LdProperty::PerformSetRawStorage( aBuffer, aCount, aSize );
         return;
     }
 
@@ -345,36 +397,36 @@ LeddarCore::LdTextProperty::SetRawStorage( uint8_t *aBuffer, size_t aCount, uint
     if( lSize == 1 && lCount > 1 ) // Should only be the case when reading ltl recording of M16
     {
         lCount = aSize;
-        lSize = aCount;
+        lSize  = aCount;
     }
 
     if( mType == TYPE_ASCII || mType == TYPE_UTF8 )
     {
-        if( lSize > Stride() )
+        if( lSize > PerformStride() )
             throw std::logic_error( "Property storage size is too small." );
     }
-    else //pseudo utf16
+    else // pseudo utf16
     {
-        if( lSize * 2 > Stride() )
+        if( lSize * 2 > PerformStride() )
             throw std::logic_error( "Property storage size is too small." );
     }
 
-    if( Count() != lCount )
+    if( PerformCount() != lCount )
     {
-        SetCount( lCount );
+        PerformSetCount( lCount );
     }
 
-    //Text properties are stored in utf8 in recording files, set value takes care of utf8 / utf16
+    // Text properties are stored in utf8 in recording files, set value takes care of utf8 / utf16
     for( size_t i = 0; i < lCount; ++i )
     {
         uint8_t *lBuff = aBuffer + i * lSize;
         std::string lText( lBuff, lBuff + lSize );
-        SetValue( i, lText );
+        PerformSetValue( i, lText );
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdTextProperty::ForceRawStorage( uint8_t *aBuffer, size_t aCount, uint32_t aSize )
+/// \fn void LeddarCore::LdTextProperty::PerformForceRawStorage( uint8_t *aBuffer, size_t aCount, uint32_t aSize )
 ///
 /// \brief  Force raw storage for non-editable properties
 ///
@@ -385,10 +437,9 @@ LeddarCore::LdTextProperty::SetRawStorage( uint8_t *aBuffer, size_t aCount, uint
 /// \author David Levy
 /// \date   March 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarCore::LdTextProperty::ForceRawStorage( uint8_t *aBuffer, size_t aCount, uint32_t aSize )
+void LeddarCore::LdTextProperty::PerformForceRawStorage( uint8_t *aBuffer, size_t aCount, uint32_t aSize )
 {
     LeddarUtils::LtScope<bool> lForceEdit( &mCheckEditable, true );
     mCheckEditable = false;
-    SetRawStorage( aBuffer, aCount, aSize );
+    PerformSetRawStorage( aBuffer, aCount, aSize );
 }

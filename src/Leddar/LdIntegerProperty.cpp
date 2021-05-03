@@ -13,12 +13,11 @@
 // *****************************************************************************
 
 #include "LdIntegerProperty.h"
-#include "LtStringUtils.h"
 #include "LtScope.h"
+#include "LtStringUtils.h"
 
 #include <cassert>
 #include <limits>
-
 
 // *****************************************************************************
 // Function: LdIntegerProperty::LdIntegerProperty
@@ -41,72 +40,91 @@
 ///
 /// \since   August 2014
 // *****************************************************************************
-
-LeddarCore::LdIntegerProperty::LdIntegerProperty( LdProperty::eCategories aCategory, uint32_t aFeatures, uint32_t aId,
-        uint16_t aDeviceId, uint32_t aUnitSize, const std::string &aDescription, const bool aSigned ) :
-    LdProperty( LdProperty::TYPE_INTEGER, aCategory, aFeatures, aId, aDeviceId, aUnitSize, aUnitSize, aDescription ),
-    mMinValueS( 0 ),
-    mMaxValueS( 0 ),
-    mMinValueU( 0 ),
-    mMaxValueU( 0 ),
-    mSigned( aSigned )
+LeddarCore::LdIntegerProperty::LdIntegerProperty( LdProperty::eCategories aCategory, uint32_t aFeatures, uint32_t aId, uint16_t aDeviceId, uint32_t aUnitSize,
+                                                  const std::string &aDescription, const bool aSigned )
+    : LdProperty( LdProperty::TYPE_INTEGER, aCategory, aFeatures, aId, aDeviceId, aUnitSize, aUnitSize, aDescription )
+    , mMinValueS( 0 )
+    , mMaxValueS( 0 )
+    , mMinValueU( 0 )
+    , mMaxValueU( 0 )
+    , mSigned( aSigned )
 {
     assert( ( aUnitSize == 1 ) || ( aUnitSize == 2 ) || ( aUnitSize == 4 ) || ( aUnitSize == 8 ) );
 
-    switch( UnitSize() )
+    switch( PerformUnitSize() )
     {
-        case 1:
-            if( mSigned )
-            {
-                mMaxValueS = std::numeric_limits<int8_t>::max();
-                mMinValueS = std::numeric_limits<int8_t>::min();
-            }
-            else
-                mMaxValueU = std::numeric_limits<uint8_t>::max();
+    case 1:
+        if( mSigned )
+        {
+            mMaxValueS = std::numeric_limits<int8_t>::max();
+            mMinValueS = std::numeric_limits<int8_t>::min();
+        }
+        else
+            mMaxValueU = std::numeric_limits<uint8_t>::max();
 
-            break;
+        break;
 
-        case 2:
-            if( mSigned )
-            {
-                mMaxValueS = std::numeric_limits<int16_t>::max();
-                mMinValueS = std::numeric_limits<int16_t>::min();
-            }
-            else
-                mMaxValueU = std::numeric_limits<uint16_t>::max();
+    case 2:
+        if( mSigned )
+        {
+            mMaxValueS = std::numeric_limits<int16_t>::max();
+            mMinValueS = std::numeric_limits<int16_t>::min();
+        }
+        else
+            mMaxValueU = std::numeric_limits<uint16_t>::max();
 
-            break;
+        break;
 
-        case 4:
-            if( mSigned )
-            {
-                mMaxValueS = std::numeric_limits<int32_t>::max();
-                mMinValueS = std::numeric_limits<int32_t>::min();
-            }
-            else
-                mMaxValueU = std::numeric_limits<uint32_t>::max();
+    case 4:
+        if( mSigned )
+        {
+            mMaxValueS = std::numeric_limits<int32_t>::max();
+            mMinValueS = std::numeric_limits<int32_t>::min();
+        }
+        else
+            mMaxValueU = std::numeric_limits<uint32_t>::max();
 
-            break;
+        break;
 
-        case 8:
-            if( mSigned )
-            {
-                mMaxValueS = std::numeric_limits<int64_t>::max();
-                mMinValueS = std::numeric_limits<int64_t>::min();
-            }
-            else
-                mMaxValueU = std::numeric_limits<uint64_t>::max();
+    case 8:
+        if( mSigned )
+        {
+            mMaxValueS = std::numeric_limits<int64_t>::max();
+            mMinValueS = std::numeric_limits<int64_t>::min();
+        }
+        else
+            mMaxValueU = std::numeric_limits<uint64_t>::max();
 
-            break;
+        break;
 
-        default:
-            throw std::out_of_range( "Invalid unit size." );
+    default:
+        throw std::out_of_range( "Invalid unit size." );
     }
-
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn int64_t LeddarCore::LdIntegerProperty::MinValue( void ) const
+/// \fn	LeddarCore::LdIntegerProperty::LdIntegerProperty( const LdIntegerProperty &aIntProperty )
+///
+/// \brief	Copy constructor
+///
+/// \author	Alain Ferron
+/// \date	December 2020
+///
+/// \param	aIntProperty	The int property.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+LeddarCore::LdIntegerProperty::LdIntegerProperty( const LdIntegerProperty &aIntProperty )
+    : LdProperty( aIntProperty )
+{
+    std::lock_guard<std::recursive_mutex> lock( aIntProperty.mPropertyMutex );
+    mMinValueS = aIntProperty.mMinValueS;
+    mMaxValueS = aIntProperty.mMaxValueS;
+    mMinValueU = aIntProperty.mMinValueU;
+    mMaxValueU = aIntProperty.mMaxValueU;
+    mSigned    = aIntProperty.mSigned;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn int64_t LeddarCore::LdIntegerProperty::PerformMinValue( void ) const
 ///
 /// \brief  Minimum value
 ///
@@ -118,14 +136,10 @@ LeddarCore::LdIntegerProperty::LdIntegerProperty( LdProperty::eCategories aCateg
 ///
 /// \return Minimum value.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-int64_t
-LeddarCore::LdIntegerProperty::MinValue( void ) const
-{
-    return MinValueT<int64_t>();
-}
+int64_t LeddarCore::LdIntegerProperty::PerformMinValue( void ) const { return PerformMinValueT<int64_t>(); }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn template<typename T> T LeddarCore::LdIntegerProperty::MinValueT( void ) const
+/// \fn template<typename T> T LeddarCore::LdIntegerProperty::PerformMinValueT( void ) const
 ///
 /// \brief  Minimum value templated on return type.
 ///
@@ -139,30 +153,29 @@ LeddarCore::LdIntegerProperty::MinValue( void ) const
 ///
 /// \return Minimum value of the property typed as T.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<typename T>
-T LeddarCore::LdIntegerProperty::MinValueT( void ) const
+template <typename T> T LeddarCore::LdIntegerProperty::PerformMinValueT( void ) const
 {
     if( mSigned )
     {
         if( mMinValueS < 0 && T( -1 ) > T( 0 ) ) // unsigned T
         {
-            throw std::out_of_range( "Value is negative with an unsigned return type. Use MinValueT<TYPE> with a signed TYPE. Property id: "
-                                     + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+            throw std::out_of_range( "Value is negative with an unsigned return type. Use MinValueT<TYPE> with a signed TYPE. Property id: " +
+                                     LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
         }
         else if( mMinValueS > 0 && T( -1 ) > T( 0 ) ) // unsigned T
         {
             if( static_cast<uint64_t>( mMinValueS ) > static_cast<uint64_t>( std::numeric_limits<T>::max() ) )
             {
                 throw std::out_of_range( "Return type is not big enough for the value. Use MinValueT<type> with a type big enough. Property id: " +
-                                         LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+                                         LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
             }
         }
-        else //signed T
+        else // signed T
         {
             if( mMinValueS > static_cast<int64_t>( std::numeric_limits<T>::max() ) || mMinValueS < static_cast<int64_t>( std::numeric_limits<T>::min() ) )
             {
                 throw std::out_of_range( "Return type is not big enough for the value. Use MinValueT<type> with a type big enough. Property id: " +
-                                         LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+                                         LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
             }
         }
 
@@ -173,25 +186,25 @@ T LeddarCore::LdIntegerProperty::MinValueT( void ) const
         if( mMinValueU > static_cast<uint64_t>( std::numeric_limits<T>::max() ) )
         {
             throw std::out_of_range( "Return type is not big enough for the value. Use MinValueT<type> with a type big enough. Property id: " +
-                                     LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+                                     LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
         }
 
         return static_cast<T>( mMinValueU );
     }
 }
 
-//Template specialisation so it can be defined in the cpp file
-template uint8_t LeddarCore::LdIntegerProperty::MinValueT( void ) const;
-template int8_t LeddarCore::LdIntegerProperty::MinValueT( void )const;
-template uint16_t LeddarCore::LdIntegerProperty::MinValueT( void ) const;
-template int16_t LeddarCore::LdIntegerProperty::MinValueT( void ) const;
-template uint32_t LeddarCore::LdIntegerProperty::MinValueT( void ) const;
-template int32_t LeddarCore::LdIntegerProperty::MinValueT( void ) const;
-template uint64_t LeddarCore::LdIntegerProperty::MinValueT( void ) const;
-template int64_t LeddarCore::LdIntegerProperty::MinValueT( void ) const;
+// Template specialisation so it can be defined in the cpp file
+template uint8_t LeddarCore::LdIntegerProperty::PerformMinValueT( void ) const;
+template int8_t LeddarCore::LdIntegerProperty::PerformMinValueT( void ) const;
+template uint16_t LeddarCore::LdIntegerProperty::PerformMinValueT( void ) const;
+template int16_t LeddarCore::LdIntegerProperty::PerformMinValueT( void ) const;
+template uint32_t LeddarCore::LdIntegerProperty::PerformMinValueT( void ) const;
+template int32_t LeddarCore::LdIntegerProperty::PerformMinValueT( void ) const;
+template uint64_t LeddarCore::LdIntegerProperty::PerformMinValueT( void ) const;
+template int64_t LeddarCore::LdIntegerProperty::PerformMinValueT( void ) const;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn int64_t LeddarCore::LdIntegerProperty::MaxValue( void ) const
+/// \fn int64_t LeddarCore::LdIntegerProperty::PerformMaxValue( void ) const
 ///
 /// \brief  Maximum value
 ///
@@ -202,14 +215,10 @@ template int64_t LeddarCore::LdIntegerProperty::MinValueT( void ) const;
 ///
 /// \return An int64_t.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-int64_t
-LeddarCore::LdIntegerProperty::MaxValue( void ) const
-{
-    return MaxValueT<int64_t>();
-}
+int64_t LeddarCore::LdIntegerProperty::PerformMaxValue( void ) const { return PerformMaxValueT<int64_t>(); }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn template<typename T> T LeddarCore::LdIntegerProperty::MaxValueT( void ) const
+/// \fn template<typename T> T LeddarCore::LdIntegerProperty::PerformMaxValueT( void ) const
 ///
 /// \brief  Maximum value templated on return type.
 ///
@@ -222,30 +231,29 @@ LeddarCore::LdIntegerProperty::MaxValue( void ) const
 ///
 /// \return Minimum Maximum of the property typed as T.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<typename T>
-T LeddarCore::LdIntegerProperty::MaxValueT( void ) const
+template <typename T> T LeddarCore::LdIntegerProperty::PerformMaxValueT( void ) const
 {
     if( mSigned )
     {
         if( mMaxValueS < 0 && T( -1 ) > T( 0 ) ) // unsigned T
         {
-            throw std::out_of_range( "Value is negative with an unsigned return type. Use MaxValueT<TYPE> with a signed TYPE. Property id: "
-                                     + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+            throw std::out_of_range( "Value is negative with an unsigned return type. Use MaxValueT<TYPE> with a signed TYPE. Property id: " +
+                                     LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
         }
         else if( mMaxValueS > 0 && T( -1 ) > T( 0 ) ) // unsigned T
         {
             if( static_cast<uint64_t>( mMaxValueS ) > static_cast<uint64_t>( std::numeric_limits<T>::max() ) )
             {
                 throw std::out_of_range( "Return type is not big enough for the value. Use MaxValueT<type> with a type big enough. Property id: " +
-                                         LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+                                         LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
             }
         }
-        else //signed T
+        else // signed T
         {
             if( mMaxValueS > static_cast<int64_t>( std::numeric_limits<T>::max() ) || mMaxValueS < static_cast<int64_t>( std::numeric_limits<T>::min() ) )
             {
                 throw std::out_of_range( "Return type is not big enough for the value. Use MaxValueT<type> with a type big enough. Property id: " +
-                                         LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+                                         LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
             }
         }
 
@@ -256,25 +264,25 @@ T LeddarCore::LdIntegerProperty::MaxValueT( void ) const
         if( mMaxValueU > static_cast<uint64_t>( std::numeric_limits<T>::max() ) )
         {
             throw std::out_of_range( "Return type is not big enough for the value. Use MaxValueT<type> with a type big enough. Property id: " +
-                                     LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+                                     LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
         }
 
         return static_cast<T>( mMaxValueU );
     }
 }
 
-//Template specialisation so it can be defined in the cpp file
-template uint8_t LeddarCore::LdIntegerProperty::MaxValueT( void ) const;
-template int8_t LeddarCore::LdIntegerProperty::MaxValueT( void )const;
-template uint16_t LeddarCore::LdIntegerProperty::MaxValueT( void ) const;
-template int16_t LeddarCore::LdIntegerProperty::MaxValueT( void ) const;
-template uint32_t LeddarCore::LdIntegerProperty::MaxValueT( void ) const;
-template int32_t LeddarCore::LdIntegerProperty::MaxValueT( void ) const;
-template uint64_t LeddarCore::LdIntegerProperty::MaxValueT( void ) const;
-template int64_t LeddarCore::LdIntegerProperty::MaxValueT( void ) const;
+// Template specialisation so it can be defined in the cpp file
+template uint8_t LeddarCore::LdIntegerProperty::PerformMaxValueT( void ) const;
+template int8_t LeddarCore::LdIntegerProperty::PerformMaxValueT( void ) const;
+template uint16_t LeddarCore::LdIntegerProperty::PerformMaxValueT( void ) const;
+template int16_t LeddarCore::LdIntegerProperty::PerformMaxValueT( void ) const;
+template uint32_t LeddarCore::LdIntegerProperty::PerformMaxValueT( void ) const;
+template int32_t LeddarCore::LdIntegerProperty::PerformMaxValueT( void ) const;
+template uint64_t LeddarCore::LdIntegerProperty::PerformMaxValueT( void ) const;
+template int64_t LeddarCore::LdIntegerProperty::PerformMaxValueT( void ) const;
 
 // *****************************************************************************
-// Function: LdIntegerProperty::SetLimits
+// Function: LdIntegerProperty::PerformSetLimits
 //
 /// \brief   Change the minimum and maximum allowed values.
 ///
@@ -290,20 +298,18 @@ template int64_t LeddarCore::LdIntegerProperty::MaxValueT( void ) const;
 ///
 /// \since   August 2014
 // *****************************************************************************
-void
-LeddarCore::LdIntegerProperty::SetLimits( int64_t aMin, int64_t aMax )
+void LeddarCore::LdIntegerProperty::PerformSetLimits( int64_t aMin, int64_t aMax )
 {
     if( aMin > aMax )
     {
-        throw std::invalid_argument( "SetLimits(): Invalid min value is higher than the max value. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 )
-                                     + "(" + GetDescription() + ")"
-                                     + " min: " + LeddarUtils::LtStringUtils::IntToString( aMin, 10 )
-                                     + +" max: " + LeddarUtils::LtStringUtils::IntToString( aMax, 10 ) );
+        throw std::invalid_argument( "SetLimits(): Invalid min value is higher than the max value. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) +
+                                     "(" + PerformGetDescription() + ")" + " min: " + LeddarUtils::LtStringUtils::IntToString( aMin, 10 ) +
+                                     +" max: " + LeddarUtils::LtStringUtils::IntToString( aMax, 10 ) );
     }
 
-    if( !mSigned && UnitSize() == 8 )
+    if( !mSigned && PerformUnitSize() == 8 )
     {
-        throw std::out_of_range( "Limit can be too big, use SetLimitsUnsigned() function instead. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "Limit can be too big, use SetLimitsUnsigned() function instead. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
     if( mSigned )
@@ -314,24 +320,24 @@ LeddarCore::LdIntegerProperty::SetLimits( int64_t aMin, int64_t aMax )
             mMaxValueS = aMax;
 
             // Clip current values
-            const size_t lCount = Count();
-            bool lValueChanged = false;
+            const size_t lCount = PerformCount();
+            bool lValueChanged  = false;
 
             if( lCount > 0 && IsInitialized() )
             {
                 for( size_t i = 0; i < lCount; ++i )
                 {
-                    int64_t lValue = Value( i );
+                    int64_t lValue = PerformValue( i );
 
                     if( lValue < mMinValueS )
                     {
                         lValueChanged = true;
-                        SetValue( i, mMinValueS );
+                        PerformSetValue( i, mMinValueS );
                     }
                     else if( lValue > mMaxValueS )
                     {
                         lValueChanged = true;
-                        SetValue( i, mMaxValueS );
+                        PerformSetValue( i, mMaxValueS );
                     }
                 }
             }
@@ -346,12 +352,12 @@ LeddarCore::LdIntegerProperty::SetLimits( int64_t aMin, int64_t aMax )
     }
     else
     {
-        SetLimitsUnsigned( static_cast<uint64_t>( aMin ), static_cast<uint64_t>( aMax ) );
+        PerformSetLimitsUnsigned( static_cast<uint64_t>( aMin ), static_cast<uint64_t>( aMax ) );
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdIntegerProperty::SetLimitsUnsigned( uint64_t aMin, uint64_t aMax )
+/// \fn void LeddarCore::LdIntegerProperty::PerformSetLimitsUnsigned( uint64_t aMin, uint64_t aMax )
 ///
 /// \brief  Sets limits for unsigned properties
 ///
@@ -364,19 +370,18 @@ LeddarCore::LdIntegerProperty::SetLimits( int64_t aMin, int64_t aMax )
 /// \param  aMin    The minimum.
 /// \param  aMax    The maximum.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void LeddarCore::LdIntegerProperty::SetLimitsUnsigned( uint64_t aMin, uint64_t aMax )
+void LeddarCore::LdIntegerProperty::PerformSetLimitsUnsigned( uint64_t aMin, uint64_t aMax )
 {
     if( aMin > aMax )
     {
-        throw std::invalid_argument( "SetLimits(): Invalid min value is higher than the max value. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 )
-                                     + "(" + GetDescription() + ")"
-                                     + " min: " + LeddarUtils::LtStringUtils::IntToString( aMin, 10 )
-                                     + +" max: " + LeddarUtils::LtStringUtils::IntToString( aMax, 10 ) );
+        throw std::invalid_argument( "SetLimits(): Invalid min value is higher than the max value. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) +
+                                     "(" + PerformGetDescription() + ")" + " min: " + LeddarUtils::LtStringUtils::IntToString( aMin, 10 ) +
+                                     +" max: " + LeddarUtils::LtStringUtils::IntToString( aMax, 10 ) );
     }
 
     if( mSigned )
     {
-        throw std::logic_error( "Use SetLimits() for signed properties. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::logic_error( "Use SetLimits() for signed properties. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
     if( ( aMin != mMinValueU ) || ( aMax != mMaxValueU ) )
@@ -385,24 +390,24 @@ void LeddarCore::LdIntegerProperty::SetLimitsUnsigned( uint64_t aMin, uint64_t a
         mMaxValueU = aMax;
 
         // Clip current values
-        const size_t lCount = Count();
-        bool lValueChanged = false;
+        const size_t lCount = PerformCount();
+        bool lValueChanged  = false;
 
         if( lCount > 0 && IsInitialized() )
         {
             for( size_t i = 0; i < lCount; ++i )
             {
-                uint64_t lValue = ValueT<uint64_t>( i );
+                uint64_t lValue = PerformValueT<uint64_t>( i );
 
                 if( lValue < mMinValueU )
                 {
                     lValueChanged = true;
-                    SetValueUnsigned( i, mMinValueU );
+                    PerformSetValueUnsigned( i, mMinValueU );
                 }
                 else if( lValue > mMaxValueU )
                 {
                     lValueChanged = true;
-                    SetValueUnsigned( i, mMaxValueU );
+                    PerformSetValueUnsigned( i, mMaxValueU );
                 }
             }
         }
@@ -416,9 +421,8 @@ void LeddarCore::LdIntegerProperty::SetLimitsUnsigned( uint64_t aMin, uint64_t a
     }
 }
 
-
 /// *****************************************************************************
-/// Function: LdIntegerProperty::SetValue
+/// Function: LdIntegerProperty::PerformSetValue
 ///
 /// \brief   Change the current value at the given index.
 ///
@@ -433,20 +437,19 @@ void LeddarCore::LdIntegerProperty::SetLimitsUnsigned( uint64_t aMin, uint64_t a
 ///
 /// \since   August 2014
 /// *****************************************************************************
-void
-LeddarCore::LdIntegerProperty::SetValue( size_t aIndex, int64_t aValue )
+void LeddarCore::LdIntegerProperty::PerformSetValue( size_t aIndex, int64_t aValue )
 {
     CanEdit();
 
     // Initialize the count to 1 on the fist SetValue if not done before.
-    if( Count() == 0 && aIndex == 0 )
+    if( PerformCount() == 0 && aIndex == 0 )
     {
-        SetCount( 1 );
+        PerformSetCount( 1 );
     }
 
-    if( aIndex >= Count() )
+    if( aIndex >= PerformCount() )
     {
-        throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
     if( mSigned )
@@ -454,58 +457,58 @@ LeddarCore::LdIntegerProperty::SetValue( size_t aIndex, int64_t aValue )
 
         if( ( aValue < mMinValueS ) || ( aValue > mMaxValueS ) )
         {
-            throw std::out_of_range( "Value out of range. Check min and max value. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+            throw std::out_of_range( "Value out of range. Check min and max value. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
         }
 
-        if( Stride() == 1 )
+        if( PerformStride() == 1 )
         {
             if( aValue > std::numeric_limits<int8_t>::max() || aValue < std::numeric_limits<int8_t>::min() )
             {
-                throw std::out_of_range( "Value is too big. Increase stride/unitsize. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+                throw std::out_of_range( "Value is too big. Increase stride/unitsize. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
             }
 
             SetValueT<int8_t>( aIndex, static_cast<int8_t>( aValue ) );
         }
-        else if( Stride() == 2 )
+        else if( PerformStride() == 2 )
         {
             if( aValue > std::numeric_limits<int16_t>::max() || aValue < std::numeric_limits<int16_t>::min() )
             {
-                throw std::out_of_range( "Value is too big. Increase stride/unitsize. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+                throw std::out_of_range( "Value is too big. Increase stride/unitsize. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
             }
 
             SetValueT<int16_t>( aIndex, static_cast<int16_t>( aValue ) );
         }
-        else if( Stride() == 4 )
+        else if( PerformStride() == 4 )
         {
             if( aValue > std::numeric_limits<int32_t>::max() || aValue < std::numeric_limits<int32_t>::min() )
             {
-                throw std::out_of_range( "Value is too big. Increase stride/unitsize. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+                throw std::out_of_range( "Value is too big. Increase stride/unitsize. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
             }
 
             SetValueT<int32_t>( aIndex, static_cast<int32_t>( aValue ) );
         }
-        else if( Stride() == 8 )
+        else if( PerformStride() == 8 )
         {
             SetValueT<int64_t>( aIndex, aValue );
         }
         else
         {
-            throw std::logic_error( "Invalid stride." ); //Unreachable case
+            throw std::logic_error( "Invalid stride." ); // Unreachable case
         }
     }
     else
     {
         if( aValue < 0 )
         {
-            throw std::out_of_range( "Negative value for unsigned property. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+            throw std::out_of_range( "Negative value for unsigned property. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
         }
 
-        SetValueUnsigned( aIndex, static_cast<uint64_t>( aValue ) );
+        PerformSetValueUnsigned( aIndex, static_cast<uint64_t>( aValue ) );
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdIntegerProperty::ForceValue( size_t aIndex, int64_t aValue )
+/// \fn void LeddarCore::LdIntegerProperty::PerformForceValue( size_t aIndex, int64_t aValue )
 ///
 /// \brief  Force the current value at the given index.
 ///
@@ -519,16 +522,15 @@ LeddarCore::LdIntegerProperty::SetValue( size_t aIndex, int64_t aValue )
 /// \author David Levy
 /// \date   March 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarCore::LdIntegerProperty::ForceValue( size_t aIndex, int64_t aValue )
+void LeddarCore::LdIntegerProperty::PerformForceValue( size_t aIndex, int64_t aValue )
 {
     LeddarUtils::LtScope<bool> lForceEdit( &mCheckEditable, true );
     mCheckEditable = false;
-    SetValue( aIndex, aValue );
+    PerformSetValue( aIndex, aValue );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdIntegerProperty::SetValueUnsigned( size_t aIndex, uint64_t aValue )
+/// \fn void LeddarCore::LdIntegerProperty::PerformSetValueUnsigned( size_t aIndex, uint64_t aValue )
 ///
 /// \brief  Sets value for unsigned properties
 ///
@@ -542,70 +544,70 @@ LeddarCore::LdIntegerProperty::ForceValue( size_t aIndex, int64_t aValue )
 /// \author David Levy
 /// \date   August 2018
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void LeddarCore::LdIntegerProperty::SetValueUnsigned( size_t aIndex, uint64_t aValue )
+void LeddarCore::LdIntegerProperty::PerformSetValueUnsigned( size_t aIndex, uint64_t aValue )
 {
     CanEdit();
 
     // Initialize the count to 1 on the fist SetValue if not done before.
-    if( Count() == 0 && aIndex == 0 )
+    if( PerformCount() == 0 && aIndex == 0 )
     {
-        SetCount( 1 );
+        PerformSetCount( 1 );
     }
 
-    if( aIndex >= Count() )
+    if( aIndex >= PerformCount() )
     {
-        throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
     if( mSigned )
     {
-        throw std::logic_error( "Use SetValue() for signed properties. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::logic_error( "Use SetValue() for signed properties. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
     if( ( aValue < mMinValueU ) || ( aValue > mMaxValueU ) )
     {
-        throw std::out_of_range( "Value out of range. Check min and max value. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "Value out of range. Check min and max value. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
-    if( Stride() == 1 )
+    if( PerformStride() == 1 )
     {
         if( aValue > std::numeric_limits<uint8_t>::max() )
         {
-            throw std::out_of_range( "Value is too big. Increase stride/unitsize. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+            throw std::out_of_range( "Value is too big. Increase stride/unitsize. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
         }
 
         SetValueT<uint8_t>( aIndex, static_cast<uint8_t>( aValue ) );
     }
-    else if( Stride() == 2 )
+    else if( PerformStride() == 2 )
     {
         if( aValue > std::numeric_limits<uint16_t>::max() )
         {
-            throw std::out_of_range( "Value is too big. Increase stride/unitsize. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+            throw std::out_of_range( "Value is too big. Increase stride/unitsize. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
         }
 
         SetValueT<uint16_t>( aIndex, static_cast<uint16_t>( aValue ) );
     }
-    else if( Stride() == 4 )
+    else if( PerformStride() == 4 )
     {
         if( aValue > std::numeric_limits<uint32_t>::max() )
         {
-            throw std::out_of_range( "Value is too big. Increase stride/unitsize. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+            throw std::out_of_range( "Value is too big. Increase stride/unitsize. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
         }
 
         SetValueT<uint32_t>( aIndex, static_cast<uint32_t>( aValue ) );
     }
-    else if( Stride() == 8 )
+    else if( PerformStride() == 8 )
     {
         SetValueT<uint64_t>( aIndex, aValue );
     }
     else
     {
-        throw std::logic_error( "Invalid stride." ); //Unreachable case
+        throw std::logic_error( "Invalid stride." ); // Unreachable case
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdIntegerProperty::ForceValueUnsigned( size_t aIndex, uint64_t aValue )
+/// \fn void LeddarCore::LdIntegerProperty::PerformForceValueUnsigned( size_t aIndex, uint64_t aValue )
 ///
 /// \brief  Force value unsigned
 ///
@@ -619,11 +621,11 @@ void LeddarCore::LdIntegerProperty::SetValueUnsigned( size_t aIndex, uint64_t aV
 /// \author David Levy
 /// \date   March 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void LeddarCore::LdIntegerProperty::ForceValueUnsigned( size_t aIndex, uint64_t aValue )
+void LeddarCore::LdIntegerProperty::PerformForceValueUnsigned( size_t aIndex, uint64_t aValue )
 {
     LeddarUtils::LtScope<bool> lForceEdit( &mCheckEditable, true );
     mCheckEditable = false;
-    SetValueUnsigned( aIndex, aValue );
+    PerformSetValueUnsigned( aIndex, aValue );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -641,14 +643,13 @@ void LeddarCore::LdIntegerProperty::ForceValueUnsigned( size_t aIndex, uint64_t 
 /// \param  aIndex  Zero-based index of the property to set.
 /// \param  aValue  The value to set.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<typename T>
-void LeddarCore::LdIntegerProperty::SetValueT( size_t aIndex, T aValue )
+template <typename T> void LeddarCore::LdIntegerProperty::SetValueT( size_t aIndex, T aValue )
 {
     CanEdit();
 
-    if( sizeof( T ) != Stride() )
+    if( sizeof( T ) != PerformStride() )
     {
-        throw std::logic_error( "Template size does not correspond to stride. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::logic_error( "Template size does not correspond to stride. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
     T *lValues = reinterpret_cast<T *>( Storage() );
@@ -661,8 +662,30 @@ void LeddarCore::LdIntegerProperty::SetValueT( size_t aIndex, T aValue )
     }
 }
 
+template void LeddarCore::LdIntegerProperty::SetValueT( size_t aIndex, uint8_t aValue );
+template void LeddarCore::LdIntegerProperty::SetValueT( size_t aIndex, int8_t aValue );
+template void LeddarCore::LdIntegerProperty::SetValueT( size_t aIndex, uint16_t aValue );
+template void LeddarCore::LdIntegerProperty::SetValueT( size_t aIndex, int16_t aValue );
+template void LeddarCore::LdIntegerProperty::SetValueT( size_t aIndex, uint32_t aValue );
+template void LeddarCore::LdIntegerProperty::SetValueT( size_t aIndex, int32_t aValue );
+template void LeddarCore::LdIntegerProperty::SetValueT( size_t aIndex, uint64_t aValue );
+template void LeddarCore::LdIntegerProperty::SetValueT( size_t aIndex, int64_t aValue );
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn	LdProperty *LeddarCore::LdIntegerProperty::PerformClone()
+///
+/// \brief	Performs the clone action
+///
+/// \returns	Pointer to a LdProperty.
+///
+/// \author	Alain Ferron
+/// \date	March 2021
+////////////////////////////////////////////////////////////////////////////////////////////////////
+LeddarCore::LdProperty *LeddarCore::LdIntegerProperty::PerformClone() { return new LdIntegerProperty( *this ); }
+
+
 // *****************************************************************************
-// Function: LdIntegerProperty::GetStringValue
+// Function: LdIntegerProperty::PerformGetStringValue
 //
 /// \brief   Display the value in string format
 ///
@@ -670,24 +693,76 @@ void LeddarCore::LdIntegerProperty::SetValueT( size_t aIndex, T aValue )
 ///
 /// \since   February 2016
 // *****************************************************************************
-
-std::string
-LeddarCore::LdIntegerProperty::GetStringValue( size_t aIndex ) const
+std::string LeddarCore::LdIntegerProperty::PerformGetStringValue( size_t aIndex ) const
 {
     if( mSigned )
-        return LeddarUtils::LtStringUtils::IntToString( Value( aIndex ) );
+        return LeddarUtils::LtStringUtils::IntToString( PerformValue( aIndex ) );
     else
-        return LeddarUtils::LtStringUtils::IntToString( ValueT<uint64_t>( aIndex ) );
+        return LeddarUtils::LtStringUtils::IntToString( PerformValueT<uint64_t>( aIndex ) );
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LeddarCore::LdIntegerProperty::PerformSetAnyValue( size_t aIndex, const boost::any &aNewValue )
+///
+/// \brief  Set the property value
+///
+/// \author David Lévy
+/// \date   February 2021
+///
+/// \exception  std::invalid_argument   Thrown when an invalid argument error condition occurs.
+///
+/// \param  aIndex      Zero-based index of the.
+/// \param  aNewValue   The new value.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void LeddarCore::LdIntegerProperty::PerformSetAnyValue( size_t aIndex, const boost::any &aNewValue )
+{
+    if( aNewValue.type() == typeid( int ) )
+    {
+        PerformSetValue( aIndex, boost::any_cast<int>( aNewValue ) );
+    }
+    else if( aNewValue.type() == typeid( uint8_t ) )
+    {
+        PerformSetValueUnsigned( aIndex, boost::any_cast<uint8_t>( aNewValue ) );
+    }
+    else if( aNewValue.type() == typeid( uint16_t ) )
+    {
+        PerformSetValueUnsigned( aIndex, boost::any_cast<uint16_t>( aNewValue ) );
+    }
+    else if( aNewValue.type() == typeid( uint32_t ) )
+    {
+        PerformSetValueUnsigned( aIndex, boost::any_cast<uint32_t>( aNewValue ) );
+    }
+    else if( aNewValue.type() == typeid( uint64_t ) )
+    {
+        PerformSetValueUnsigned( aIndex, boost::any_cast<uint64_t>( aNewValue ) );
+    }
+    else if( aNewValue.type() == typeid( int8_t ) )
+    {
+        PerformSetValue( aIndex, boost::any_cast<int8_t>( aNewValue ) );
+    }
+    else if( aNewValue.type() == typeid( int16_t ) )
+    {
+        PerformSetValue( aIndex, boost::any_cast<int16_t>( aNewValue ) );
+    }
+    else if( aNewValue.type() == typeid( int32_t ) )
+    {
+        PerformSetValue( aIndex, boost::any_cast<int32_t>( aNewValue ) );
+    }
+    else if( aNewValue.type() == typeid( int64_t ) )
+    {
+        PerformSetValue( aIndex, boost::any_cast<int64_t>( aNewValue ) );
+    }
+    else
+        throw std::invalid_argument( "Invalid value type" );
+}
 
 // *****************************************************************************
-// Function: LdIntegerProperty::SetStringValue
+// Function: LdIntegerProperty::PerformSetStringValue
 //
 /// \brief   Property writer for the value as text.
 ///
-/// See SetStringValue with 3 arguments for more information.
-/// This function is to be compliant with the virtual SetStringValue function.
+/// See PerformSetStringValue with 3 arguments for more information.
+/// This function is to be compliant with the virtual PerformSetStringValue function.
 ///
 /// \param   aIndex  Index of value to write.
 /// \param   aValue  The new value.
@@ -700,14 +775,10 @@ LeddarCore::LdIntegerProperty::GetStringValue( size_t aIndex ) const
 /// \since   January 2016
 // *****************************************************************************
 
-void
-LeddarCore::LdIntegerProperty::SetStringValue( size_t aIndex, const std::string &aValue )
-{
-    SetStringValue( aIndex, aValue, 10 );
-}
+void LeddarCore::LdIntegerProperty::PerformSetStringValue( size_t aIndex, const std::string &aValue ) { PerformSetStringValue( aIndex, aValue, 10 ); }
 
 // *****************************************************************************
-// Function: LdIntegerProperty::SetStringValue
+// Function: LdIntegerProperty::PerformSetStringValue
 //
 /// \brief   Property writer for the value as text.
 ///
@@ -728,23 +799,22 @@ LeddarCore::LdIntegerProperty::SetStringValue( size_t aIndex, const std::string 
 ///
 /// \since   January 2016
 // *****************************************************************************
-void
-LeddarCore::LdIntegerProperty::SetStringValue( size_t aIndex, const std::string &aValue, uint8_t aBase )
+void LeddarCore::LdIntegerProperty::PerformSetStringValue( size_t aIndex, const std::string &aValue, uint8_t aBase )
 {
     CanEdit();
     std::string lCurrent = "";
 
     if( IsInitialized() )
-        lCurrent = GetStringValue( aIndex );
+        lCurrent = PerformGetStringValue( aIndex );
 
     if( !IsInitialized() || lCurrent != aValue )
     {
-        SetValue( aIndex, LeddarUtils::LtStringUtils::StringToInt( aValue, aBase ) );
+        PerformSetValue( aIndex, LeddarUtils::LtStringUtils::StringToInt( aValue, aBase ) );
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdIntegerProperty::ForceStringValue( size_t aIndex, const std::string &aValue, uint8_t aBase )
+/// \fn void LeddarCore::LdIntegerProperty::PerformForceStringValue( size_t aIndex, const std::string &aValue, uint8_t aBase )
 ///
 /// \brief   Property writer for the value as text.
 ///
@@ -764,16 +834,15 @@ LeddarCore::LdIntegerProperty::SetStringValue( size_t aIndex, const std::string 
 /// \author David Levy
 /// \date   March 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarCore::LdIntegerProperty::ForceStringValue( size_t aIndex, const std::string &aValue, uint8_t aBase )
+void LeddarCore::LdIntegerProperty::PerformForceStringValue( size_t aIndex, const std::string &aValue, uint8_t aBase )
 {
     LeddarUtils::LtScope<bool> lForceEdit( &mCheckEditable, true );
     mCheckEditable = false;
-    SetStringValue( aIndex, aValue, aBase );
+    PerformSetStringValue( aIndex, aValue, aBase );
 }
 
 // *****************************************************************************
-// Function: LdIntegerProperty::Value
+// Function: LdIntegerProperty::PerformValue
 //
 /// \brief   Return the property value
 ///
@@ -787,14 +856,10 @@ LeddarCore::LdIntegerProperty::ForceStringValue( size_t aIndex, const std::strin
 ///
 /// \since   August 2018
 // *****************************************************************************
-int64_t
-LeddarCore::LdIntegerProperty::Value( size_t aIndex ) const
-{
-    return ValueT<int64_t>( aIndex );
-}
+int64_t LeddarCore::LdIntegerProperty::PerformValue( size_t aIndex ) const { return PerformValueT<int64_t>( aIndex ); }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn template<typename T> T LeddarCore::LdIntegerProperty::ValueT( size_t aIndex ) const
+/// \fn template<typename T> T LeddarCore::LdIntegerProperty::PerformValueT( size_t aIndex ) const
 ///
 /// \brief  Return the property value as the requested type
 ///
@@ -812,33 +877,32 @@ LeddarCore::LdIntegerProperty::Value( size_t aIndex ) const
 /// \return A T.
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<typename T>
-T LeddarCore::LdIntegerProperty::ValueT( size_t aIndex ) const
+template <typename T> T LeddarCore::LdIntegerProperty::PerformValueT( size_t aIndex ) const
 {
     VerifyInitialization();
 
-    if( aIndex >= Count() )
+    if( aIndex >= PerformCount() )
     {
-        throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
     if( mSigned )
     {
         int64_t lValue = 0;
 
-        if( Stride() == 1 )
+        if( PerformStride() == 1 )
         {
             lValue = reinterpret_cast<const int8_t *>( CStorage() )[aIndex];
         }
-        else if( Stride() == 2 )
+        else if( PerformStride() == 2 )
         {
             lValue = reinterpret_cast<const int16_t *>( CStorage() )[aIndex];
         }
-        else if( Stride() == 4 )
+        else if( PerformStride() == 4 )
         {
             lValue = reinterpret_cast<const int32_t *>( CStorage() )[aIndex];
         }
-        else if( Stride() == 8 )
+        else if( PerformStride() == 8 )
         {
             lValue = reinterpret_cast<const int64_t *>( CStorage() )[aIndex];
         }
@@ -849,23 +913,23 @@ T LeddarCore::LdIntegerProperty::ValueT( size_t aIndex ) const
 
         if( lValue < 0 && T( -1 ) > T( 0 ) ) // unsigned T
         {
-            throw std::out_of_range( "Value is negative with an unsigned return type. Use ValueT<TYPE> with a signed TYPE. Property id: "
-                                     + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+            throw std::out_of_range( "Value is negative with an unsigned return type. Use ValueT<TYPE> with a signed TYPE. Property id: " +
+                                     LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
         }
         else if( lValue >= 0 && T( -1 ) > T( 0 ) ) // unsigned T
         {
             if( static_cast<uint64_t>( lValue ) > static_cast<uint64_t>( std::numeric_limits<T>::max() ) )
             {
-                throw std::out_of_range( "Value is bigger than what the return type can hold. Use ValueT<TYPE> with a TYPE big enough. Property id: "
-                                         + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+                throw std::out_of_range( "Value is bigger than what the return type can hold. Use ValueT<TYPE> with a TYPE big enough. Property id: " +
+                                         LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
             }
         }
         else if( T( -1 ) < T( 0 ) ) // signed T
         {
             if( lValue > static_cast<int64_t>( std::numeric_limits<T>::max() ) || lValue < static_cast<int64_t>( std::numeric_limits<T>::min() ) )
             {
-                throw std::out_of_range( "Value is bigger than what the return type can hold. Use ValueT<TYPE> with a TYPE big enough. Property id: "
-                                         + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+                throw std::out_of_range( "Value is bigger than what the return type can hold. Use ValueT<TYPE> with a TYPE big enough. Property id: " +
+                                         LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
             }
         }
         else
@@ -879,19 +943,19 @@ T LeddarCore::LdIntegerProperty::ValueT( size_t aIndex ) const
     {
         uint64_t lValue = 0;
 
-        if( Stride() == 1 )
+        if( PerformStride() == 1 )
         {
             lValue = reinterpret_cast<const uint8_t *>( CStorage() )[aIndex];
         }
-        else if( Stride() == 2 )
+        else if( PerformStride() == 2 )
         {
             lValue = reinterpret_cast<const uint16_t *>( CStorage() )[aIndex];
         }
-        else if( Stride() == 4 )
+        else if( PerformStride() == 4 )
         {
             lValue = reinterpret_cast<const uint32_t *>( CStorage() )[aIndex];
         }
-        else if( Stride() == 8 )
+        else if( PerformStride() == 8 )
         {
             lValue = reinterpret_cast<const uint64_t *>( CStorage() )[aIndex];
         }
@@ -902,20 +966,22 @@ T LeddarCore::LdIntegerProperty::ValueT( size_t aIndex ) const
 
         if( lValue > static_cast<uint64_t>( std::numeric_limits<T>::max() ) )
         {
-            throw std::out_of_range( "Value is bigger than what the return type can hold. Use ValueT<TYPE> with a TYPE big enough. Property id: "
-                                     + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+            throw std::out_of_range( "Value is bigger than what the return type can hold. Use ValueT<TYPE> with a TYPE big enough. Property id: " +
+                                     LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
         }
 
         return static_cast<T>( lValue );
     }
 }
 
-//Template specialisation so it can be defined in the cpp file
-template uint8_t LeddarCore::LdIntegerProperty::ValueT( size_t aIndex ) const;
-template int8_t LeddarCore::LdIntegerProperty::ValueT( size_t aIndex ) const;
-template uint16_t LeddarCore::LdIntegerProperty::ValueT( size_t aIndex ) const;
-template int16_t LeddarCore::LdIntegerProperty::ValueT( size_t aIndex ) const;
-template uint32_t LeddarCore::LdIntegerProperty::ValueT( size_t aIndex ) const;
-template int32_t LeddarCore::LdIntegerProperty::ValueT( size_t aIndex ) const;
-template uint64_t LeddarCore::LdIntegerProperty::ValueT( size_t aIndex ) const;
-template int64_t LeddarCore::LdIntegerProperty::ValueT( size_t aIndex ) const;
+// Template specialisation so it can be defined in the cpp file
+template uint8_t LeddarCore::LdIntegerProperty::PerformValueT( size_t aIndex ) const;
+template int8_t LeddarCore::LdIntegerProperty::PerformValueT( size_t aIndex ) const;
+template uint16_t LeddarCore::LdIntegerProperty::PerformValueT( size_t aIndex ) const;
+template int16_t LeddarCore::LdIntegerProperty::PerformValueT( size_t aIndex ) const;
+template uint32_t LeddarCore::LdIntegerProperty::PerformValueT( size_t aIndex ) const;
+template int32_t LeddarCore::LdIntegerProperty::PerformValueT( size_t aIndex ) const;
+template uint64_t LeddarCore::LdIntegerProperty::PerformValueT( size_t aIndex ) const;
+template int64_t LeddarCore::LdIntegerProperty::PerformValueT( size_t aIndex ) const;
+
+

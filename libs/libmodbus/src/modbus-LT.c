@@ -649,3 +649,52 @@ int modbus_receive_raw_confirmation_0x41_0x6A_M16( modbus_t *ctx, uint8_t *rsp )
     return receive_msg_LT( ctx, rsp, MSG_CONFIRMATION_0x41_0x6A_M16, 0 );
 }
 
+/*
+Reads data (max max_adu_length) from handle until it times out
+*/
+int modbus_receive_raw_data_timeoutEnd( modbus_t *ctx, uint8_t *rsp )
+{
+    if( ctx == NULL )
+    {
+        errno = EINVAL;
+        return -1;
+    }
+
+    int rc;
+    fd_set rfds;
+    struct timeval tv;
+    struct timeval *p_tv;
+    int length_to_read;
+    int msg_length = 0;
+    _step_t step;
+
+    /* Add a file descriptor to the set */
+    FD_ZERO( &rfds );
+    FD_SET( ctx->s, &rfds );
+
+    /* We need to analyse the message step by step.  At the first step, we want
+     * to reach the function code because all packets contain this
+     * information. */
+    step           = _STEP_FUNCTION;
+    length_to_read = ctx->backend->header_length + 1;
+
+    tv.tv_sec  = ctx->response_timeout.tv_sec;
+    tv.tv_usec = ctx->response_timeout.tv_usec;
+    p_tv       = &tv;
+
+    rc = ctx->backend->select( ctx, &rfds, p_tv, ctx->backend->max_adu_length - 1 );
+    rc = ctx->backend->recv( ctx, rsp, ctx->backend->max_adu_length - 1 );
+
+    if( ctx->debug )
+        printf( "\n" );
+
+    return rc;
+}
+
+int modbus_send_raw_data( modbus_t *ctx, uint8_t *data, int length, int crc )
+{
+    int lNewSize = length;
+    if( crc != 0 )
+        lNewSize = ctx->backend->send_msg_pre( data, length ); // Compute crc and add it at the end of the data
+    return ctx->backend->send( ctx, data, lNewSize );
+}

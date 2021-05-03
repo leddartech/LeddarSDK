@@ -130,7 +130,7 @@ void LeddarDevice::LdSensorM16Can::InitProperties()
     mProperties->GetEnumProperty( LdPropertyIds::ID_COM_CAN_PORT_ECHOES_RES )->AddEnumPair( 1000, "mm" );
     mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_SEGMENT_ENABLE_COM,
                               LtComCanBus::M16_ID_SEGMENT_ENABLE_COM, 2, "Segment enable (communication)" ) );
-    GetProperties()->GetBitProperty( LdPropertyIds::ID_SEGMENT_ENABLE_COM )->SetLimit( ( 1 << GetProperties()->GetIntegerProperty( LdPropertyIds::ID_HSEGMENT )->Value() ) - 1 );
+    GetProperties()->GetBitProperty( LdPropertyIds::ID_SEGMENT_ENABLE_COM )->SetLimit( ( uint64_t(1) << GetProperties()->GetIntegerProperty( LdPropertyIds::ID_HSEGMENT )->ValueT<uint8_t>() ) - 1 );
     mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_CAN_PORT_BAUDRATE, 0, 2, true,
                               "Baud rate (in kbps)" ) );
     mProperties->GetEnumProperty( LdPropertyIds::ID_COM_CAN_PORT_BAUDRATE )->AddEnumPair( 0, "1000 kbps" );
@@ -141,8 +141,11 @@ void LeddarDevice::LdSensorM16Can::InitProperties()
     mProperties->GetEnumProperty( LdPropertyIds::ID_COM_CAN_PORT_BAUDRATE )->AddEnumPair( 5, "50 kbps" );
     mProperties->GetEnumProperty( LdPropertyIds::ID_COM_CAN_PORT_BAUDRATE )->AddEnumPair( 6, "20 kbps" );
     mProperties->GetEnumProperty( LdPropertyIds::ID_COM_CAN_PORT_BAUDRATE )->AddEnumPair( 7, "10 kbps" );
-    mProperties->AddProperty( new LdBoolProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_CAN_PORT_FRAME_FORMAT, 0,
-                              "Frame format - false = standard" ) );
+    mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_CAN_PORT_FRAME_FORMAT, 0, 1, true,
+                              "Frame format" ) );
+    LdEnumProperty *lCANFrameFormat = GetProperties()->GetEnumProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_FRAME_FORMAT );
+    lCANFrameFormat->AddEnumPair( 0, "Standard" );
+    lCANFrameFormat->AddEnumPair( 1, "Extended" );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_CAN_PORT_TX_MSG_BASE_ID, 0, 4,
                               "Tx base id" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_CAN_PORT_RX_MSG_BASE_ID, 0, 4,
@@ -159,11 +162,13 @@ void LeddarDevice::LdSensorM16Can::InitProperties()
     mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_SEGMENT_ENABLE,
                               LtComCanBus::M16_ID_SEGMENT_ENABLE, 2,
                               "Enable / disable selected channels pair on the device (enable = 0)" ) );
-    GetProperties()->GetBitProperty( LdPropertyIds::ID_SEGMENT_ENABLE )->SetLimit( ( 1 << GetProperties()->GetIntegerProperty( LdPropertyIds::ID_HSEGMENT )->Value() ) - 1 );
+    GetProperties()->GetBitProperty( LdPropertyIds::ID_SEGMENT_ENABLE )->SetLimit( ( 1 << GetProperties()->GetIntegerProperty( LdPropertyIds::ID_HSEGMENT )->ValueT<uint8_t>() ) - 1 );
 
     GetResultStates()->GetProperties()->AddProperty( new LdFloatProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_RS_SYSTEM_TEMP, 0, 4, 0, 2,
             "System Temperature" ) );
     GetResultStates()->Init( LtComCanBus::M16_TEMPERATURE_SCALE, 0 );
+
+    GetResultEchoes()->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_CURRENT_LED_INTENSITY, 0, 1, "Current Led power" ) );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -266,7 +271,7 @@ void LeddarDevice::LdSensorM16Can::GetConfig( void )
     //Can port configuration 1
     lConfigData = mProtocol->GetValue( LtComCanBus::M16_CMD_GET_HOLDING_DATA, LtComCanBus::M16_ID_CAN_PORT_CONF1 );
     mProperties->GetEnumProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_BAUDRATE )->SetValue( 0, lConfigData.mFrame.Cmd.mArg[0] );
-    mProperties->GetBoolProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_FRAME_FORMAT )->SetValue( 0, ( lConfigData.mFrame.Cmd.mArg[1] != 0 ) );
+    mProperties->GetEnumProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_FRAME_FORMAT )->SetValue( 0, lConfigData.mFrame.Cmd.mArg[1] );
     mProperties->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_TX_MSG_BASE_ID )->SetValue( 0, *reinterpret_cast<uint32_t *>( &lConfigData.mFrame.Cmd.mArg[2] ) );
 
     //Can port configuration 2
@@ -437,13 +442,13 @@ void LeddarDevice::LdSensorM16Can::SetConfig( void )
         lConfigData.mFrame.Cmd.mCmd = LtComCanBus::M16_CMD_SET_HOLDING_DATA;
         lConfigData.mFrame.Cmd.mSubCmd = LtComCanBus::M16_ID_CAN_PORT_CONF1;
         lConfigData.mFrame.Cmd.mArg[0] = mProperties->GetEnumProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_BAUDRATE )->Value( 0 );
-        lConfigData.mFrame.Cmd.mArg[1] = mProperties->GetBoolProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_FRAME_FORMAT )->Value( 0 );
+        lConfigData.mFrame.Cmd.mArg[1] = mProperties->GetEnumProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_FRAME_FORMAT )->ValueT<uint8_t>( 0 );
         *reinterpret_cast<uint32_t *>( &lConfigData.mFrame.Cmd.mArg[2] ) = mProperties->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_TX_MSG_BASE_ID )->ValueT<uint32_t>
                 ( 0 );
 
         mProtocol->SetValue( lConfigData );
         mProperties->GetEnumProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_BAUDRATE )->SetClean();
-        mProperties->GetBoolProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_FRAME_FORMAT )->SetClean();
+        mProperties->GetEnumProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_FRAME_FORMAT )->SetClean();
         mProperties->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_CAN_PORT_TX_MSG_BASE_ID )->SetClean();
     }
 
@@ -680,7 +685,7 @@ bool LeddarDevice::LdSensorM16Can::GetEchoes( void )
     uint32_t lTimestamp = *reinterpret_cast<uint32_t *>( &lNextData.mFrame.Cmd.mArg[2] );
 
     std::vector<LeddarConnection::LdEcho> *lEchoes = mEchoes.GetEchoes( LeddarConnection::B_SET );
-    mEchoes.Lock( LeddarConnection::B_SET );
+    auto lLock = mEchoes.GetUniqueLock(LeddarConnection::B_SET);
     mEchoes.SetEchoCount( lEchoCount );
 
     uint16_t lTimeout = 500;
@@ -743,13 +748,12 @@ bool LeddarDevice::LdSensorM16Can::GetEchoes( void )
 
     if( i != lEchoCount )
     {
-        mEchoes.UnLock( LeddarConnection::B_SET );
         throw std::runtime_error( "Missing echoes" );
     }
 
-    mEchoes.SetCurrentLedPower( lCrurrentLedPower );
+    mEchoes.SetPropertyValue( LeddarCore::LdPropertyIds::ID_CURRENT_LED_INTENSITY, 0, lCrurrentLedPower );
     mEchoes.SetTimestamp( lTimestamp );
-    mEchoes.UnLock( LeddarConnection::B_SET );
+    lLock.unlock();
 
     if( lTimestamp != mLastTimestamp ) // Trigg callbacks only if its a new frame
     {

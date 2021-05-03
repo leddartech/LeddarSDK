@@ -22,13 +22,11 @@
 #include "LdSensorVu8Can.h"
 #include "LdSensorOneModbus.h"
 #include "LdSensorM16.h"
-#include "LdSensorM16Laser.h"
 #include "LdSensorIS16.h"
 #include "LdSensorM16Modbus.h"
 #include "LdSensorM16Can.h"
 #include "LdSensorPixell.h"
 #include "LdSensorDTec.h"
-
 #include "comm/LtComLeddarTechPublic.h"
 
 using namespace LeddarDevice;
@@ -124,37 +122,12 @@ LdSensor *LeddarDevice::LdDeviceFactory::CreateSensorFromDeviceType( uint32_t aD
 #endif //BUILD_ONE && BUILD_MODBUS
 #if defined(BUILD_M16)
 
-    if( aDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_M16_EVALKIT || aDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_M16 )
+    if( aDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_M16_EVALKIT || aDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_M16 || aDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_M16_LASER )
     {
 #if defined(BUILD_USB)
 
         if( !aConnection || aConnection->GetConnectionInfo()->GetType() == LeddarConnection::LdConnectionInfo::CT_USB ) //!aConnection for recording TODO : enlever le !aConnection
             return new LdSensorM16( aConnection );
-
-#endif //BUILD_USB
-#if defined(BUILD_MODBUS)
-
-        if( aConnection && aConnection->GetConnectionInfo()->GetType() == LeddarConnection::LdConnectionInfo::CT_LIB_MODBUS )
-        {
-            return new LdSensorM16Modbus( aConnection );
-        }
-
-#endif //BUILD_MODBUS
-#ifdef BUILD_CANBUS_KOMODO
-
-        if( aConnection && aConnection->GetConnectionInfo()->GetType() == LeddarConnection::LdConnectionInfo::CT_CAN_KOMODO )
-        {
-            return new LeddarDevice::LdSensorM16Can( aConnection );
-        }
-
-#endif //BUILD_CANBUS_KOMODO
-    }
-    else if( aDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_M16_LASER )
-    {
-#if defined(BUILD_USB)
-
-        if( !aConnection || aConnection->GetConnectionInfo()->GetType() == LeddarConnection::LdConnectionInfo::CT_USB ) //!aConnection for recording TODO : enlever le !aConnection
-            return new LdSensorM16Laser( aConnection );
 
 #endif //BUILD_USB
 #if defined(BUILD_MODBUS)
@@ -212,6 +185,9 @@ LdSensor *LeddarDevice::LdDeviceFactory::CreateSensorFromDeviceType( uint32_t aD
     }
 
 #endif //BUILD_AUTO && BUILD_ETHERNET
+
+
+
 #if defined(BUILD_ETHERNET) && defined(BUILD_DTEC)
 
     if( LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_DTEC == aDeviceType || LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_SIDETEC_M == aDeviceType ||
@@ -298,35 +274,12 @@ LdSensor *LeddarDevice::LdDeviceFactory::CreateSensorForRecording( uint32_t aDev
 #endif
 #if defined(BUILD_M16)
 
-    if( aDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_M16_EVALKIT || aDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_M16 )
+    if( aDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_M16_EVALKIT || aDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_M16 || aDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_M16_LASER )
     {
 #if defined(BUILD_USB)
 
         if( aProtocol == LeddarDevice::LdSensor::P_USB )
             return new LdSensorM16( nullptr );
-
-#endif
-#if defined(BUILD_MODBUS)
-
-        if( aProtocol == LeddarDevice::LdSensor::P_MODBUS )
-            return new LdSensorM16Modbus( nullptr );
-
-#endif
-#ifdef BUILD_CANBUS
-
-        if( aProtocol == LeddarDevice::LdSensor::P_CAN )
-        {
-            return new LeddarDevice::LdSensorM16Can( nullptr );
-        }
-
-#endif
-    }
-    else if( aDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_M16_LASER )
-    {
-#if defined(BUILD_USB)
-
-        if( aProtocol == LeddarDevice::LdSensor::P_USB )
-            return new LdSensorM16Laser( nullptr );
 
 #endif
 #if defined(BUILD_MODBUS)
@@ -380,6 +333,8 @@ LdSensor *LeddarDevice::LdDeviceFactory::CreateSensorForRecording( uint32_t aDev
     }
 
 #endif //BUILD_AUTO && BUILD_ETHERNET
+
+
 #if defined(BUILD_ETHERNET) && defined(BUILD_DTEC)
 
     if( ( LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_DTEC == aDeviceType || LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_SIDETEC_M == aDeviceType ||

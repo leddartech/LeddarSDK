@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import leddar
-from leddar_utils import clouds
 import rospy
 import math
 import numpy as np
@@ -50,21 +49,15 @@ if __name__ == '__main__':
     specs.v, specs.h, = [int(dev.get_property_value(x)) for x in ["ID_VERTICAL_CHANNEL_NBR", "ID_HORIZONTAL_CHANNEL_NBR"]]
     specs.v_fov, specs.h_fov = [float(dev.get_property_value(x)) for x in ["ID_VFOV", "ID_HFOV"]]
 
-    directions = clouds.directions(clouds.angles(specs.v, specs.h, specs.v_fov, specs.h_fov, np.float32))
-    quad_directions = clouds.quad_directions(specs.v, specs.h, specs.v_fov, specs.h_fov, np.float32)
-
     pub_specs = rospy.Publisher('specs', Specs, queue_size=100)
     pub_specs.publish(specs)
     pub_cloud = rospy.Publisher('scan_cloud', PointCloud2, queue_size=100)
     pub_raw = rospy.Publisher('scan_raw', PointCloud2, queue_size=100)
     frame_id = rospy.get_param('~frame_id', 'map')
-    
     def echoes_callback(echo):
         echo['data'] = echo['data'][np.bitwise_and(echo['data']['flags'], 0x01).astype(np.bool)] #keep valid echoes only
         indices, flags, distances, amplitudes, x, y, z = [echo['data'][x] for x in ['indices', 'flags', 'distances', 'amplitudes', 'x', 'y', 'z']]
         stamp = rospy.Time.now()
-        #rospy.loginfo('pixell: echoes callback')
-
         if pub_raw.get_num_connections() > 0:
             pub_raw.publish(ros_numpy.msgify(PointCloud2, echo['data'], stamp, frame_id))
 

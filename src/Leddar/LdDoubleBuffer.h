@@ -11,16 +11,41 @@
 #pragma once
 
 #include "LtDefines.h"
-#include "LdIntegerProperty.h"
+
+#include "LdPropertiesContainer.h"
+
+#include <memory>
+#include <mutex>
 
 namespace LeddarConnection
 {
-    typedef struct DataBuffer
+    template <class T> class LdDoubleBuffer; // forward declaration for friend
+
+    template <class T> struct DataBuffer
     {
-        DataBuffer() : mBuffer( nullptr ), mBusy( false ) {}
-        void        *mBuffer; //Actual data buffer. The class doesnt know the type, so the class that uses it does all actual manipulation (other than the swap)
-        bool        mBusy;
-    } DataBuffer;
+        T *Buffer() { return mBuffer.get(); }
+        const T *Buffer() const { return mBuffer.get(); }
+        const LeddarCore::LdPropertiesContainer *GetProperties() const { return &mProperties; }
+        void AddProperty( LeddarCore::LdProperty *aProperty )
+        {
+            mProperties.AddProperty( aProperty );
+            aProperty->EnableCallbacks( false );
+        }
+        void SetPropertyCount( uint32_t aId, size_t aCount ) { mProperties.GetProperty( aId )->SetCount( aCount ); }
+        void SetPropertyValue( uint32_t aId, int32_t aIndex, boost::any aValue ) { mProperties.GetProperty( aId )->ForceAnyValue( aIndex, aValue ); }
+        void ForceRawStorage( uint32_t aId, uint8_t *aBuffer, size_t aCount, uint32_t aSize )
+        {
+            auto *lProp = mProperties.GetProperty( aId );
+            lProp->ForceRawStorage( aBuffer, aCount, aSize );
+            lProp->SetClean();
+        }
+
+      private:
+        friend class LdDoubleBuffer<T>;
+        mutable std::mutex mMutex;
+        std::unique_ptr<T> mBuffer = std::unique_ptr<T>( new T() );
+        LeddarCore::LdPropertiesContainer mProperties;
+    };
 
     enum eBuffer
     {
@@ -28,35 +53,74 @@ namespace LeddarConnection
         B_GET
     };
 
-    class LdDoubleBuffer
+    template <class T> class LdDoubleBuffer
     {
-    public:
-        LdDoubleBuffer();
-        ~LdDoubleBuffer();
-        void Init( void *aGetBuffer, void *aSetBuffer, LeddarCore::LdIntegerProperty *aTimestamp, LeddarCore::LdIntegerProperty *aTimestamp64 = nullptr );
+      public:
+        LdDoubleBuffer()  = default;
+        ~LdDoubleBuffer() = default;
 
-        void Swap();
-        void Lock( eBuffer aBuffer ) { aBuffer == B_GET ? mGetBuffer->mBusy = true : mSetBuffer->mBusy = true; }
-        void UnLock( eBuffer aBuffer ) { aBuffer == B_GET ? mGetBuffer->mBusy = false : mSetBuffer->mBusy = false; }
+        void Swap()
+        {
+            std::lock( mSetBuffer->mMutex, mGetBuffer->mMutex );
+            std::lock_guard<std::mutex> lockSet( mSetBuffer->mMutex, std::adopt_lock );
+            std::lock_guard<std::mutex> lockGet( mGetBuffer->mMutex, std::adopt_lock );
 
-        uint32_t    GetTimestamp( eBuffer aBuffer = B_GET ) const;
-        void        SetTimestamp( uint32_t aTimestamp );
-        uint64_t    GetTimestamp64( eBuffer aBuffer = B_GET ) const;
-        void        SetTimestamp64( uint64_t aTimestamp );
-        uint64_t    GetFrameId( eBuffer aBuffer = B_GET ) const;
-        void        SetFrameId( uint64_t aFrameId );
+            std::swap( mSetBuffer, mGetBuffer );
+        };
 
-        DataBuffer *GetBuffer( eBuffer aBuffer ) {return ( aBuffer == B_GET ? mGetBuffer : mSetBuffer ); }
-        const DataBuffer *GetConstBuffer( eBuffer aBuffer ) const {return ( aBuffer == B_GET ? mGetBuffer : mSetBuffer ); }
+        std::unique_lock<std::mutex> GetUniqueLock( eBuffer aBuffer, bool aDefer = false ) const
+        {
+            if( aDefer )
+            {
+                std::unique_lock<std::mutex> lock( aBuffer == B_GET ? mGetBuffer->mMutex : mSetBuffer->mMutex, std::defer_lock );
+                return lock;
+            }
+            else
+            {
+                std::unique_lock<std::mutex> lock( aBuffer == B_GET ? mGetBuffer->mMutex : mSetBuffer->mMutex );
+                return lock;
+            }
+        }
 
-    private:
-        LeddarCore::LdIntegerProperty *mTimestamp, *mTimestamp64; //Set buffer is value 1, Get is value 0
-        LeddarCore::LdIntegerProperty mFrameId;
-        DataBuffer *mGetBuffer;
-        DataBuffer *mSetBuffer;
+        DataBuffer<T> *GetBuffer( eBuffer aBuffer ) { return ( aBuffer == B_GET ? mGetBuffer.get() : mSetBuffer.get() ); }
+        const DataBuffer<T> *GetConstBuffer( eBuffer aBuffer ) const { return ( aBuffer == B_GET ? mGetBuffer.get() : mSetBuffer.get() ); }
+        
+        void SetPropertyCount( uint32_t aId, size_t aCount )
+        {
+            mGetBuffer->SetPropertyCount( aId, aCount );
+            mSetBuffer->SetPropertyCount( aId, aCount );
+        }
 
-        LdDoubleBuffer( const LdDoubleBuffer &aBuffer ); //Disable copy constructor
-        LdDoubleBuffer &operator=( const LdDoubleBuffer &aBuffer ); //Disable equal operator
+        void SetPropertyValue( uint32_t aId, int32_t aIndex, boost::any aValue ) { mSetBuffer->SetPropertyValue( aId, aIndex, aValue ); }
+        void ForceRawStorage( uint32_t aId, uint8_t *aBuffer, size_t aCount, uint32_t aSize )
+        {
+            mSetBuffer->ForceRawStorage( aId, aBuffer, aCount, aSize );
+        }
+        const LeddarCore::LdPropertiesContainer *GetProperties( eBuffer aBuffer = B_GET ) const
+        {
+            const LeddarCore::LdPropertiesContainer *lPropContainer;
+            if( aBuffer == B_GET )
+            {
+                lPropContainer = mGetBuffer->GetProperties();
+            }
+            else
+            {
+                lPropContainer = mSetBuffer->GetProperties();
+            }
+            return lPropContainer;
+        }
+        void AddProperty( LeddarCore::LdProperty *aProperty )
+        {
+            mGetBuffer->AddProperty( aProperty );
+            auto lClone = aProperty->Clone();
+            mSetBuffer->AddProperty( lClone );
+        }
+
+      private:
+        std::unique_ptr<DataBuffer<T>> mGetBuffer = std::unique_ptr<DataBuffer<T>>( new DataBuffer<T>() );
+        std::unique_ptr<DataBuffer<T>> mSetBuffer = std::unique_ptr<DataBuffer<T>>( new DataBuffer<T>() );
+
+        LdDoubleBuffer( const LdDoubleBuffer &aBuffer ) = delete;            // Disable copy constructor
+        LdDoubleBuffer &operator=( const LdDoubleBuffer &aBuffer ) = delete; // Disable equal operator
     };
-}
-
+} // namespace LeddarConnection

@@ -20,6 +20,7 @@
 #include "LdSensor.h"
 #include "LdCarrierEnhancedModbus.h"
 #include "LdConnectionUniversal.h"
+#include "LtFileUtils.h"
 
 namespace LeddarDevice
 {
@@ -54,6 +55,8 @@ namespace LeddarDevice
 
         void                                        CreateBackup( void );
         void                                        DeleteBackup( void );
+        void UpdateFirmware( const std::string &aFileName, LeddarCore::LdIntegerProperty *aProcessPercentage, LeddarCore::LdBoolProperty *aCancel ) override;
+        void UpdateFirmware( eFirmwareType, const LdFirmwareData &, LeddarCore::LdIntegerProperty *, LeddarCore::LdBoolProperty * ) override;
 
         void                                        SetTransferMode( eTransfertMode aMode );
         static uint32_t                             GetBankAddress( uint8_t aBankType );
@@ -74,7 +77,24 @@ namespace LeddarDevice
         bool                                       mRepair;
 
     private:
-        void                                       InitProperties( void );
+        void InitProperties( void );
+        void UpdateDSP( const uint8_t *aData, const uint32_t &aDataSize, LeddarCore::LdBoolProperty *aCancel, LeddarCore::LdIntegerProperty *aProcessPercentage,
+                        LeddarCore::LdIntegerProperty *aState );
+        void GetUniqueId( uint32_t *aUniqueId );
+        void OpenFirmwareUpdateSession( void );
+        void StartFirmwareUpdateProcess( uint32_t addr, uint32_t dataSize, uint16_t crc );
+        void GetFirmwareUpdateStatus( uint8_t *aStatus );
+        void CloseFirmwareUpdateSession( uint8_t *aStatus );
+        uint16_t GetAppCrc16( uint32_t aSize );
+        void UpdateFPGA( const uint8_t *aAlgo, const uint32_t &aAlgoSize, const uint8_t *aData, const uint32_t &aDataSize, LeddarCore::LdBoolProperty *aCancel, bool aVerify,
+                         LeddarCore::LdIntegerProperty *aProcessPercentage, LeddarCore::LdIntegerProperty *aState );
+        void OpenFPGAUpdateSession( uint32_t aAlgoSize, uint32_t aDataSize, uint16_t aFpgaCrc );
+        void CloseFPGAUpdateSession( void );
+        void StartFpgaUpdateProcess( void );
+        void GetFpgaUpdateStatus( void );
+        void UnlockBootloader( uint32_t aMagicNumber );
+        void UpdateAsic( const IntelHEX::IntelHexMem &aIntelHex, bool aVerify, LeddarCore::LdIntegerProperty *aProcessPercentage );
+
 #ifdef BUILD_MODBUS
         LdCarrierEnhancedModbus                   *mCarrier;
 #endif

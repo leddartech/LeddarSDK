@@ -14,8 +14,8 @@
 
 #include "LdBoolProperty.h"
 
-#include "LtStringUtils.h"
 #include "LtScope.h"
+#include "LtStringUtils.h"
 
 #include <string>
 
@@ -34,15 +34,28 @@
 ///
 /// \since   January 2016
 // *****************************************************************************
-
-LeddarCore::LdBoolProperty::LdBoolProperty( LdProperty::eCategories aCategory, uint32_t aFeatures, uint32_t aId, uint16_t aDeviceId, const std::string &aDescription ) :
-    LdProperty( LdProperty::TYPE_BOOL, aCategory, aFeatures, aId, aDeviceId, sizeof( bool ), sizeof( bool ), aDescription )
+LeddarCore::LdBoolProperty::LdBoolProperty( LdProperty::eCategories aCategory, uint32_t aFeatures, uint32_t aId, uint16_t aDeviceId, const std::string &aDescription )
+    : LdProperty( LdProperty::TYPE_BOOL, aCategory, aFeatures, aId, aDeviceId, sizeof( bool ), sizeof( bool ), aDescription )
 {
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn	LeddarCore::LdBoolProperty::LdBoolProperty( const LdBoolProperty &aProperty )
+///
+/// \brief	Copy constructor
+///
+/// \author	Alain Ferron
+/// \date	December 2020
+///
+/// \param	aProperty	The property.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+LeddarCore::LdBoolProperty::LdBoolProperty( const LdBoolProperty &aProperty )
+    : LdProperty( aProperty )
+{
+}
 
 // *****************************************************************************
-// Function: LdBoolProperty::SetValue
+// Function: LdBoolProperty::PerformSetValue
 //
 /// \brief   Change the value at the given index.
 ///
@@ -54,34 +67,33 @@ LeddarCore::LdBoolProperty::LdBoolProperty( LdProperty::eCategories aCategory, u
 /// \since   January 2016
 // *****************************************************************************
 
-void
-LeddarCore::LdBoolProperty::SetValue( size_t aIndex, bool aValue )
+void LeddarCore::LdBoolProperty::PerformSetValue( size_t aIndex, bool aValue )
 {
     CanEdit();
 
     // Initialize the count to 1 on the fist SetValue if not done before.
-    if( Count() == 0 && aIndex == 0 )
+    if( PerformCount() == 0 && aIndex == 0 )
     {
-        SetCount( 1 );
+        PerformSetCount( 1 );
     }
 
-    if( aIndex >= Count() )
+    if( aIndex >= PerformCount() )
     {
-        throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
     bool *lValues = reinterpret_cast<bool *>( Storage() );
 
-    if( !IsInitialized() || lValues[ aIndex ] != aValue )
+    if( !IsInitialized() || lValues[aIndex] != aValue )
     {
         SetInitialized( true );
-        lValues[ aIndex ] = aValue;
+        lValues[aIndex] = aValue;
         EmitSignal( LdObject::VALUE_CHANGED );
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdBoolProperty::ForceValue( size_t aIndex, bool aValue )
+/// \fn void LeddarCore::LdBoolProperty::PerformForceValue( size_t aIndex, bool aValue )
 ///
 /// \brief  Force value
 ///
@@ -91,16 +103,50 @@ LeddarCore::LdBoolProperty::SetValue( size_t aIndex, bool aValue )
 /// \author David Levy
 /// \date   March 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarCore::LdBoolProperty::ForceValue( size_t aIndex, bool aValue )
+void LeddarCore::LdBoolProperty::PerformForceValue( size_t aIndex, bool aValue )
 {
     LeddarUtils::LtScope<bool> lForceEdit( &mCheckEditable, true );
     mCheckEditable = false;
-    SetValue( aIndex, aValue );
+    PerformSetValue( aIndex, aValue );
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LeddarCore::LdBoolProperty::PerformSetAnyValue( size_t aIndex, const boost::any &aNewValue )
+///
+/// \brief  Sets the property value
+///
+/// \author David Lévy
+/// \date   February 2021
+///
+/// \exception  std::invalid_argument   Thrown when an invalid argument error condition occurs.
+///
+/// \param  aIndex      Zero-based index of the.
+/// \param  aNewValue   The new value.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void LeddarCore::LdBoolProperty::PerformSetAnyValue( size_t aIndex, const boost::any &aNewValue )
+{
+    if( aNewValue.type() == typeid( bool ) )
+    {
+        PerformSetValue( aIndex, boost::any_cast<bool>( aNewValue ) );
+    }
+    else
+        throw std::invalid_argument( "Invalid value type" );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn	LeddarCore::LdProperty *LeddarCore::LdBoolProperty::PerformClone()
+///
+/// \brief	Performs the clone action
+///
+/// \returns	Null if it fails, else a pointer to a LeddarCore::LdProperty.
+///
+/// \author	Alain Ferron
+/// \date	March 2021
+////////////////////////////////////////////////////////////////////////////////////////////////////
+LeddarCore::LdProperty *LeddarCore::LdBoolProperty::PerformClone() { return new LdBoolProperty( *this ); }
+
 // *****************************************************************************
-// Function: LdBoolProperty::GetStringValue
+// Function: LdBoolProperty::PerformGetStringValue
 //
 /// \brief   Display the value in string format
 ///
@@ -108,15 +154,10 @@ LeddarCore::LdBoolProperty::ForceValue( size_t aIndex, bool aValue )
 ///
 /// \since   January 2016
 // *****************************************************************************
-
-std::string
-LeddarCore::LdBoolProperty::GetStringValue( size_t aIndex ) const
-{
-    return ( Value( aIndex ) == true ? "true" : "false" );
-}
+std::string LeddarCore::LdBoolProperty::PerformGetStringValue( size_t aIndex ) const { return ( PerformValue( aIndex ) == true ? "true" : "false" ); }
 
 // *****************************************************************************
-// Function: LdBoolProperty::SetStringValue
+// Function: LdBoolProperty::PerformSetStringValue
 //
 /// \brief   Property writer for the value as text. Possible value: true and false (lower case)
 ///
@@ -130,8 +171,7 @@ LeddarCore::LdBoolProperty::GetStringValue( size_t aIndex ) const
 /// \since   January 2016
 // *****************************************************************************
 
-void
-LeddarCore::LdBoolProperty::SetStringValue( size_t aIndex, const std::string &aValue )
+void LeddarCore::LdBoolProperty::PerformSetStringValue( size_t aIndex, const std::string &aValue )
 {
     bool lNewValue = false;
 
@@ -148,12 +188,12 @@ LeddarCore::LdBoolProperty::SetStringValue( size_t aIndex, const std::string &aV
         throw( std::invalid_argument( "Invalid string value (use \"true\" or \"false\"." ) );
     }
 
-    SetValue( aIndex, lNewValue );
+    PerformSetValue( aIndex, lNewValue );
     return;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdBoolProperty::ForceStringValue( size_t aIndex, const std::string &aValue )
+/// \fn void LeddarCore::LdBoolProperty::PerformForceStringValue( size_t aIndex, const std::string &aValue )
 ///
 /// \brief  Force the value
 ///
@@ -163,16 +203,15 @@ LeddarCore::LdBoolProperty::SetStringValue( size_t aIndex, const std::string &aV
 /// \author David Levy
 /// \date   March 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarCore::LdBoolProperty::ForceStringValue( size_t aIndex, const std::string &aValue )
+void LeddarCore::LdBoolProperty::PerformForceStringValue( size_t aIndex, const std::string &aValue )
 {
     LeddarUtils::LtScope<bool> lForceEdit( &mCheckEditable, true );
     mCheckEditable = false;
-    SetStringValue( aIndex, aValue );
+    PerformSetStringValue( aIndex, aValue );
 }
 
 // *****************************************************************************
-// Function: LdBoolProperty::Value
+// Function: LdBoolProperty::PerformValue
 //
 /// \brief   Return the property value
 ///
@@ -185,15 +224,14 @@ LeddarCore::LdBoolProperty::ForceStringValue( size_t aIndex, const std::string &
 /// \since   January 2016
 // *****************************************************************************
 
-bool
-LeddarCore::LdBoolProperty::Value( size_t aIndex ) const
+bool LeddarCore::LdBoolProperty::PerformValue( size_t aIndex ) const
 {
     VerifyInitialization();
 
-    if( aIndex >= Count() )
+    if( aIndex >= PerformCount() )
     {
-        throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
-    return reinterpret_cast<const bool *>( CStorage() )[ aIndex ];
+    return reinterpret_cast<const bool *>( CStorage() )[aIndex];
 }

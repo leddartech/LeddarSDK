@@ -117,6 +117,7 @@ LdSensorVu8::GetConfig()
         // Pulse frequency
         LeddarCore::LdIntegerProperty *lIntProp = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_PULSE_RATE );
         lIntProp->ForceValue( 0, ( int32_t )100e6 / ( ( uint16_t * )lOutputBuffer )[0] );
+        lIntProp->SetClean();
 
         // If a settings was repaired by the GetConfig, we need to fix it on the sensor.
         if( mRepair )

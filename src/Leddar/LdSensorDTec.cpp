@@ -8,23 +8,23 @@
 
 #include "LdSensorDTec.h"
 
-#if defined(BUILD_DTEC) && defined(BUILD_ETHERNET)
+#if defined( BUILD_DTEC ) && defined( BUILD_ETHERNET )
 
 #include "LdConnectionFactory.h"
 #include "LdEthernet.h"
 
+#include "LtCRCUtils.h"
 #include "LtExceptions.h"
+#include "LtFileUtils.h"
+#include "LtScope.h"
 #include "LtStringUtils.h"
 #include "LtTimeUtils.h"
-#include "LtFileUtils.h"
-#include "LtCRCUtils.h"
-#include "LtScope.h"
 
-#include "comm/LtComEthernetPublic.h"
-#include "comm/LtComLeddarTechPublic.h"
+#include "LdPropertyIds.h"
 #include "comm/Legacy/DTec/LtComDTec.h"
 #include "comm/Legacy/M16/LtComM16.h"
-#include "LdPropertyIds.h"
+#include "comm/LtComEthernetPublic.h"
+#include "comm/LtComLeddarTechPublic.h"
 
 #ifndef _WIN32
 #include <netinet/in.h>
@@ -43,10 +43,10 @@ using namespace LeddarCore;
 /// \author David Levy
 /// \date   October 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-LeddarDevice::LdSensorDTec::LdSensorDTec( LeddarConnection::LdConnection *aConnection, bool aConnectToAuxiliaryDataServer ) :
-    LdSensor( aConnection ),
-    mPingEnabled( !aConnectToAuxiliaryDataServer ),
-    mAuxiliaryDataServer( aConnectToAuxiliaryDataServer )
+LeddarDevice::LdSensorDTec::LdSensorDTec( LeddarConnection::LdConnection *aConnection, bool aConnectToAuxiliaryDataServer )
+    : LdSensor( aConnection )
+    , mPingEnabled( !aConnectToAuxiliaryDataServer )
+    , mAuxiliaryDataServer( aConnectToAuxiliaryDataServer )
 {
     InitProperties();
 
@@ -58,9 +58,7 @@ LeddarDevice::LdSensorDTec::LdSensorDTec( LeddarConnection::LdConnection *aConne
     mProtocolConfig = dynamic_cast<LeddarConnection::LdProtocolLeddartechEthernet *>( aConnection );
 }
 
-LeddarDevice::LdSensorDTec::~LdSensorDTec( void )
-{
-}
+LeddarDevice::LdSensorDTec::~LdSensorDTec( void ) {}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \fn void LeddarDevice::LdSensorDTec::InitProperties(void)
@@ -70,56 +68,54 @@ LeddarDevice::LdSensorDTec::~LdSensorDTec( void )
 /// \author David Levy
 /// \date   October 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarDevice::LdSensorDTec::InitProperties( void )
+void LeddarDevice::LdSensorDTec::InitProperties( void )
 {
-    //Constants
-    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_CONSTANT, LdProperty::F_SAVE, LdPropertyIds::ID_SERIAL_NUMBER,
-                              LtComLeddarTechPublic::LT_COMM_ID_SERIAL_NUMBER, LT_COMM_SERIAL_NUMBER_LENGTH, LdTextProperty::TYPE_ASCII, "Serial Number" ) );
-    mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONSTANT, LdProperty::F_SAVE, LdPropertyIds::ID_OPTIONS,
-                              LtComLeddarTechPublic::LT_COMM_ID_DEVICE_OPTIONS, 4, "Device options" ) );
+    // Constants
+    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_CONSTANT, LdProperty::F_SAVE, LdPropertyIds::ID_SERIAL_NUMBER, LtComLeddarTechPublic::LT_COMM_ID_SERIAL_NUMBER,
+                                                  LT_COMM_SERIAL_NUMBER_LENGTH, LdTextProperty::TYPE_ASCII, "Serial Number" ) );
+    mProperties->AddProperty(
+        new LdBitFieldProperty( LdProperty::CAT_CONSTANT, LdProperty::F_SAVE, LdPropertyIds::ID_OPTIONS, LtComLeddarTechPublic::LT_COMM_ID_DEVICE_OPTIONS, 4, "Device options" ) );
     mProperties->AddProperty( new LdBufferProperty( LdProperty::CAT_CONSTANT, LdProperty::F_SAVE, LdPropertyIds::ID_MAC_ADDRESS,
-                              LtComEthernetPublic::LT_COMM_ID_IPV4_ETHERNET_ADDRESS, sizeof( LtComEthernetPublic::LtIpv4EthernetAddress ), "Mac address" ) );
+                                                    LtComEthernetPublic::LT_COMM_ID_IPV4_ETHERNET_ADDRESS, sizeof( LtComEthernetPublic::LtIpv4EthernetAddress ), "Mac address" ) );
 
-
-    //Config
+    // Config
     mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_DEVICE_NAME,
-                              LtComLeddarTechPublic::LT_COMM_ID_DEVICE_NAME, LT_COMM_DEVICE_NAME_LENGTH, LeddarCore::LdTextProperty::TYPE_UTF16, "Device name" ) );
+                                                  LtComLeddarTechPublic::LT_COMM_ID_DEVICE_NAME, LT_COMM_DEVICE_NAME_LENGTH, LeddarCore::LdTextProperty::TYPE_UTF16,
+                                                  "Device name" ) );
     mProperties->AddProperty( new LdBoolProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_IP_MODE,
-                              LtComEthernetPublic::LT_COMM_ID_IPV4_IP_MODE, "Static/DHCP IP" ) );
+                                                  LtComEthernetPublic::LT_COMM_ID_IPV4_IP_MODE, "Static/DHCP IP" ) );
     mProperties->AddProperty( new LdBufferProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_IP_ADDRESS,
-                              LtComEthernetPublic::LT_COMM_ID_IPV4_IP_ADDRESS, sizeof( LtComEthernetPublic::LtIpv4IpAddress ), "IP Address configuration" ) );
+                                                    LtComEthernetPublic::LT_COMM_ID_IPV4_IP_ADDRESS, sizeof( LtComEthernetPublic::LtIpv4IpAddress ), "IP Address configuration" ) );
     mProperties->AddProperty( new LdBufferProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_INTERFACE_GATEWAY_ADDRESS,
-                              LtComEthernetPublic::LT_COMM_ID_IPV4_IP_GATEWAY, sizeof( LtComEthernetPublic::LtIpv4IpAddress ), "IP gateway configuration" ) );
+                                                    LtComEthernetPublic::LT_COMM_ID_IPV4_IP_GATEWAY, sizeof( LtComEthernetPublic::LtIpv4IpAddress ), "IP gateway configuration" ) );
     mProperties->AddProperty( new LdBufferProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_INTERFACE_SUBNET_MASK,
-                              LtComEthernetPublic::LT_COMM_ID_IPV4_IP_NET_MASK, sizeof( LtComEthernetPublic::LtIpv4IpAddress ), "IP netmask configuration" ) );
-    mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION,  LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_PHYSICAL_NEGOTIATION_MODE,
-                              LtComDTec::LT_COMM_ID_IPV4_IP_PHY_MODE, 1, true, "Ethernet negotiation mode" ) );
+                                                    LtComEthernetPublic::LT_COMM_ID_IPV4_IP_NET_MASK, sizeof( LtComEthernetPublic::LtIpv4IpAddress ),
+                                                    "IP netmask configuration" ) );
+    mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_PHYSICAL_NEGOTIATION_MODE,
+                                                  LtComDTec::LT_COMM_ID_IPV4_IP_PHY_MODE, 1, true, "Ethernet negotiation mode" ) );
     mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_SENSIVITY,
-                              LtComLeddarTechPublic::LT_COMM_ID_THREHSOLD_OFFSET, 4, 65536, 3, "Threshold offset / sensitivity" ) );
+                                                   LtComLeddarTechPublic::LT_COMM_ID_THREHSOLD_OFFSET, 4, 65536, 3, "Threshold offset / sensitivity" ) );
     mProperties->AddProperty( new LdBoolProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_STATIC_SENSITIVITY_ENABLE,
-                              LtComLeddarTechPublic::LT_COMM_ID_STATIC_THRESHOLD_ENABLE, "Static threshold/sensitivity enable" ) );
+                                                  LtComLeddarTechPublic::LT_COMM_ID_STATIC_THRESHOLD_ENABLE, "Static threshold/sensitivity enable" ) );
     mProperties->AddProperty( new LdBufferProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_PAN_TILT,
-                              LtComDTec::PDTECS_ID_CFG_PAN_TILT_POSITION, sizeof( LtComDTec::PDTECS_SXYCoordFP ), "Pan tilt position" ) );
+                                                    LtComDTec::PDTECS_ID_CFG_PAN_TILT_POSITION, sizeof( LtComDTec::PDTECS_SXYCoordFP ), "Pan tilt position" ) );
     mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_ACTIVE_ZONES,
-                              LtComDTec::PDTECS_ID_CFG_ACTIVE_ZONE_MASK, 1, "Bit mask for enabling or disabling detection zones" ) );
+                                                      LtComDTec::PDTECS_ID_CFG_ACTIVE_ZONE_MASK, 1, "Bit mask for enabling or disabling detection zones" ) );
 
     mProperties->AddProperty( new LdBoolProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_XTALK_REMOVAL_ENABLE,
-                              LtComDTec::PDTECS_ID_CFG_XTALK_REMOVAL_STATE, "Crosstalk removal enable" ) );
+                                                  LtComDTec::PDTECS_ID_CFG_XTALK_REMOVAL_STATE, "Crosstalk removal enable" ) );
     mProperties->AddProperty( new LdBoolProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_STATIC_NOISE_REMOVAL_ENABLE,
-                              LtComDTec::PDTECS_ID_CFG_STATIC_NOISE_REMOVAL_STATE, "Static noise removal enable" ) );
+                                                  LtComDTec::PDTECS_ID_CFG_STATIC_NOISE_REMOVAL_STATE, "Static noise removal enable" ) );
     mProperties->AddProperty( new LdBoolProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_PULSE_WIDTH_COMPENSATION,
-                              LtComDTec::PDTECS_ID_CFG_PEAK_CHECK_PULSE_WIDTH_STATE, "Pulse width compensation enable" ) );
+                                                  LtComDTec::PDTECS_ID_CFG_PEAK_CHECK_PULSE_WIDTH_STATE, "Pulse width compensation enable" ) );
     mProperties->AddProperty( new LdBoolProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_OVERSHOOT_MNG_ENABLE,
-                              LtComDTec::PDTECS_ID_CFG_PEAK_OVERSHOOT_MANAGEMENT_STATE, "Overshoot managment enable" ) );
+                                                  LtComDTec::PDTECS_ID_CFG_PEAK_OVERSHOOT_MANAGEMENT_STATE, "Overshoot managment enable" ) );
     mProperties->AddProperty( new LdBoolProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_SATURATION_COMP_ENABLE,
-                              LtComDTec::PDTECS_ID_CFG_PEAK_DEFAULT_SAT_COMP_STATE, "Saturation compensation enable" ) );
+                                                  LtComDTec::PDTECS_ID_CFG_PEAK_DEFAULT_SAT_COMP_STATE, "Saturation compensation enable" ) );
     mProperties->AddProperty( new LdBoolProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_XTALK_ECHO_REMOVAL_ENABLE,
-                              LtComDTec::PDTECS_ID_CFG_PEAK_XTALK_ECHO_REMOVAL_STATE, "Echo crosstalk removal enable" ) );
+                                                  LtComDTec::PDTECS_ID_CFG_PEAK_XTALK_ECHO_REMOVAL_STATE, "Echo crosstalk removal enable" ) );
     mProperties->AddProperty( new LdBoolProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_TEMP_COMP,
-                              LtComDTec::PDTECS_ID_CFG_PEAK_COMP_TEMP_STATE, "Temperature compensation enable" ) );
-
-
+                                                  LtComDTec::PDTECS_ID_CFG_PEAK_COMP_TEMP_STATE, "Temperature compensation enable" ) );
 
     /*
     Get Config - Other possible values
@@ -161,58 +157,56 @@ LeddarDevice::LdSensorDTec::InitProperties( void )
     4225    0x1081 PDTECS_ID_CFG_WATCHDOG_TIMEOUT
     */
 
-    //Calib
+    // Calib
     mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CALIBRATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_TIMEBASE_DELAY,
-                              LtComDTec::PDTECS_ID_CAL_CHAN_TIMEBASE_DELAY, 4, 65536, 3, "Timebase delays" ) );
+                                                   LtComDTec::PDTECS_ID_CAL_CHAN_TIMEBASE_DELAY, 4, 65536, 3, "Timebase delays" ) );
     mProperties->AddProperty( new LdBufferProperty( LdProperty::CAT_CALIBRATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_CHANNEL_AREA,
-                              LtComDTec::PDTECS_ID_CAL_CHAN_AREA, sizeof( LtComDTec::PDTECS_SCalChanArea ), "Channel Area" ) );
+                                                    LtComDTec::PDTECS_ID_CAL_CHAN_AREA, sizeof( LtComDTec::PDTECS_SCalChanArea ), "Channel Area" ) );
     mProperties->AddProperty( new LdBufferProperty( LdProperty::CAT_CALIBRATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_CAL_APD,
-                              LtComDTec::PDTECS_ID_CAL_APD, sizeof( LtComDTec::PDTECS_SCalApd ), "APD calibration" ) );
+                                                    LtComDTec::PDTECS_ID_CAL_APD, sizeof( LtComDTec::PDTECS_SCalApd ), "APD calibration" ) );
     mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_CALIBRATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_CAL_AMP,
-                              LtComDTec::PDTECS_ID_CAL_AMP, 4, 0, 2, "Ampli calibration" ) );
+                                                   LtComDTec::PDTECS_ID_CAL_AMP, 4, 0, 2, "Ampli calibration" ) );
     mProperties->AddProperty( new LdBufferProperty( LdProperty::CAT_CALIBRATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_CAL_IMG,
-                              LtComDTec::PDTECS_ID_CAL_IMG, sizeof( LtComDTec::PDTECS_SCalImg ), "Image calibration" ) );
+                                                    LtComDTec::PDTECS_ID_CAL_IMG, sizeof( LtComDTec::PDTECS_SCalImg ), "Image calibration" ) );
 
-    //Info
+    // Info
     mProperties->GetIntegerProperty( LdPropertyIds::ID_HSEGMENT )->SetDeviceId( LtComLeddarTechPublic::LT_COMM_ID_NUMBER_OF_SEGMENTS );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_MAX_ECHOES_PER_CHANNEL, 0, 1, "Max Detection per Segment" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_DISTANCE_SCALE, LtComLeddarTechPublic::LT_COMM_ID_DISTANCE_SCALE, 4,
-                              "Distance scale" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_RAW_AMP_SCALE, LtComLeddarTechPublic::LT_COMM_ID_AMPLITUDE_SCALE, 2,
-                              "Raw amplitude scale" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_FILTERED_AMP_SCALE, LtComLeddarTechPublic::LT_COMM_ID_FILTERED_SCALE,
-                              4, "Amplitude scale" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_TEMPERATURE_SCALE, LtComLeddarTechPublic::LT_COMM_ID_TEMPERATURE_SCALE,
-                              4, "Temperature scale" ) );
-    mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_REFRESH_RATE,
-                              LtComLeddarTechPublic::LT_COMM_ID_REFRESH_RATE, 4, 0, 2, "Theoretical refresh rate" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_BOOTLOADER_VERSION, LtComDTec::PDTECS_ID_BOOTLOADER_VERSION, 2,
-                              "Bootloader version" ) );
-    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_BOOTLOADER_PART_NUMBER,
-                              LtComDTec::PDTECS_ID_BOOTLOADER_PART_NUMBER, LT_COMM_PART_NUMBER_LENGTH, LdTextProperty::TYPE_ASCII, "Bootloader part number" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_RECEIVER_BOARD_VERSION, LtComDTec::PDTECS_ID_RECEIVER_BRD_VERSION, 1,
-                              "Receiver board version" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_DISTANCE_SCALE, LtComLeddarTechPublic::LT_COMM_ID_DISTANCE_SCALE,
+                                                     4, "Distance scale" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_RAW_AMP_SCALE, LtComLeddarTechPublic::LT_COMM_ID_AMPLITUDE_SCALE,
+                                                     2, "Raw amplitude scale" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_FILTERED_AMP_SCALE,
+                                                     LtComLeddarTechPublic::LT_COMM_ID_FILTERED_SCALE, 4, "Amplitude scale" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_TEMPERATURE_SCALE,
+                                                     LtComLeddarTechPublic::LT_COMM_ID_TEMPERATURE_SCALE, 4, "Temperature scale" ) );
+    mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_REFRESH_RATE, LtComLeddarTechPublic::LT_COMM_ID_REFRESH_RATE, 4, 0,
+                                                   2, "Theoretical refresh rate" ) );
+    mProperties->AddProperty(
+        new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_BOOTLOADER_VERSION, LtComDTec::PDTECS_ID_BOOTLOADER_VERSION, 2, "Bootloader version" ) );
+    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_BOOTLOADER_PART_NUMBER, LtComDTec::PDTECS_ID_BOOTLOADER_PART_NUMBER,
+                                                  LT_COMM_PART_NUMBER_LENGTH, LdTextProperty::TYPE_ASCII, "Bootloader part number" ) );
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_RECEIVER_BOARD_VERSION, LtComDTec::PDTECS_ID_RECEIVER_BRD_VERSION,
+                                                     1, "Receiver board version" ) );
     mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_INFO, LdProperty::F_NONE, LdPropertyIds::ID_SENSIVITY_LIMITS,
-                              LtComLeddarTechPublic::LT_COMM_ID_THREHSOLD_OFFSET_LIMITS, 4, 0, 1, "Threshold/sensitivity offset limits" ) );
-    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_PART_NUMBER,
-                              LtComLeddarTechPublic::LT_COMM_ID_HW_PART_NUMBER, LT_COMM_PART_NUMBER_LENGTH, LdTextProperty::TYPE_ASCII, "Part Number" ) );
+                                                   LtComLeddarTechPublic::LT_COMM_ID_THREHSOLD_OFFSET_LIMITS, 4, 0, 1, "Threshold/sensitivity offset limits" ) );
+    mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_PART_NUMBER, LtComLeddarTechPublic::LT_COMM_ID_HW_PART_NUMBER,
+                                                  LT_COMM_PART_NUMBER_LENGTH, LdTextProperty::TYPE_ASCII, "Part Number" ) );
     mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_SOFTWARE_PART_NUMBER,
-                              LtComLeddarTechPublic::LT_COMM_ID_SOFTWARE_PART_NUMBER, LT_COMM_PART_NUMBER_LENGTH, LdTextProperty::TYPE_ASCII, "Software part number" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_FPGA_VERSION,
-                              LtComLeddarTechPublic::LT_COMM_ID_FPGA_VERSION, 1, "FPGA version" ) );
+                                                  LtComLeddarTechPublic::LT_COMM_ID_SOFTWARE_PART_NUMBER, LT_COMM_PART_NUMBER_LENGTH, LdTextProperty::TYPE_ASCII,
+                                                  "Software part number" ) );
+    mProperties->AddProperty(
+        new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_FPGA_VERSION, LtComLeddarTechPublic::LT_COMM_ID_FPGA_VERSION, 1, "FPGA version" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_FIRMWARE_VERSION_INT,
-                              LtComLeddarTechPublic::LT_COMM_ID_FIRMWARE_VERSION, 2, "Firmware version" ) );
+                                                     LtComLeddarTechPublic::LT_COMM_ID_FIRMWARE_VERSION, 2, "Firmware version" ) );
 
-
-    //Status
-    GetResultStates()->GetProperties()->AddProperty( new LdFloatProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_RS_CPU_LOAD,
-            LtComLeddarTechPublic::LT_COMM_ID_CPU_LOAD_V2, 4, 0, 2, "Cpu Load" ) );
+    // Status
+    GetResultStates()->GetProperties()->AddProperty(
+        new LdFloatProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_RS_CPU_LOAD, LtComLeddarTechPublic::LT_COMM_ID_CPU_LOAD_V2, 4, 0, 2, "Cpu Load" ) );
     GetResultStates()->GetProperties()->AddProperty( new LdFloatProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_RS_SYSTEM_TEMP,
-            LtComLeddarTechPublic::LT_COMM_ID_SYS_TEMP, 4, 0, 2, "APD / source board temperature" ) );
+                                                                          LtComLeddarTechPublic::LT_COMM_ID_SYS_TEMP, 4, 0, 2, "APD / source board temperature" ) );
     GetResultStates()->GetProperties()->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_RS_CURRENT_TIMES_MS,
-            LtComLeddarTechPublic::LT_COMM_ID_CURRENT_TIME_MS, 4, "System time in ms since last reset" ) );
-
-
+                                                                            LtComLeddarTechPublic::LT_COMM_ID_CURRENT_TIME_MS, 4, "System time in ms since last reset" ) );
 
     mProperties->GetIntegerProperty( LdPropertyIds::ID_CONNECTION_TYPE )->ForceValue( 0, P_ETHERNET );
     mProperties->GetIntegerProperty( LdPropertyIds::ID_CONNECTION_TYPE )->SetClean();
@@ -232,8 +226,7 @@ LeddarDevice::LdSensorDTec::InitProperties( void )
 /// \author David Levy
 /// \date   October 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarDevice::LdSensorDTec::Connect( void )
+void LeddarDevice::LdSensorDTec::Connect( void )
 {
     if( !mAuxiliaryDataServer )
         LdDevice::Connect();
@@ -249,20 +242,19 @@ LeddarDevice::LdSensorDTec::Connect( void )
 /// \author David Levy
 /// \date   October 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarDevice::LdSensorDTec::ConnectDataServer( void )
+void LeddarDevice::LdSensorDTec::ConnectDataServer( void )
 {
     // Create connection info object for the data server
-    const LeddarConnection::LdConnectionInfoEthernet *lConnectionInfoConfigServer = dynamic_cast<const LeddarConnection::LdConnectionInfoEthernet * >
-            ( mProtocolConfig->GetConnectionInfo() );
+    const LeddarConnection::LdConnectionInfoEthernet *lConnectionInfoConfigServer =
+        dynamic_cast<const LeddarConnection::LdConnectionInfoEthernet *>( mProtocolConfig->GetConnectionInfo() );
 
     uint16_t lDataPort = mAuxiliaryDataServer ? LtComDTec::DTEC_AUX_DATA_PORT : LtComDTec::DTEC_DATA_PORT;
-    LeddarConnection::LdConnectionInfoEthernet *lConnectionInfoDataServer = new LeddarConnection::LdConnectionInfoEthernet(
-        lConnectionInfoConfigServer->GetAddress(), lDataPort, "Data server connection", lConnectionInfoConfigServer->GetType(),
-        LeddarConnection::LdConnectionInfoEthernet::PT_TCP );
+    LeddarConnection::LdConnectionInfoEthernet *lConnectionInfoDataServer =
+        new LeddarConnection::LdConnectionInfoEthernet( lConnectionInfoConfigServer->GetAddress(), lDataPort, "Data server connection", lConnectionInfoConfigServer->GetType(),
+                                                        LeddarConnection::LdConnectionInfoEthernet::PT_TCP );
 
     LeddarConnection::LdConnection *lDataServerConnection = LeddarConnection::LdConnectionFactory::CreateConnection( lConnectionInfoDataServer );
-    mProtocolData = dynamic_cast<LeddarConnection::LdProtocolLeddarTech *>( lDataServerConnection );
+    mProtocolData                                         = dynamic_cast<LeddarConnection::LdProtocolLeddarTech *>( lDataServerConnection );
     mProtocolData->SetDataServer( true );
 
     try
@@ -271,7 +263,7 @@ LeddarDevice::LdSensorDTec::ConnectDataServer( void )
     }
     catch( LeddarException::LtComException & )
     {
-        //Workaround a bug in older firmware if data mask is 0
+        // Workaround a bug in older firmware if data mask is 0
         if( !mAuxiliaryDataServer )
         {
             SetDataMask( DM_ECHOES );
@@ -293,8 +285,7 @@ LeddarDevice::LdSensorDTec::ConnectDataServer( void )
 /// \author David Levy
 /// \date   October 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarDevice::LdSensorDTec::Disconnect( void )
+void LeddarDevice::LdSensorDTec::Disconnect( void )
 {
     if( mProtocolData != nullptr )
     {
@@ -318,8 +309,7 @@ LeddarDevice::LdSensorDTec::Disconnect( void )
 /// \author David Levy
 /// \date   October 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarDevice::LdSensorDTec::SendCommand( uint16_t aRequestCode, uint32_t aTimeout )
+void LeddarDevice::LdSensorDTec::SendCommand( uint16_t aRequestCode, uint32_t aTimeout )
 {
     if( mAuxiliaryDataServer )
         return;
@@ -351,7 +341,7 @@ void LeddarDevice::LdSensorDTec::ReadAnswer( uint32_t aTimeout )
     // be quite long to write the config to permanent memory and the data
     // server does not send data during that period, so we must set the
     // timeout longer during the write.
-    bool lBusy = true;
+    bool lBusy       = true;
     uint8_t lTimeout = aTimeout;
 
     while( lBusy )
@@ -383,8 +373,7 @@ void LeddarDevice::LdSensorDTec::ReadAnswer( uint32_t aTimeout )
 /// \author David Levy
 /// \date   October 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarDevice::LdSensorDTec::GetConstants( void )
+void LeddarDevice::LdSensorDTec::GetConstants( void )
 {
     if( !mAuxiliaryDataServer )
     {
@@ -403,21 +392,13 @@ LeddarDevice::LdSensorDTec::GetConstants( void )
             }
         }
 
-        uint16_t lIds[] =
-        {
-            LtComLeddarTechPublic::LT_COMM_ID_DEVICE_TYPE,
-            LtComLeddarTechPublic::LT_COMM_ID_NUMBER_OF_SEGMENTS,
-            LtComLeddarTechPublic::LT_COMM_ID_DISTANCE_SCALE,
-            LtComLeddarTechPublic::LT_COMM_ID_AMPLITUDE_SCALE,
-            LtComLeddarTechPublic::LT_COMM_ID_FILTERED_SCALE,
-            LtComLeddarTechPublic::LT_COMM_ID_REFRESH_RATE,
-            LtComDTec::PDTECS_ID_BOOTLOADER_VERSION,
-            LtComDTec::PDTECS_ID_BOOTLOADER_PART_NUMBER,
-            LtComDTec::PDTECS_ID_RECEIVER_BRD_VERSION
-        };
+        uint16_t lIds[] = {
+            LtComLeddarTechPublic::LT_COMM_ID_DEVICE_TYPE,     LtComLeddarTechPublic::LT_COMM_ID_NUMBER_OF_SEGMENTS, LtComLeddarTechPublic::LT_COMM_ID_DISTANCE_SCALE,
+            LtComLeddarTechPublic::LT_COMM_ID_AMPLITUDE_SCALE, LtComLeddarTechPublic::LT_COMM_ID_FILTERED_SCALE,     LtComLeddarTechPublic::LT_COMM_ID_REFRESH_RATE,
+            LtComDTec::PDTECS_ID_BOOTLOADER_VERSION,           LtComDTec::PDTECS_ID_BOOTLOADER_PART_NUMBER,          LtComDTec::PDTECS_ID_RECEIVER_BRD_VERSION };
 
         mProtocolConfig->StartRequest( LtComLeddarTechPublic::LT_COMM_CFGSRV_REQUEST_GET );
-        mProtocolConfig->AddElement( LtComLeddarTechPublic::LT_COMM_ID_ELEMENT_LIST, LT_ALEN( lIds ), sizeof( lIds[ 0 ] ), lIds, sizeof( lIds[ 0 ] ) );
+        mProtocolConfig->AddElement( LtComLeddarTechPublic::LT_COMM_ID_ELEMENT_LIST, LT_ALEN( lIds ), sizeof( lIds[0] ), lIds, sizeof( lIds[0] ) );
         mProtocolConfig->SendRequest();
 
         mProtocolConfig->ReadAnswer();
@@ -426,8 +407,8 @@ LeddarDevice::LdSensorDTec::GetConstants( void )
 
     UpdateConstants();
 
-    uint32_t lTotalSegments = mProperties->GetIntegerProperty( LdPropertyIds::ID_VSEGMENT )->ValueT<uint16_t>() * mProperties->GetIntegerProperty(
-                                  LdPropertyIds::ID_HSEGMENT )->ValueT<uint16_t>();
+    uint32_t lTotalSegments =
+        mProperties->GetIntegerProperty( LdPropertyIds::ID_VSEGMENT )->ValueT<uint16_t>() * mProperties->GetIntegerProperty( LdPropertyIds::ID_HSEGMENT )->ValueT<uint16_t>();
     uint32_t lMaxTotalEchoes = lTotalSegments * mProperties->GetIntegerProperty( LdPropertyIds::ID_MAX_ECHOES_PER_CHANNEL )->ValueT<uint8_t>();
 
     GetResultEchoes()->Init( mProperties->GetIntegerProperty( LdPropertyIds::ID_DISTANCE_SCALE )->ValueT<uint32_t>(),
@@ -465,13 +446,16 @@ void LeddarDevice::LdSensorDTec::UpdateConstants( void )
     if( mProperties->GetIntegerProperty( LdPropertyIds::ID_RAW_AMP_SCALE )->Count() == 0 )
         mProperties->GetIntegerProperty( LdPropertyIds::ID_RAW_AMP_SCALE )->ForceValue( 0, LtComDTec::DTEC_RAW_AMP_SCALE );
 
-    GetResultStates()->GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_RS_SYSTEM_TEMP )->SetScale( GetProperties()->GetIntegerProperty(
-                LeddarCore::LdPropertyIds::ID_TEMPERATURE_SCALE )->ValueT<uint32_t>() );
+    GetResultStates()
+        ->GetProperties()
+        ->GetFloatProperty( LeddarCore::LdPropertyIds::ID_RS_SYSTEM_TEMP )
+        ->SetScale( GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_TEMPERATURE_SCALE )->ValueT<uint32_t>() );
 
-    GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_CAL_AMP )->SetScale( GetProperties()->GetIntegerProperty(
-                LeddarCore::LdPropertyIds::ID_DISTANCE_SCALE )->ValueT<uint32_t>() );
+    GetProperties()
+        ->GetFloatProperty( LeddarCore::LdPropertyIds::ID_CAL_AMP )
+        ->SetScale( GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_DISTANCE_SCALE )->ValueT<uint32_t>() );
 
-    LdFloatProperty *lSensitivity = GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_SENSIVITY );
+    LdFloatProperty *lSensitivity       = GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_SENSIVITY );
     LdFloatProperty *lSensitivityLimits = GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_SENSIVITY_LIMITS );
     lSensitivity->SetScale( GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_RAW_AMP_SCALE )->ValueT<uint32_t>() );
     lSensitivityLimits->SetScale( GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_RAW_AMP_SCALE )->ValueT<uint32_t>() );
@@ -481,12 +465,14 @@ void LeddarDevice::LdSensorDTec::UpdateConstants( void )
         lSensitivity->SetRawLimits( lSensitivityLimits->RawValue( 0 ), lSensitivityLimits->RawValue( 1 ) );
     }
 
-    //Horizontal field of view
-    LdFloatProperty *lHFOV = GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_HFOV );
-    float lValue = 0;
-
-    switch( GetProperties()->GetBitProperty( LeddarCore::LdPropertyIds::ID_OPTIONS )->Value( 0 ) & LtComM16::LT_COMM_DEVICE_OPTION_LFOV_MASK )
+    // Horizontal field of view
+    if( GetProperties()->FindProperty( LeddarCore::LdPropertyIds::ID_OPTIONS ) && GetProperties()->GetProperty( LeddarCore::LdPropertyIds::ID_OPTIONS )->Count() > 0 ) //No value if aux data server
     {
+        LdFloatProperty *lHFOV = GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_HFOV );
+        float lValue           = 0;
+
+        switch( GetProperties()->GetBitProperty( LeddarCore::LdPropertyIds::ID_OPTIONS )->Value( 0 ) & LtComM16::LT_COMM_DEVICE_OPTION_LFOV_MASK )
+        {
         case LtComM16::LT_COMM_DEVICE_OPTION_18_DEG_LFOV:
             lValue = 19.4f;
             break;
@@ -514,10 +500,11 @@ void LeddarDevice::LdSensorDTec::UpdateConstants( void )
         case LtComM16::LT_COMM_DEVICE_OPTION_100_DEG_LFOV:
             lValue = 100;
             break;
-    }
+        }
 
-    lHFOV->ForceValue( 0, lValue );
-    lHFOV->SetClean();
+        lHFOV->ForceValue( 0, lValue );
+        lHFOV->SetClean();
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -528,8 +515,7 @@ void LeddarDevice::LdSensorDTec::UpdateConstants( void )
 /// \author David Levy
 /// \date   October 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarDevice::LdSensorDTec::GetConfig( void )
+void LeddarDevice::LdSensorDTec::GetConfig( void )
 {
     if( mAuxiliaryDataServer )
         return;
@@ -559,8 +545,7 @@ LeddarDevice::LdSensorDTec::GetConfig( void )
 /// \author David Levy
 /// \date   October 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarDevice::LdSensorDTec::SetConfig( void )
+void LeddarDevice::LdSensorDTec::SetConfig( void )
 {
     if( mAuxiliaryDataServer )
         return;
@@ -575,8 +560,9 @@ LeddarDevice::LdSensorDTec::SetConfig( void )
     {
         if( ( *lIter )->Modified() )
         {
-            mProtocolConfig->AddElement( ( *lIter )->GetDeviceId(), static_cast<uint16_t>( ( *lIter )->Count() ), ( *lIter )->UnitSize(),
-                                         ( *lIter )->CStorage(), static_cast<uint32_t>( ( *lIter )->Stride() ) );
+            auto lStorage = ( *lIter )->GetStorage();
+            mProtocolConfig->AddElement( ( *lIter )->GetDeviceId(), static_cast<uint16_t>( ( *lIter )->Count() ), ( *lIter )->UnitSize(), lStorage.data(),
+                                         static_cast<uint32_t>( ( *lIter )->Stride() ) );
         }
     }
 
@@ -585,8 +571,8 @@ LeddarDevice::LdSensorDTec::SetConfig( void )
 
     if( mProtocolConfig->GetAnswerCode() != LtComLeddarTechPublic::LT_COMM_ANSWER_OK )
     {
-        throw LeddarException::LtComException( "Wrong answer code to SetConfig: 0x"
-                                               + LeddarUtils::LtStringUtils::IntToString( mProtocolConfig->GetAnswerCode(), 16 ), LeddarException::ERROR_COM_WRITE );
+        throw LeddarException::LtComException( "Wrong answer code to SetConfig: 0x" + LeddarUtils::LtStringUtils::IntToString( mProtocolConfig->GetAnswerCode(), 16 ),
+                                               LeddarException::ERROR_COM_WRITE );
     }
 
     for( std::vector<LeddarCore::LdProperty *>::iterator lIter = lProperties.begin(); lIter != lProperties.end(); ++lIter )
@@ -614,8 +600,7 @@ void LeddarDevice::LdSensorDTec::WriteConfig( void )
 /// \author Patrick Boulay
 /// \date   November 2018
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarDevice::LdSensorDTec::GetCalib( void )
+void LeddarDevice::LdSensorDTec::GetCalib( void )
 {
     if( mAuxiliaryDataServer )
         return;
@@ -652,7 +637,7 @@ void LeddarDevice::LdSensorDTec::SetDataMask( uint32_t aDataMask )
     mPingEnabled = false;
     LeddarUtils::LtScope<bool> lPingEnabler( &mPingEnabled, true );
 
-    mDataMask = aDataMask;
+    mDataMask          = aDataMask;
     uint32_t lDataMask = ConvertDataMaskToLTDataMask( aDataMask );
 
     lProtocol->StartRequest( LtComLeddarTechPublic::LT_COMM_CFGSRV_REQUEST_SET );
@@ -725,68 +710,53 @@ bool LeddarDevice::LdSensorDTec::ProcessData( uint16_t aRequestCode )
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 bool LeddarDevice::LdSensorDTec::ProcessEchoes( void )
 {
-    mEchoes.Lock( LeddarConnection::B_SET );
+    auto lLock = mEchoes.GetUniqueLock(LeddarConnection::B_SET);
     std::vector<LeddarConnection::LdEcho> &lEchoes = *mEchoes.GetEchoes( LeddarConnection::B_SET );
-    uint32_t lTimestamp = 0;
+    uint32_t lTimestamp                            = 0;
 
     while( mProtocolData->ReadElement() )
     {
         switch( mProtocolData->GetElementId() )
         {
-            case LtComLeddarTechPublic::LT_COMM_ID_TIMESTAMP:
-                mProtocolData->PushElementDataToBuffer( &lTimestamp,
-                                                        mProtocolData->GetElementCount(),
-                                                        sizeof( uint32_t ),
-                                                        sizeof( uint32_t ) );
-                mEchoes.SetTimestamp( lTimestamp );
-                break;
+        case LtComLeddarTechPublic::LT_COMM_ID_TIMESTAMP:
+            mProtocolData->PushElementDataToBuffer( &lTimestamp, mProtocolData->GetElementCount(), sizeof( uint32_t ), sizeof( uint32_t ) );
+            mEchoes.SetTimestamp( lTimestamp );
+            break;
 
-            case LtComLeddarTechPublic::LT_COMM_ID_ECHOES_AMPLITUDE:
-                mEchoes.SetEchoCount( mProtocolData->GetElementCount() );
-                mProtocolData->PushElementDataToBuffer( &lEchoes[0].mAmplitude,
-                                                        mProtocolData->GetElementCount(),
-                                                        sizeof( ( ( LeddarConnection::LdEcho * )0 )->mAmplitude ),
-                                                        sizeof( lEchoes[0] ) );
-                break;
+        case LtComLeddarTechPublic::LT_COMM_ID_ECHOES_AMPLITUDE:
+            mEchoes.SetEchoCount( mProtocolData->GetElementCount() );
+            mProtocolData->PushElementDataToBuffer( &lEchoes[0].mAmplitude, mProtocolData->GetElementCount(), sizeof( ( (LeddarConnection::LdEcho *)0 )->mAmplitude ),
+                                                    sizeof( lEchoes[0] ) );
+            break;
 
-            case LtComLeddarTechPublic::LT_COMM_ID_ECHOES_DISTANCE:
-                mEchoes.SetEchoCount( mProtocolData->GetElementCount() );
-                mProtocolData->PushElementDataToBuffer( &lEchoes[0].mDistance,
-                                                        mProtocolData->GetElementCount(),
-                                                        sizeof( ( ( LeddarConnection::LdEcho * )0 )->mDistance ),
-                                                        sizeof( lEchoes[0] ) );
-                break;
+        case LtComLeddarTechPublic::LT_COMM_ID_ECHOES_DISTANCE:
+            mEchoes.SetEchoCount( mProtocolData->GetElementCount() );
+            mProtocolData->PushElementDataToBuffer( &lEchoes[0].mDistance, mProtocolData->GetElementCount(), sizeof( ( (LeddarConnection::LdEcho *)0 )->mDistance ),
+                                                    sizeof( lEchoes[0] ) );
+            break;
 
-            case LtComLeddarTechPublic::LT_COMM_ID_ECHOES_CHANNEL_INDEX:
-                mEchoes.SetEchoCount( mProtocolData->GetElementCount() );
-                mProtocolData->PushElementDataToBuffer( &lEchoes[0].mChannelIndex,
-                                                        mProtocolData->GetElementCount(),
-                                                        sizeof( ( ( LeddarConnection::LdEcho * )0 )->mChannelIndex ),
-                                                        sizeof( lEchoes[0] ) );
-                break;
+        case LtComLeddarTechPublic::LT_COMM_ID_ECHOES_CHANNEL_INDEX:
+            mEchoes.SetEchoCount( mProtocolData->GetElementCount() );
+            mProtocolData->PushElementDataToBuffer( &lEchoes[0].mChannelIndex, mProtocolData->GetElementCount(), sizeof( ( (LeddarConnection::LdEcho *)0 )->mChannelIndex ),
+                                                    sizeof( lEchoes[0] ) );
+            break;
 
-            case LtComLeddarTechPublic::LT_COMM_ID_ECHOES_VALID:
-                mEchoes.SetEchoCount( mProtocolData->GetElementCount() );
-                mProtocolData->PushElementDataToBuffer( &lEchoes[0].mFlag,
-                                                        mProtocolData->GetElementCount(),
-                                                        sizeof( ( ( LeddarConnection::LdEcho * )0 )->mFlag ),
-                                                        sizeof( lEchoes[0] ) );
-                break;
+        case LtComLeddarTechPublic::LT_COMM_ID_ECHOES_VALID:
+            mEchoes.SetEchoCount( mProtocolData->GetElementCount() );
+            mProtocolData->PushElementDataToBuffer( &lEchoes[0].mFlag, mProtocolData->GetElementCount(), sizeof( ( (LeddarConnection::LdEcho *)0 )->mFlag ), sizeof( lEchoes[0] ) );
+            break;
 
-            case LtComLeddarTechPublic::LT_COMM_ID_ECHOES_BASE:
-                mEchoes.SetEchoCount( mProtocolData->GetElementCount() );
-                mProtocolData->PushElementDataToBuffer( &lEchoes[0].mBase,
-                                                        mProtocolData->GetElementCount(),
-                                                        sizeof( ( ( LeddarConnection::LdEcho * )0 )->mBase ),
-                                                        sizeof( lEchoes[0] ) );
+        case LtComLeddarTechPublic::LT_COMM_ID_ECHOES_BASE:
+            mEchoes.SetEchoCount( mProtocolData->GetElementCount() );
+            mProtocolData->PushElementDataToBuffer( &lEchoes[0].mBase, mProtocolData->GetElementCount(), sizeof( ( (LeddarConnection::LdEcho *)0 )->mBase ), sizeof( lEchoes[0] ) );
 
-            default:
-                // The sensor sends 3 other id that are not relevant: LT_COMM_ID_ECHOES_MAX_INDEX, LT_COMM_ID_ECHOES_AMPLITUDE_LOW_SCALE and LT_COMM_ID_ECHOES_SATURATION_WIDTH
-                break;
+        default:
+            // The sensor sends 3 other id that are not relevant: LT_COMM_ID_ECHOES_MAX_INDEX, LT_COMM_ID_ECHOES_AMPLITUDE_LOW_SCALE and LT_COMM_ID_ECHOES_SATURATION_WIDTH
+            break;
         }
     }
 
-    mEchoes.UnLock( LeddarConnection::B_SET );
+    lLock.unlock();
     ComputeCartesianCoordinates();
     mEchoes.Swap();
     mEchoes.UpdateFinished();
@@ -813,15 +783,14 @@ void LeddarDevice::LdSensorDTec::GetStatus( void )
         // SendCommand( LtComLeddarTechPublic::LT_COMM_CFGSRV_REQUEST_ECHO );
         // instead of the commands below
 
-        uint16_t lIds[] =
-        {
+        uint16_t lIds[] = {
             LtComLeddarTechPublic::LT_COMM_ID_CPU_LOAD_V2,
             LtComLeddarTechPublic::LT_COMM_ID_SYS_TEMP,
             LtComLeddarTechPublic::LT_COMM_ID_CURRENT_TIME_MS,
         };
 
         mProtocolConfig->StartRequest( LtComLeddarTechPublic::LT_COMM_CFGSRV_REQUEST_GET );
-        mProtocolConfig->AddElement( LtComLeddarTechPublic::LT_COMM_ID_ELEMENT_LIST, LT_ALEN( lIds ), sizeof( lIds[ 0 ] ), lIds, sizeof( lIds[ 0 ] ) );
+        mProtocolConfig->AddElement( LtComLeddarTechPublic::LT_COMM_ID_ELEMENT_LIST, LT_ALEN( lIds ), sizeof( lIds[0] ), lIds, sizeof( lIds[0] ) );
         mProtocolConfig->SendRequest();
 
         mProtocolConfig->ReadAnswer();
@@ -878,9 +847,9 @@ void LeddarDevice::LdSensorDTec::Reset( LeddarDefines::eResetType aType, LeddarD
     }
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarDevice::LdSensorDTec::UpdateFirmware( eFirmwareType aFirmwareType, const LdFirmwareData &aFirmwareData, LeddarCore::LdIntegerProperty *aProcessPercentage, LeddarCore::LdBoolProperty * )
+/// \fn void LeddarDevice::LdSensorDTec::UpdateFirmware( eFirmwareType aFirmwareType, const LdFirmwareData &aFirmwareData, LeddarCore::LdIntegerProperty *aProcessPercentage,
+/// LeddarCore::LdBoolProperty * )
 ///
 /// \brief  Update the Firmware of the device.
 ///
@@ -897,7 +866,7 @@ void LeddarDevice::LdSensorDTec::Reset( LeddarDefines::eResetType aType, LeddarD
 /// \date   March 2016
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void LeddarDevice::LdSensorDTec::UpdateFirmware( eFirmwareType aFirmwareType, const LdFirmwareData &aFirmwareData, LeddarCore::LdIntegerProperty *aProcessPercentage,
-        LeddarCore::LdBoolProperty * )
+                                                 LeddarCore::LdBoolProperty * )
 {
     if( mAuxiliaryDataServer )
         return;
@@ -908,13 +877,20 @@ void LeddarDevice::LdSensorDTec::UpdateFirmware( eFirmwareType aFirmwareType, co
 
     switch( aFirmwareType )
     {
-        case FT_DSP: lFirmwareType = LtComLeddarTechPublic::LT_COMM_SOFTWARE_TYPE_MAIN; break;
+    case FT_DSP:
+        lFirmwareType = LtComLeddarTechPublic::LT_COMM_SOFTWARE_TYPE_MAIN;
+        break;
 
-        case FT_FPGA: lFirmwareType = LtComLeddarTechPublic::LT_COMM_SOFTWARE_TYPE_FPGA; break;
+    case FT_FPGA:
+        lFirmwareType = LtComLeddarTechPublic::LT_COMM_SOFTWARE_TYPE_FPGA;
+        break;
 
-        case FT_FACTORY: lFirmwareType = LtComLeddarTechPublic::LT_COMM_SOFTWARE_TYPE_FACTORY; break; //Send this firmware to the factory memory
+    case FT_FACTORY:
+        lFirmwareType = LtComLeddarTechPublic::LT_COMM_SOFTWARE_TYPE_FACTORY;
+        break; // Send this firmware to the factory memory
 
-        default: throw std::logic_error( "Invalid firmware type: " + LeddarUtils::LtStringUtils::IntToString( aFirmwareType ) );
+    default:
+        throw std::logic_error( "Invalid firmware type: " + LeddarUtils::LtStringUtils::IntToString( aFirmwareType ) );
     }
 
     const uint16_t lCrc = LeddarUtils::LtCRCUtils::ComputeCRC16( &aFirmwareData.mFirmwareData[0], aFirmwareData.mFirmwareData.size() );
@@ -922,8 +898,8 @@ void LeddarDevice::LdSensorDTec::UpdateFirmware( eFirmwareType aFirmwareType, co
     mProtocolConfig->SetEchoState( false );
 
     // Hack to support side-tec Morpho that has different ids for some elements.
-    uint16_t lOffset = 0;
-    uint8_t lDeviceType = ( uint8_t )mProtocolConfig->GetDeviceType();
+    uint16_t lOffset    = 0;
+    uint8_t lDeviceType = (uint8_t)mProtocolConfig->GetDeviceType();
 
     if( lDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_SIDETEC_M )
     {
@@ -939,7 +915,7 @@ void LeddarDevice::LdSensorDTec::UpdateFirmware( eFirmwareType aFirmwareType, co
     mProtocolConfig->SendRequest();
 
     ReadAnswer( 100 );
-    //And request something else to be sure its ok
+    // And request something else to be sure its ok
     mProtocolConfig->QueryDeviceType();
     LeddarUtils::LtTimeUtils::Wait( 1000 );
 }
@@ -960,14 +936,14 @@ LeddarDevice::LdSensor::eFirmwareType LeddarDevice::LdSensorDTec::LtbTypeToFirmw
 {
     switch( aLtbType )
     {
-        case LeddarUtils::LtFileUtils::LtLtbReader::ID_LTB_DTEC_BIN:
-            return FT_DSP;
+    case LeddarUtils::LtFileUtils::LtLtbReader::ID_LTB_DTEC_BIN:
+        return FT_DSP;
 
-        case LeddarUtils::LtFileUtils::LtLtbReader::ID_LTB_DTEC_FPGA:
-            return FT_FPGA;
+    case LeddarUtils::LtFileUtils::LtLtbReader::ID_LTB_DTEC_FPGA:
+        return FT_FPGA;
 
-        default:
-            break;
+    default:
+        break;
     }
 
     return FT_INVALID;
@@ -981,39 +957,33 @@ LeddarDevice::LdSensor::eFirmwareType LeddarDevice::LdSensorDTec::LtbTypeToFirmw
 /// \author Patrick Boulay
 /// \date   February 2017
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarDevice::LdSensorDTec::QueryDeviceInfo( void )
+void LeddarDevice::LdSensorDTec::QueryDeviceInfo( void )
 {
-    const LeddarConnection::LdConnectionInfoEthernet *lConnectionInfoEthernet = dynamic_cast< const LeddarConnection::LdConnectionInfoEthernet * >
-            ( mProtocolConfig->GetConnectionInfo() );
+    const LeddarConnection::LdConnectionInfoEthernet *lConnectionInfoEthernet =
+        dynamic_cast<const LeddarConnection::LdConnectionInfoEthernet *>( mProtocolConfig->GetConnectionInfo() );
     LeddarConnection::LdEthernet lInterface( lConnectionInfoEthernet );
     lInterface.OpenUDPSocket( IDT_PORT );
 
     // Prepare a request to be sent (it is always the same).
     LtComLeddarTechPublic::sLtCommRequestHeader lRequest;
-    lRequest.mSrvProtVersion = LT_ETHERNET_IDENTIFY_PROT_VERSION;
-    lRequest.mRequestCode = LT_COMM_IDT_REQUEST_IDENTIFY;
+    lRequest.mSrvProtVersion   = LT_ETHERNET_IDENTIFY_PROT_VERSION;
+    lRequest.mRequestCode      = LT_COMM_IDT_REQUEST_IDENTIFY;
     lRequest.mRequestTotalSize = sizeof( lRequest );
 
-    lInterface.SendTo( lConnectionInfoEthernet->GetIP(), IDT_PORT, ( uint8_t * )&lRequest, sizeof( lRequest ) );
+    lInterface.SendTo( lConnectionInfoEthernet->GetIP(), IDT_PORT, (uint8_t *)&lRequest, sizeof( lRequest ) );
 
     std::string lAddress;
-    uint16_t    lPort;
+    uint16_t lPort;
 
     LtComEthernetPublic::sLtIdtAnswerIdentifyDtec lAnswer;
-    const uint32_t lSize = lInterface.ReceiveFrom( lAddress, lPort, ( uint8_t * )&lAnswer, sizeof( lAnswer ) );
+    const uint32_t lSize = lInterface.ReceiveFrom( lAddress, lPort, (uint8_t *)&lAnswer, sizeof( lAnswer ) );
 
     // Check the if the received package is valid and fill properties with data
-    if( ( lSize == sizeof( lAnswer ) )
-            && ( lAnswer.mProtocolVersion == LT_ETHERNET_IDENTIFY_PROT_VERSION )
-            && ( lAnswer.mHeader.mSrvProtVersion == LT_ETHERNET_IDENTIFY_PROT_VERSION )
-            && ( lAnswer.mHeader.mAnswerCode == LT_ETHERNET_ANSWER_OK )
-            && ( lAnswer.mHeader.mRequestCode == LT_COMM_IDT_REQUEST_IDENTIFY )
-            && ( lAnswer.mHeader.mAnswerSize == lSize )
-            && ( lPort >= IDT_PORT )
-            && ( lPort < IDT_PORT + MAX_PORT_OFFSET )
-            && ( lAnswer.mSerialNumber[ LT_COMM_SERIAL_NUMBER_LENGTH - 1 ] == 0 )
-            && ( lAnswer.mStateMessage[ LT_COMM_IDT_STATE_MESSAGE_LENGTH - 1 ] == 0 ) )
+    if( ( lSize == sizeof( lAnswer ) ) && ( lAnswer.mProtocolVersion == LT_ETHERNET_IDENTIFY_PROT_VERSION ) &&
+        ( lAnswer.mHeader.mSrvProtVersion == LT_ETHERNET_IDENTIFY_PROT_VERSION ) && ( lAnswer.mHeader.mAnswerCode == LT_ETHERNET_ANSWER_OK ) &&
+        ( lAnswer.mHeader.mRequestCode == LT_COMM_IDT_REQUEST_IDENTIFY ) && ( lAnswer.mHeader.mAnswerSize == lSize ) && ( lPort >= IDT_PORT ) &&
+        ( lPort < IDT_PORT + MAX_PORT_OFFSET ) && ( lAnswer.mSerialNumber[LT_COMM_SERIAL_NUMBER_LENGTH - 1] == 0 ) &&
+        ( lAnswer.mStateMessage[LT_COMM_IDT_STATE_MESSAGE_LENGTH - 1] == 0 ) )
     {
         GetProperties()->GetIntegerProperty( LdPropertyIds::ID_FPGA_VERSION )->SetCount( 2 );
         GetProperties()->GetIntegerProperty( LdPropertyIds::ID_FPGA_VERSION )->ForceValue( 0, lAnswer.mFirmwareVersion & 0xFF );
@@ -1024,7 +994,8 @@ LeddarDevice::LdSensorDTec::QueryDeviceInfo( void )
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarDevice::LdSensorDTec::ReinitIpConfig( const std::string &aSerialNumber, uint8_t aMode, uint8_t aStorage, uint8_t aPhyMode, const std::string &aIp, const std::string &aSubnet, const std::string &aGateway )
+/// \fn void LeddarDevice::LdSensorDTec::ReinitIpConfig( const std::string &aSerialNumber, uint8_t aMode, uint8_t aStorage, uint8_t aPhyMode, const std::string &aIp, const
+/// std::string &aSubnet, const std::string &aGateway )
 ///
 /// \brief  Reinitialize ip configuration of the sensor. Usefull when a sensor is "lost" i.e. misconfigured on a network without router
 ///
@@ -1044,9 +1015,8 @@ LeddarDevice::LdSensorDTec::QueryDeviceInfo( void )
 ///
 /// \date   March 2018
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarDevice::LdSensorDTec::ReinitIpConfig( const std::string &aSerialNumber, uint8_t aMode, uint8_t aStorage, uint8_t aPhyMode,
-        const std::string &aIp, const std::string &aSubnet, const std::string &aGateway )
+void LeddarDevice::LdSensorDTec::ReinitIpConfig( const std::string &aSerialNumber, uint8_t aMode, uint8_t aStorage, uint8_t aPhyMode, const std::string &aIp,
+                                                 const std::string &aSubnet, const std::string &aGateway )
 {
     if( aMode != LtComDTec::LT_IPV4_IP_MODE_DYNAMIC && aMode != LtComDTec::LT_IPV4_IP_MODE_STATIC )
     {
@@ -1059,8 +1029,8 @@ LeddarDevice::LdSensorDTec::ReinitIpConfig( const std::string &aSerialNumber, ui
     }
 
     if( aPhyMode != LtComDTec::LT_IPV4_PHY_MODE_AUTO_NEGOTIATION && aPhyMode != LtComDTec::LT_IPV4_PHY_MODE_HALF_DUPLEX_10 &&
-            aPhyMode != LtComDTec::LT_IPV4_PHY_MODE_FULL_DUPLEX_10 && aPhyMode != LtComDTec::LT_IPV4_PHY_MODE_HALF_DUPLEX_100 &&
-            aPhyMode != LtComDTec::LT_IPV4_PHY_MODE_FULL_DUPLEX_100 )
+        aPhyMode != LtComDTec::LT_IPV4_PHY_MODE_FULL_DUPLEX_10 && aPhyMode != LtComDTec::LT_IPV4_PHY_MODE_HALF_DUPLEX_100 &&
+        aPhyMode != LtComDTec::LT_IPV4_PHY_MODE_FULL_DUPLEX_100 )
     {
         throw std::logic_error( "Incorrect storage configuration." );
     }
@@ -1070,17 +1040,17 @@ LeddarDevice::LdSensorDTec::ReinitIpConfig( const std::string &aSerialNumber, ui
         throw std::logic_error( "Need to set ip configuration when using static mode." );
     }
 
-    std::vector<std::pair<SOCKET, unsigned long> > lInterfaces;
+    std::vector<std::pair<SOCKET, unsigned long>> lInterfaces;
 
     try
     {
-        //Request to send
+        // Request to send
         LtComDTec::LtIpv4RequestIpConfig lRequest;
-        lRequest.mHeader.mSrvProtVersion = LT_ETHERNET_IDENTIFY_PROT_VERSION;
-        lRequest.mHeader.mRequestCode = LtComDTec::LT_IPV4_IDT_REQUEST_IP_CONFIG;
+        lRequest.mHeader.mSrvProtVersion   = LT_ETHERNET_IDENTIFY_PROT_VERSION;
+        lRequest.mHeader.mRequestCode      = LtComDTec::LT_IPV4_IDT_REQUEST_IP_CONFIG;
         lRequest.mHeader.mRequestTotalSize = sizeof( LtComDTec::LtIpv4RequestIpConfig );
 
-        lRequest.mMode = aMode;
+        lRequest.mMode    = aMode;
         lRequest.mStorage = aStorage;
         lRequest.mPhyMode = aPhyMode;
 
@@ -1094,29 +1064,29 @@ LeddarDevice::LdSensorDTec::ReinitIpConfig( const std::string &aSerialNumber, ui
         }
 
         aSerialNumber.copy( lRequest.mSerialNumber, aSerialNumber.size() );
-        lRequest.mSerialNumber[aSerialNumber.length()] = 0; //To be sure its null terminated
+        lRequest.mSerialNumber[aSerialNumber.length()] = 0; // To be sure its null terminated
 
         if( aMode == LtComDTec::LT_IPV4_IP_MODE_STATIC )
         {
-            *( uint32_t * )lRequest.mIpAddress.mBytes = LeddarUtils::LtStringUtils::StringToIp4Addr( aIp );
-            *( uint32_t * )lRequest.mIpGateway.mBytes = LeddarUtils::LtStringUtils::StringToIp4Addr( aGateway );
-            *( uint32_t * )lRequest.mIpNetMask.mBytes = LeddarUtils::LtStringUtils::StringToIp4Addr( aSubnet );
+            *(uint32_t *)lRequest.mIpAddress.mBytes = LeddarUtils::LtStringUtils::StringToIp4Addr( aIp );
+            *(uint32_t *)lRequest.mIpGateway.mBytes = LeddarUtils::LtStringUtils::StringToIp4Addr( aGateway );
+            *(uint32_t *)lRequest.mIpNetMask.mBytes = LeddarUtils::LtStringUtils::StringToIp4Addr( aSubnet );
         }
 
-        //And send the request
+        // And send the request
         lInterfaces = LeddarConnection::LdEthernet::OpenScanRequestSockets();
 
         bool lAllBroadcastFail = true;
 
         for( size_t i = 0; i < lInterfaces.size(); ++i )
         {
-            sockaddr_in addr = {};
-            addr.sin_family = AF_INET;
+            sockaddr_in addr     = {};
+            addr.sin_family      = AF_INET;
             addr.sin_addr.s_addr = 0xFFFFFFFF;
-            addr.sin_port = htons( LtComDTec::DTEC_IDT_PORT );
+            addr.sin_port        = htons( LtComDTec::DTEC_IDT_PORT );
 
-            //Broadcast request
-            if( sendto( lInterfaces[i].first, ( const char * )&lRequest, sizeof( lRequest ), 0, ( struct sockaddr * ) &addr, sizeof( addr ) ) >= 0 )
+            // Broadcast request
+            if( sendto( lInterfaces[i].first, (const char *)&lRequest, sizeof( lRequest ), 0, (struct sockaddr *)&addr, sizeof( addr ) ) >= 0 )
             {
                 lAllBroadcastFail = false;
             }
@@ -1124,7 +1094,6 @@ LeddarDevice::LdSensorDTec::ReinitIpConfig( const std::string &aSerialNumber, ui
 
         if( lAllBroadcastFail )
             throw LeddarException::LtComException( "Failed to broadcast request." );
-
     }
     catch( ... )
     {
@@ -1152,6 +1121,5 @@ LeddarDevice::LdSensorDTec::ReinitIpConfig( const std::string &aSerialNumber, ui
 #endif
             LeddarConnection::LdEthernet::CloseSocket( lInterfaces[i].first );
     }
-
 }
-#endif //defined(BUILD_DTEC) && defined(BUILD_ETHERNET)
+#endif // defined(BUILD_DTEC) && defined(BUILD_ETHERNET)

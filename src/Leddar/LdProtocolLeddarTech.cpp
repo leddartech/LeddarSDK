@@ -29,24 +29,24 @@ using namespace LeddarConnection;
 /// \author Patrick Boulay
 /// \date   February 2017
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-LdProtocolLeddarTech::LdProtocolLeddarTech( const LdConnectionInfo *aConnectionInfo, LdConnection *aInterface ) :
-    LdConnection( aConnectionInfo, aInterface ),
-    mIsConnected( false ),
-    mIsDataServer( false ),
-    mIdentityInfo(),
-    mProtocolVersion( LT_COMM_CFG_PROT_VERSION ),
-    mAnswerCode( 0 ),
-    mRequestCode( 0 ),
-    mMessageSize( 0 ),
-    mTotalMessageSize( nullptr ),
-    mElementOffset( 0 ),
-    mElementId( 0 ),
-    mElementCount( 0 ),
-    mElementSize( 0 ),
-    mElementValueOffset( 0 )
+LdProtocolLeddarTech::LdProtocolLeddarTech( const LdConnectionInfo *aConnectionInfo, LdConnection *aInterface )
+    : LdConnection( aConnectionInfo, aInterface )
+    , mIsConnected( false )
+    , mIsDataServer( false )
+    , mIdentityInfo()
+    , mProtocolVersion( LT_COMM_CFG_PROT_VERSION )
+    , mAnswerCode( 0 )
+    , mRequestCode( 0 )
+    , mMessageSize( 0 )
+    , mTotalMessageSize( nullptr )
+    , mElementOffset( 0 )
+    , mElementId( 0 )
+    , mElementCount( 0 )
+    , mElementSize( 0 )
+    , mElementValueOffset( 0 )
 {
-    mTransferBufferSize = 19000;
-    mTransferInputBuffer = new uint8_t[mTransferBufferSize];
+    mTransferBufferSize   = 19000;
+    mTransferInputBuffer  = new uint8_t[mTransferBufferSize];
     mTransferOutputBuffer = new uint8_t[mTransferBufferSize];
 }
 
@@ -81,8 +81,7 @@ LdProtocolLeddarTech::~LdProtocolLeddarTech( void )
 /// \author Patrick Boulay
 /// \date   February 2017
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LdProtocolLeddarTech::Connect( void )
+void LdProtocolLeddarTech::Connect( void )
 {
     // Connect interface
     mInterface->Connect();
@@ -100,8 +99,7 @@ LdProtocolLeddarTech::Connect( void )
 /// \author Patrick Boulay
 /// \date   February 2017
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LdProtocolLeddarTech::Disconnect( void )
+void LdProtocolLeddarTech::Disconnect( void )
 {
 
     if( mInterface != nullptr && IsConnected() )
@@ -109,7 +107,6 @@ LdProtocolLeddarTech::Disconnect( void )
         mInterface->Disconnect();
         mIsConnected = false;
     }
-
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -123,8 +120,7 @@ LdProtocolLeddarTech::Disconnect( void )
 /// \author Patrick Boulay
 /// \date   February 2017
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LdProtocolLeddarTech::VerifyConnection( void ) const
+void LdProtocolLeddarTech::VerifyConnection( void ) const
 {
     if( mInterface == nullptr )
     {
@@ -149,19 +145,18 @@ LdProtocolLeddarTech::VerifyConnection( void ) const
 /// \author Patrick Boulay
 /// \date   February 2017
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LdProtocolLeddarTech::StartRequest( uint16_t aCode )
+void LdProtocolLeddarTech::StartRequest( uint16_t aCode )
 {
     VerifyConnection();
 
     LtComLeddarTechPublic::sLtCommRequestHeader *lRequest = reinterpret_cast<LtComLeddarTechPublic::sLtCommRequestHeader *>( mTransferInputBuffer );
-    lRequest->mRequestCode = aCode;
-    lRequest->mRequestTotalSize = sizeof( LtComLeddarTechPublic::sLtCommRequestHeader );
-    lRequest->mSrvProtVersion = mProtocolVersion;
-    mTotalMessageSize = &lRequest->mRequestTotalSize;
-    mMessageSize = sizeof( LtComLeddarTechPublic::sLtCommRequestHeader );
-    mElementOffset = sizeof( LtComLeddarTechPublic::sLtCommRequestHeader );
-    mRequestCode = aCode;
+    lRequest->mRequestCode                                = aCode;
+    lRequest->mRequestTotalSize                           = sizeof( LtComLeddarTechPublic::sLtCommRequestHeader );
+    lRequest->mSrvProtVersion                             = mProtocolVersion;
+    mTotalMessageSize                                     = &lRequest->mRequestTotalSize;
+    mMessageSize                                          = sizeof( LtComLeddarTechPublic::sLtCommRequestHeader );
+    mElementOffset                                        = sizeof( LtComLeddarTechPublic::sLtCommRequestHeader );
+    mRequestCode                                          = aCode;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -174,8 +169,7 @@ LdProtocolLeddarTech::StartRequest( uint16_t aCode )
 /// \author Patrick Boulay
 /// \date   February 2017
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LdProtocolLeddarTech::ReadRequest()
+void LdProtocolLeddarTech::ReadRequest()
 {
     VerifyConnection();
 
@@ -183,8 +177,8 @@ LdProtocolLeddarTech::ReadRequest()
     Read( sizeof( LtComLeddarTechPublic::sLtCommRequestHeader ) );
     LtComLeddarTechPublic::sLtCommRequestHeader *lRequestHeader = reinterpret_cast<LtComLeddarTechPublic::sLtCommRequestHeader *>( mTransferOutputBuffer );
 
-    mRequestCode = lRequestHeader->mRequestCode;
-    mMessageSize = lRequestHeader->mRequestTotalSize - sizeof( LtComLeddarTechPublic::sLtCommRequestHeader );
+    mRequestCode   = lRequestHeader->mRequestCode;
+    mMessageSize   = lRequestHeader->mRequestTotalSize - sizeof( LtComLeddarTechPublic::sLtCommRequestHeader );
     mElementOffset = sizeof( LtComLeddarTechPublic::sLtCommRequestHeader );
 }
 
@@ -198,8 +192,7 @@ LdProtocolLeddarTech::ReadRequest()
 /// \author Patrick Boulay
 /// \date   February 2017
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LdProtocolLeddarTech::SendRequest( void )
+void LdProtocolLeddarTech::SendRequest( void )
 {
     VerifyConnection();
 
@@ -222,8 +215,7 @@ LdProtocolLeddarTech::SendRequest( void )
 /// \author Patrick Boulay
 /// \date   February 2017
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LdProtocolLeddarTech::AddElement( uint16_t aId, uint16_t aCount, uint32_t aSize, const void *aData, uint32_t aStride )
+void LdProtocolLeddarTech::AddElement( uint16_t aId, uint16_t aCount, uint32_t aSize, const void *aData, uint32_t aStride )
 {
     VerifyConnection();
 
@@ -237,12 +229,11 @@ LdProtocolLeddarTech::AddElement( uint16_t aId, uint16_t aCount, uint32_t aSize,
         mTotalMessageSize = reinterpret_cast<uint32_t *>( mTransferInputBuffer + lOffsetMessageSize );
     }
 
-    LtComLeddarTechPublic::sLtCommElementHeader *lElementHeader = reinterpret_cast<LtComLeddarTechPublic::sLtCommElementHeader *>
-            ( mTransferInputBuffer + mElementOffset );
+    LtComLeddarTechPublic::sLtCommElementHeader *lElementHeader = reinterpret_cast<LtComLeddarTechPublic::sLtCommElementHeader *>( mTransferInputBuffer + mElementOffset );
 
-    lElementHeader->mElementId = aId;
+    lElementHeader->mElementId    = aId;
     lElementHeader->mElementCount = aCount;
-    lElementHeader->mElementSize = aSize;
+    lElementHeader->mElementSize  = aSize;
     mMessageSize += lAddedSize;
     mElementOffset += sizeof( LtComLeddarTechPublic::sLtCommElementHeader );
 
@@ -254,71 +245,71 @@ LdProtocolLeddarTech::AddElement( uint16_t aId, uint16_t aCount, uint32_t aSize,
     {
         switch( aSize )
         {
-            case 1:
+        case 1:
+        {
+            const uint8_t *lSrc = static_cast<const uint8_t *>( aData );
+            uint8_t *lDest      = mTransferInputBuffer + mElementOffset;
+
+            for( uint16_t i = 0; i < aCount; ++i )
             {
-                const uint8_t *lSrc = static_cast<const uint8_t *>( aData );
-                uint8_t *lDest = mTransferInputBuffer + mElementOffset;
-
-                for( uint16_t i = 0; i < aCount; ++i )
-                {
-                    lDest[ i ] = *lSrc;
-                    lSrc += aStride;
-                }
+                lDest[i] = *lSrc;
+                lSrc += aStride;
             }
-            break;
+        }
+        break;
 
-            case 2:
+        case 2:
+        {
+            const uint16_t *lSrc = static_cast<const uint16_t *>( aData );
+            uint16_t *lDest      = reinterpret_cast<uint16_t *>( mTransferInputBuffer + mElementOffset );
+
+            for( uint16_t i = 0; i < aCount; ++i )
             {
-                const uint16_t *lSrc = static_cast<const uint16_t *>( aData );
-                uint16_t *lDest = reinterpret_cast<uint16_t *>( mTransferInputBuffer + mElementOffset );
-
-                for( uint16_t i = 0; i < aCount; ++i )
-                {
-                    lDest[ i ] = *lSrc;
-                    lSrc = reinterpret_cast<const uint16_t *>( reinterpret_cast<const uint8_t *>( lSrc ) + aStride );
-                }
+                lDest[i] = *lSrc;
+                lSrc     = reinterpret_cast<const uint16_t *>( reinterpret_cast<const uint8_t *>( lSrc ) + aStride );
             }
-            break;
+        }
+        break;
 
-            case 4:
+        case 4:
+        {
+            const uint32_t *lSrc = static_cast<const uint32_t *>( aData );
+            uint32_t *lDest      = reinterpret_cast<uint32_t *>( mTransferInputBuffer + mElementOffset );
+
+            for( uint16_t i = 0; i < aCount; ++i )
             {
-                const uint32_t *lSrc = static_cast<const uint32_t *>( aData );
-                uint32_t *lDest = reinterpret_cast<uint32_t *>( mTransferInputBuffer + mElementOffset );
-
-                for( uint16_t i = 0; i < aCount; ++i )
-                {
-                    lDest[ i ] = *lSrc;
-                    lSrc = reinterpret_cast<const uint32_t *>( reinterpret_cast<const uint8_t *>( lSrc ) + aStride );
-                }
+                lDest[i] = *lSrc;
+                lSrc     = reinterpret_cast<const uint32_t *>( reinterpret_cast<const uint8_t *>( lSrc ) + aStride );
             }
-            break;
+        }
+        break;
 
-            case 8:
+        case 8:
+        {
+            const uint64_t *lSrc = static_cast<const uint64_t *>( aData );
+            uint64_t *lDest      = reinterpret_cast<uint64_t *>( mTransferInputBuffer + mElementOffset );
+
+            for( uint16_t i = 0; i < aCount; ++i )
             {
-                const uint64_t *lSrc = static_cast<const uint64_t *>( aData );
-                uint64_t *lDest = reinterpret_cast<uint64_t *>( mTransferInputBuffer + mElementOffset );
-
-                for( uint16_t i = 0; i < aCount; ++i )
-                {
-                    lDest[ i ] = *lSrc;
-                    lSrc = reinterpret_cast<const uint64_t *>( reinterpret_cast<const uint8_t *>( lSrc ) + aStride );
-                }
+                lDest[i] = *lSrc;
+                lSrc     = reinterpret_cast<const uint64_t *>( reinterpret_cast<const uint8_t *>( lSrc ) + aStride );
             }
-            break;
+        }
+        break;
 
-            default:
+        default:
+        {
+            const uint8_t *lSrc = static_cast<const uint8_t *>( aData );
+            uint8_t *lDest      = mTransferInputBuffer + mElementOffset;
+
+            for( uint16_t i = 0; i < aCount; ++i )
             {
-                const uint8_t *lSrc = static_cast<const uint8_t *>( aData );
-                uint8_t *lDest = mTransferInputBuffer + mElementOffset;
-
-                for( uint16_t i = 0; i < aCount; ++i )
-                {
-                    memcpy( lDest, lSrc, aSize );
-                    lDest += aSize;
-                    lSrc += aStride;
-                }
+                memcpy( lDest, lSrc, aSize );
+                lDest += aSize;
+                lSrc += aStride;
             }
-            break;
+        }
+        break;
         }
     }
 
@@ -338,19 +329,17 @@ LdProtocolLeddarTech::AddElement( uint16_t aId, uint16_t aCount, uint32_t aSize,
 /// \author Patrick Boulay
 /// \date   February 2017
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-bool
-LdProtocolLeddarTech::ReadElement( void )
+bool LdProtocolLeddarTech::ReadElement( void )
 {
     VerifyConnection();
 
-    if( mMessageSize  > 0 )
+    if( mMessageSize > 0 )
     {
-        LtComLeddarTechPublic::sLtCommElementHeader *lElementHeader = reinterpret_cast<LtComLeddarTechPublic::sLtCommElementHeader *>
-                ( mTransferOutputBuffer + mElementOffset );
-        mElementSize = lElementHeader->mElementSize;
-        mElementId = lElementHeader->mElementId;
-        mElementCount = lElementHeader->mElementCount;
-        mElementValueOffset = mElementOffset + sizeof( LtComLeddarTechPublic::sLtCommElementHeader );
+        LtComLeddarTechPublic::sLtCommElementHeader *lElementHeader = reinterpret_cast<LtComLeddarTechPublic::sLtCommElementHeader *>( mTransferOutputBuffer + mElementOffset );
+        mElementSize                                                = lElementHeader->mElementSize;
+        mElementId                                                  = lElementHeader->mElementId;
+        mElementCount                                               = lElementHeader->mElementCount;
+        mElementValueOffset                                         = mElementOffset + sizeof( LtComLeddarTechPublic::sLtCommElementHeader );
         mElementOffset += sizeof( LtComLeddarTechPublic::sLtCommElementHeader ) + ( mElementSize * mElementCount );
         mMessageSize -= sizeof( LtComLeddarTechPublic::sLtCommElementHeader ) + ( mElementSize * mElementCount );
     }
@@ -373,11 +362,7 @@ LdProtocolLeddarTech::ReadElement( void )
 /// \author Patrick Boulay
 /// \date   March 2017
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void *
-LdProtocolLeddarTech::GetElementData( void ) const
-{
-    return mTransferOutputBuffer + mElementValueOffset;
-}
+void *LdProtocolLeddarTech::GetElementData( void ) const { return mTransferOutputBuffer + mElementValueOffset; }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \fn void LeddarConnection::LdProtocolLeddarTech::SetDataServer( bool aIsDataServer )
@@ -391,7 +376,7 @@ LdProtocolLeddarTech::GetElementData( void ) const
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void LeddarConnection::LdProtocolLeddarTech::SetDataServer( bool aIsDataServer )
 {
-    mIsDataServer = aIsDataServer;
+    mIsDataServer    = aIsDataServer;
     mProtocolVersion = LT_COMM_DATA_PROT_VERSION;
 }
 
@@ -409,18 +394,11 @@ void LeddarConnection::LdProtocolLeddarTech::SetDataServer( bool aIsDataServer )
 /// \author Patrick Boulay
 /// \date   February 2017
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-bool
-LdProtocolLeddarTech::ReadElementToProperty( LeddarCore::LdPropertiesContainer *aProperties )
+bool LdProtocolLeddarTech::ReadElementToProperty( LeddarCore::LdPropertiesContainer *aProperties )
 {
     if( ReadElement() )
     {
-        LeddarCore::LdProperty *lProperty = aProperties->FindDeviceProperty( mElementId );
-
-        if( lProperty != nullptr )
-        {
-            lProperty->SetCount( mElementCount );
-            lProperty->ForceRawStorage( mTransferOutputBuffer + mElementValueOffset, mElementCount, mElementSize );
-        }
+        CopySingleElementToProperty(aProperties);
     }
     else
     {
@@ -428,6 +406,27 @@ LdProtocolLeddarTech::ReadElementToProperty( LeddarCore::LdPropertiesContainer *
     }
 
     return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LdProtocolLeddarTech::CopySingleElementToProperty( LeddarCore::LdPropertiesContainer *aProperties )
+///
+/// \brief  Copy data from element to a property
+///
+/// \author David Lévy
+/// \date   December 2020
+///
+/// \param [in,out] aProperties If non-null, the properties.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void LdProtocolLeddarTech::CopySingleElementToProperty( LeddarCore::LdPropertiesContainer *aProperties )
+{
+    LeddarCore::LdProperty *lProperty = aProperties->FindDeviceProperty( mElementId );
+
+    if( lProperty != nullptr )
+    {
+        lProperty->SetCount( mElementCount );
+        lProperty->ForceRawStorage( mTransferOutputBuffer + mElementValueOffset, mElementCount, mElementSize );
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -442,8 +441,7 @@ LdProtocolLeddarTech::ReadElementToProperty( LeddarCore::LdPropertiesContainer *
 /// \author Patrick Boulay
 /// \date   February 2017
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LdProtocolLeddarTech::ReadElementToProperties( LeddarCore::LdPropertiesContainer *aProperties )
+void LdProtocolLeddarTech::ReadElementToProperties( LeddarCore::LdPropertiesContainer *aProperties )
 {
     while( ReadElementToProperty( aProperties ) )
     {
@@ -466,88 +464,85 @@ LdProtocolLeddarTech::ReadElementToProperties( LeddarCore::LdPropertiesContainer
 /// \author Patrick Boulay
 /// \date   February 2017
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LdProtocolLeddarTech::PushElementDataToBuffer( void *aDest, uint16_t aCount, uint32_t aSize, size_t aStride )
+void LdProtocolLeddarTech::PushElementDataToBuffer( void *aDest, uint16_t aCount, uint32_t aSize, size_t aStride )
 {
-    if( ( aCount != mElementCount )
-            || ( aSize < mElementSize ) )
+    if( ( aCount != mElementCount ) || ( aSize < mElementSize ) )
     {
         throw LeddarException::LtComException( "Unable to push the element in the buffer, count or size do not match." );
     }
 
     if( aStride == mElementSize )
     {
-        memcpy( aDest, GetElementData(),
-                mElementCount * mElementSize );
+        memcpy( aDest, GetElementData(), mElementCount * mElementSize );
     }
     else
     {
         switch( mElementSize )
         {
-            case 1:
+        case 1:
+        {
+            const uint8_t *const lSrc = static_cast<const uint8_t *>( GetElementData() );
+            uint8_t *lDest            = static_cast<uint8_t *>( aDest );
+
+            for( uint16_t i = 0; i < mElementCount; ++i )
             {
-                const uint8_t *const lSrc = static_cast<const uint8_t *>( GetElementData() );
-                uint8_t *lDest = static_cast<uint8_t *>( aDest );
-
-                for( uint16_t i = 0; i < mElementCount; ++i )
-                {
-                    *lDest = lSrc[i];
-                    lDest += aStride;
-                }
+                *lDest = lSrc[i];
+                lDest += aStride;
             }
-            break;
+        }
+        break;
 
-            case 2:
+        case 2:
+        {
+            const uint16_t *const lSrc = reinterpret_cast<const uint16_t *>( GetElementData() );
+            uint16_t *lDest            = reinterpret_cast<uint16_t *>( aDest );
+
+            for( uint16_t i = 0; i < mElementCount; ++i )
             {
-                const uint16_t *const lSrc = reinterpret_cast<const uint16_t *>( GetElementData() );
-                uint16_t *lDest = reinterpret_cast<uint16_t *>( aDest );
-
-                for( uint16_t i = 0; i < mElementCount; ++i )
-                {
-                    *lDest = lSrc[i];
-                    lDest = reinterpret_cast<uint16_t *>( reinterpret_cast<uint8_t *>( lDest ) + aStride );
-                }
+                *lDest = lSrc[i];
+                lDest  = reinterpret_cast<uint16_t *>( reinterpret_cast<uint8_t *>( lDest ) + aStride );
             }
-            break;
+        }
+        break;
 
-            case 4:
+        case 4:
+        {
+            const uint32_t *const lSrc = reinterpret_cast<const uint32_t *>( GetElementData() );
+            uint32_t *lDest            = reinterpret_cast<uint32_t *>( aDest );
+
+            for( uint16_t i = 0; i < mElementCount; ++i )
             {
-                const uint32_t *const lSrc = reinterpret_cast<const uint32_t *>( GetElementData() );
-                uint32_t *lDest = reinterpret_cast<uint32_t *>( aDest );
-
-                for( uint16_t i = 0; i < mElementCount; ++i )
-                {
-                    *lDest = lSrc[i];
-                    lDest = reinterpret_cast<uint32_t *>( reinterpret_cast<uint8_t *>( lDest ) + aStride );
-                }
+                *lDest = lSrc[i];
+                lDest  = reinterpret_cast<uint32_t *>( reinterpret_cast<uint8_t *>( lDest ) + aStride );
             }
-            break;
+        }
+        break;
 
-            case 8:
+        case 8:
+        {
+            const uint64_t *const lSrc = reinterpret_cast<const uint64_t *>( GetElementData() );
+            uint64_t *lDest            = reinterpret_cast<uint64_t *>( aDest );
+
+            for( uint16_t i = 0; i < mElementCount; ++i )
             {
-                const uint64_t *const lSrc = reinterpret_cast<const uint64_t *>( GetElementData() );
-                uint64_t *lDest = reinterpret_cast<uint64_t *>( aDest );
-
-                for( uint16_t i = 0; i < mElementCount; ++i )
-                {
-                    *lDest = lSrc[i];
-                    lDest = reinterpret_cast<uint64_t *>( reinterpret_cast<uint8_t *>( lDest ) + aStride );
-                }
+                *lDest = lSrc[i];
+                lDest  = reinterpret_cast<uint64_t *>( reinterpret_cast<uint8_t *>( lDest ) + aStride );
             }
-            break;
+        }
+        break;
 
-            default:
+        default:
+        {
+            const uint8_t *const lSrc = static_cast<const uint8_t *>( GetElementData() );
+            uint8_t *lDest            = static_cast<uint8_t *>( aDest );
+
+            for( uint16_t i = 0; i < mElementCount; ++i )
             {
-                const uint8_t *const lSrc = static_cast<const uint8_t *>( GetElementData() );
-                uint8_t *lDest = static_cast<uint8_t *>( aDest );
-
-                for( uint16_t i = 0; i < mElementCount; ++i )
-                {
-                    memcpy( lDest, lSrc + i * mElementSize, mElementSize );
-                    lDest += aStride;
-                }
+                memcpy( lDest, lSrc + i * mElementSize, mElementSize );
+                lDest += aStride;
             }
-            break;
+        }
+        break;
         }
     }
 }
@@ -562,10 +557,10 @@ LdProtocolLeddarTech::PushElementDataToBuffer( void *aDest, uint16_t aCount, uin
 /// \author Patrick Boulay
 /// \date   February 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LdProtocolLeddarTech::AddElementFromProperty( LeddarCore::LdProperty *aProperty )
+void LdProtocolLeddarTech::AddElementFromProperty( LeddarCore::LdProperty *aProperty )
 {
-    AddElement( aProperty->GetId(), static_cast<uint32_t>( aProperty->Count() ), aProperty->UnitSize(), aProperty->CStorage(), static_cast<uint32_t>( aProperty->Stride() ) );
+    auto lStorage = aProperty->GetStorage();
+    AddElement( aProperty->GetDeviceId(), static_cast<uint32_t>( aProperty->Count() ), aProperty->UnitSize(), lStorage.data(), static_cast<uint32_t>( aProperty->Stride() ) );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -581,8 +576,7 @@ LdProtocolLeddarTech::AddElementFromProperty( LeddarCore::LdProperty *aProperty 
 /// \author Patrick Boulay
 /// \date   February 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LdProtocolLeddarTech::AddElementFromProperties( LeddarCore::LdPropertiesContainer *aPropertiesContainer, LeddarCore::LdProperty::eCategories aCategory )
+void LdProtocolLeddarTech::AddElementFromProperties( LeddarCore::LdPropertiesContainer *aPropertiesContainer, LeddarCore::LdProperty::eCategories aCategory )
 {
     if( aPropertiesContainer == nullptr )
     {
@@ -595,5 +589,4 @@ LdProtocolLeddarTech::AddElementFromProperties( LeddarCore::LdPropertiesContaine
     {
         AddElementFromProperty( lProperties[i] );
     }
-
 }

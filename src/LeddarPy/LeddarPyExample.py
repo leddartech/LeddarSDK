@@ -7,7 +7,6 @@ dev = leddar.Device()
 sensor_list = leddar.get_devices("Ethernet")
 print(leddar.device_types["Ethernet"])
 dev.connect('192.168.0.2', leddar.device_types["Ethernet"], 48630)
-connection = dev.connect('192.168.0.2', leddar.device_types["Ethernet"], 48630)
 
 #M16 Usb
 # sensor_list = leddar.get_devices("Usb")
@@ -21,7 +20,7 @@ connection = dev.connect('192.168.0.2', leddar.device_types["Ethernet"], 48630)
 # dev.connect(Baud rate (kbps), Type of sensor, Tx ID (optionnal), Rx ID (optionnal))
 # dev.connect('1000', leddar.device_types["M16Komodo"])
 # dev.connect('1000', leddar.device_types["Vu8Komodo"])
-
+dev.set_data_mask(leddar.data_masks["DM_ECHOES"])
 echoes = dev.get_echoes()
 
 v = int(dev.get_property_value(leddar.property_ids["ID_VERTICAL_CHANNEL_NBR"]))
@@ -40,9 +39,11 @@ if echoes :
     print("Count:" + str(len(data)))
     print("timestamp:" + str(echoes['timestamp']))
 
-    print("Channel - Distance - Amplitude - Flag")
+    row = ["Indices", "Distance", "Amplitude", "Flag", "X", "Y", "Z", "Timestamp"]
+    print("{: <10} {: <15} {: <15} {: <5} {: <15} {: <15} {: <15} {: <15}".format(*row))
     for i in range(0, len(data), increment):
-        print(str(data[i]["indices"]) + " - " + str(data[i]["distances"]) + " - " + str(data[i]["amplitudes"]) + " - " + str(data[i]["flags"]))
+        row = [str(data[i]["indices"]), str(data[i]["distances"]),  str(data[i]["amplitudes"]), str(data[i]["flags"]), str(data[i]["x"]), str(data[i]["y"]), str(data[i]["z"]), str(data[i]["timestamps"])]
+        print("{: <10} {: <15} {: <15} {: <5} {: <15} {: <15} {: <15} {: <15}".format(*row))
 
 dev.disconnect()
 del dev

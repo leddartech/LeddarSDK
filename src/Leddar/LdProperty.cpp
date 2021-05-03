@@ -8,48 +8,49 @@
 
 #include "LdProperty.h"
 #include "LtExceptions.h"
-#include "LtStringUtils.h"
 #include "LtScope.h"
+#include "LtStringUtils.h"
 
 #include <cassert>
 #include <cstring>
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn LeddarCore::LdProperty::LdProperty( ePropertyType aPropertyType, eCategories aCategory, uint32_t aFeatures, uint32_t aId, uint32_t aDeviceId, uint32_t aUnitSize, size_t aStride, const std::string &aDescription )
+/// \fn LeddarCore::LdProperty::LdProperty( ePropertyType aPropertyType, eCategories aCategory, uint32_t aFeatures, uint32_t aId, uint32_t aDeviceId, uint32_t aUnitSize, size_t
+/// aStride, const std::string &aDescription )
 ///
-/// \brief  Constructor.
+/// \brief	Constructor.
 ///
-/// \exception  std::logic_error    Raised when the stride is inferior to the size.
+/// \exception	std::logic_error	Raised when the stride is inferior to the size.
 ///
-/// \param  aPropertyType   Type of the property.
-/// \param  aCategory       Category of the property.
-/// \param  aFeatures       Combination of feature bits from the eFeatures enum.
-/// \param  aId             The globally unique value identifying this property. Also used as the file id. Cannot be 0.
-/// \param  aDeviceId       The value used by the device to identify this property. Can be 0 if the property is not involved in communication with
-///                         the device.
-/// \param  aUnitSize       The number of bytes for each value (for raw storage for interaction with files and LeddarTech protocol).
-/// \param  aStride         The number of bytes for each value in the local storage.
-/// \param  aDescription    Name or description of the property.
+/// \param	aPropertyType	Type of the property.
+/// \param	aCategory	 	Category of the property.
+/// \param	aFeatures	 	Combination of feature bits from the eFeatures enum.
+/// \param	aId			 	The globally unique value identifying this property. Also used as the file id. Cannot be 0.
+/// \param	aDeviceId	 	The value used by the device to identify this property. Can be 0 if the property is not involved in communication with
+/// 						the device.
+/// \param	aUnitSize	 	The number of bytes for each value (for raw storage for interaction with files and LeddarTech protocol).
+/// \param	aStride		 	The number of bytes for each value in the local storage.
+/// \param	aDescription 	Name or description of the property.
 ///
-/// \author Patrick Boulay
-/// \date   January 2016
+/// \author	Patrick Boulay
+/// \date	January 2016
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-LeddarCore::LdProperty::LdProperty( ePropertyType aPropertyType, eCategories aCategory, uint32_t aFeatures, uint32_t aId,
-                                    uint32_t aDeviceId, uint32_t aUnitSize, size_t aStride, const std::string &aDescription ) :
-    mCheckEditable( true ),
-    mStride( aStride ),
-    mUnitSize( aUnitSize ),
-    mCategory( aCategory ),
-    mFeatures( aFeatures ),
-    mId( aId ),
-    mPropertyType( aPropertyType ),
-    mDescription( aDescription ),
-    mDeviceId( aDeviceId ),
-    mInitialized( false ),
-    mStorage( 0 ),
-    mBackupStorage( 0 )
+LeddarCore::LdProperty::LdProperty( ePropertyType aPropertyType, eCategories aCategory, uint32_t aFeatures, uint32_t aId, uint32_t aDeviceId, uint32_t aUnitSize, size_t aStride,
+                                    const std::string &aDescription )
+    : mCheckEditable( true )
+    , mStride( aStride )
+    , mUnitSize( aUnitSize )
+    , mCategory( aCategory )
+    , mFeatures( aFeatures )
+    , mId( aId )
+    , mPropertyType( aPropertyType )
+    , mDescription( aDescription )
+    , mDeviceId( aDeviceId )
+    , mInitialized( false )
+    , mStorage( 0 )
+    , mBackupStorage( 0 )
 {
-    assert( aId && ( mPropertyType == TYPE_BUFFER || aUnitSize ) ); //Buffer can have a size = 0 if they are supposed to be resized on data reception
+    assert( aId && ( mPropertyType == TYPE_BUFFER || aUnitSize ) ); // Buffer can have a size = 0 if they are supposed to be resized on data reception
 
     if( aStride < aUnitSize )
     {
@@ -58,7 +59,35 @@ LeddarCore::LdProperty::LdProperty( ePropertyType aPropertyType, eCategories aCa
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn bool LeddarCore::LdProperty::Modified( void ) const
+/// \fn	LeddarCore::LdProperty::LdProperty( const LdProperty &aProperty )
+///
+/// \brief	Copy constructor
+///
+/// \author	Alain Ferron
+/// \date	December 2020
+///
+/// \param	aProperty	The property.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// cppcheck-suppress uninitMemberVar
+LeddarCore::LdProperty::LdProperty( const LdProperty &aProperty )
+{
+    std::lock_guard<std::recursive_mutex> lock( aProperty.mPropertyMutex );
+    mCheckEditable = aProperty.mCheckEditable;
+    mCategory      = aProperty.mCategory;
+    mStride        = aProperty.mStride;
+    mUnitSize      = aProperty.mUnitSize;
+    mFeatures      = aProperty.mFeatures;
+    mId            = aProperty.mId;
+    mPropertyType  = aProperty.mPropertyType;
+    mDescription   = aProperty.mDescription;
+    mDeviceId      = aProperty.mDeviceId;
+    mInitialized   = aProperty.mInitialized;
+    mStorage       = aProperty.mStorage;
+    mBackupStorage = aProperty.mBackupStorage;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn bool LeddarCore::LdProperty::PerformModified( void ) const
 ///
 /// \brief  Indicate if the property is modified.
 ///     Modified means the backup values are not equal to the current values and the property has the EDITABLE bit.
@@ -68,25 +97,36 @@ LeddarCore::LdProperty::LdProperty( ePropertyType aPropertyType, eCategories aCa
 /// \author Patrick Boulay
 /// \date   January 2016
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-bool
-LeddarCore::LdProperty::Modified( void ) const
+bool LeddarCore::LdProperty::PerformModified() const { return ( mStorage != mBackupStorage ); }
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LeddarCore::LdProperty::EmitSignal( const SIGNALS aSignal, void *aExtraData )
+///
+/// \brief  Emit signal, if enabled
+///
+/// \param          aSignal     The signal.
+/// \param [in,out] aExtraData  If non-null, information describing the extra.
+///
+/// \author David Lévy
+/// \date   February 2021
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void LeddarCore::LdProperty::EmitSignal( const SIGNALS aSignal, void *aExtraData )
 {
-    return ( mStorage != mBackupStorage );
+    if( mEnableCallbacks )
+        LdObject::EmitSignal( aSignal, aExtraData );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdProperty::SetClean( void )
+/// \fn void LeddarCore::LdProperty::PerformSetClean( void )
 ///
 /// \brief  Set the backup values to be the current values (so the property is reported as not modified).
 ///
 /// \author Patrick Boulay
 /// \date   January 2016
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarCore::LdProperty::SetClean( void )
-{
-    mBackupStorage = mStorage;
-}
+void LeddarCore::LdProperty::PerformSetClean( void ) { mBackupStorage = mStorage; }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \fn void LeddarCore::LdProperty::SetCount( size_t aValue )
@@ -98,8 +138,7 @@ LeddarCore::LdProperty::SetClean( void )
 /// \author Patrick Boulay
 /// \date   January 2016
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarCore::LdProperty::SetCount( size_t aValue )
+void LeddarCore::LdProperty::PerformSetCount( size_t aValue )
 {
     mStorage.resize( aValue * mStride );
     mBackupStorage.resize( mStorage.size() );
@@ -109,17 +148,16 @@ LeddarCore::LdProperty::SetCount( size_t aValue )
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdProperty::Restore( void )
+/// \fn void LeddarCore::LdProperty::PerformRestore( void )
 ///
 /// \brief  Cancel changes by writing the backup values back to the current values.
 ///
 /// \author Patrick Boulay
 /// \date   January 2016
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarCore::LdProperty::Restore( void )
+void LeddarCore::LdProperty::PerformRestore( void )
 {
-    if( Modified() )
+    if( PerformModified() )
     {
         mStorage = mBackupStorage;
         EmitSignal( LdObject::VALUE_CHANGED );
@@ -127,7 +165,7 @@ LeddarCore::LdProperty::Restore( void )
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdProperty::SetRawStorage( uint8_t *aBuffer, size_t aCount, uint32_t aSize )
+/// \fn void LeddarCore::LdProperty::PerformSetRawStorage( uint8_t *aBuffer, size_t aCount, uint32_t aSize )
 ///
 /// \brief  Set storage directly in memory
 ///
@@ -142,14 +180,13 @@ LeddarCore::LdProperty::Restore( void )
 /// \author Patrick Boulay
 /// \date   March 2017
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarCore::LdProperty::SetRawStorage( uint8_t *aBuffer, size_t aCount, uint32_t aSize )
+void LeddarCore::LdProperty::PerformSetRawStorage( uint8_t *aBuffer, size_t aCount, uint32_t aSize )
 {
     CanEdit();
 
-    if( Count() != aCount )
+    if( PerformCount() != aCount )
     {
-        SetCount( aCount );
+        PerformSetCount( aCount );
     }
 
     if( aSize == mStride )
@@ -160,8 +197,8 @@ LeddarCore::LdProperty::SetRawStorage( uint8_t *aBuffer, size_t aCount, uint32_t
     {
         if( aSize > sizeof( uint64_t ) )
         {
-            throw std::invalid_argument( "Unable to SetRawStorage, invalid size: " + LeddarUtils::LtStringUtils::IntToString( aSize )
-                                         + " id: " + LeddarUtils::LtStringUtils::IntToString( mId, 16 ) );
+            throw std::invalid_argument( "Unable to SetRawStorage, invalid size: " + LeddarUtils::LtStringUtils::IntToString( aSize ) +
+                                         " id: " + LeddarUtils::LtStringUtils::IntToString( mId, 16 ) );
         }
 
         for( uint32_t i = 0; i < aCount; i++ )
@@ -186,8 +223,8 @@ LeddarCore::LdProperty::SetRawStorage( uint8_t *aBuffer, size_t aCount, uint32_t
             }
             else
             {
-                throw std::logic_error( "Couldnt set storage value - Invalid size: " + LeddarUtils::LtStringUtils::IntToString( aSize )
-                                        + " id: " + LeddarUtils::LtStringUtils::IntToString( mId, 16 ) );
+                throw std::logic_error( "Couldnt set storage value - Invalid size: " + LeddarUtils::LtStringUtils::IntToString( aSize ) +
+                                        " id: " + LeddarUtils::LtStringUtils::IntToString( mId, 16 ) );
             }
 
             if( mStride == sizeof( uint8_t ) )
@@ -208,8 +245,8 @@ LeddarCore::LdProperty::SetRawStorage( uint8_t *aBuffer, size_t aCount, uint32_t
             }
             else
             {
-                throw std::logic_error( "Couldnt set storage value - Invalid stride: " + LeddarUtils::LtStringUtils::IntToString( mStride )
-                                        + " id: " + LeddarUtils::LtStringUtils::IntToString( mId, 16 ) );
+                throw std::logic_error( "Couldnt set storage value - Invalid stride: " + LeddarUtils::LtStringUtils::IntToString( mStride ) +
+                                        " id: " + LeddarUtils::LtStringUtils::IntToString( mId, 16 ) );
             }
         }
     }
@@ -219,7 +256,7 @@ LeddarCore::LdProperty::SetRawStorage( uint8_t *aBuffer, size_t aCount, uint32_t
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdProperty::ForceRawStorage( uint8_t *aBuffer, size_t aCount, uint32_t aSize )
+/// \fn void LeddarCore::LdProperty::PerformForceRawStorage( uint8_t *aBuffer, size_t aCount, uint32_t aSize )
 ///
 /// \brief  Set raw storage for non editable properties
 ///
@@ -230,16 +267,34 @@ LeddarCore::LdProperty::SetRawStorage( uint8_t *aBuffer, size_t aCount, uint32_t
 /// \author David Levy
 /// \date   March 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarCore::LdProperty::ForceRawStorage( uint8_t *aBuffer, size_t aCount, uint32_t aSize )
+void LeddarCore::LdProperty::PerformForceRawStorage( uint8_t *aBuffer, size_t aCount, uint32_t aSize )
 {
     LeddarUtils::LtScope<bool> lForceEdit( &mCheckEditable, true );
     mCheckEditable = false;
-    SetRawStorage( aBuffer, aCount, aSize );
+    PerformSetRawStorage( aBuffer, aCount, aSize );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdProperty::SetRawValue( size_t aIndex, int32_t aValue )
+/// \fn void LeddarCore::LdProperty::ForceAnyValue( size_t aIndex, const boost::any &aNewValue )
+///
+/// \brief  Force the property value
+///
+/// \param  aIndex      Zero-based index of the.
+/// \param  aNewValue   The new value.
+///
+/// \author David Lévy
+/// \date   March 2021
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void LeddarCore::LdProperty::ForceAnyValue( size_t aIndex, const boost::any &aNewValue )
+{
+    std::lock_guard<std::recursive_mutex> lock( mPropertyMutex );
+    LeddarUtils::LtScope<bool> lForceEdit( &mCheckEditable, true );
+    mCheckEditable = false;
+    PerformSetAnyValue( aIndex, aNewValue );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LeddarCore::LdProperty::PerformSetRawValue( size_t aIndex, int32_t aValue )
 ///
 /// \brief  Set storage directly in memory
 ///
@@ -249,11 +304,11 @@ LeddarCore::LdProperty::ForceRawStorage( uint8_t *aBuffer, size_t aCount, uint32
 /// \author David Levy
 /// \date   February 2018
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void LeddarCore::LdProperty::SetRawValue( size_t aIndex, int32_t aValue )
+void LeddarCore::LdProperty::PerformSetRawValue( size_t aIndex, int32_t aValue )
 {
-    if( aValue != RawValue( aIndex ) || !mInitialized )
+    if( aValue != PerformRawValue( aIndex ) || !mInitialized )
     {
-        SetRawStorage( &( reinterpret_cast<uint8_t *>( &aValue ) )[UnitSize() * aIndex], 1, UnitSize() );
+        PerformSetRawStorage( &( reinterpret_cast<uint8_t *>( &aValue ) )[PerformUnitSize() * aIndex], 1, PerformUnitSize() );
     }
 }
 
@@ -285,9 +340,9 @@ void LeddarCore::LdProperty::VerifyInitialization( void ) const
 /// \author David Levy
 /// \date   March 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void LeddarCore::LdProperty::CanEdit( void ) const
+void LeddarCore::LdProperty::CanEdit()
 {
-    if( mCheckEditable && ( ( GetFeatures() & F_EDITABLE ) == 0 ) )
+    if( mCheckEditable && ( ( PerformGetFeatures() & F_EDITABLE ) == 0 ) )
     {
         throw std::logic_error( "Property is not editable. Id: " + LeddarUtils::LtStringUtils::IntToString( mId, 16 ) );
     }

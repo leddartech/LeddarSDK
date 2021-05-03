@@ -30,7 +30,7 @@
 #define LT_SDK_MAJOR_VERSION 4
 #define LT_SDK_MINOR_VERSION 3
 #define LT_SDK_TYPE_VERSION  0
-#define LT_SDK_BUILD_VERSION 396
+#define LT_SDK_BUILD_VERSION 675
 
 #define LT_SDK_VERSION_STRING_BUILDER( a, b, c, d ) #a "." #b "." #c "." #d
 #define LT_SDK_VERSION_MACRO( a, b, c, d ) LT_SDK_VERSION_STRING_BUILDER( a, b, c, d )

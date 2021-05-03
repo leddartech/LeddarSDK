@@ -18,8 +18,10 @@
 #include "LdIntegerProperty.h"
 #include "LdTextProperty.h"
 
+#include "LdSensorVuDefines.h"
 #include "LdConnectionUniversal.h"
 #include "LdResultProvider.h"
+#include "LtCRCUtils.h"
 
 #define _VU8
 #include "comm/PlatformM7DefinitionsShared.h"
@@ -43,12 +45,14 @@
 #include <cstring>
 #include <iomanip>
 #include <sstream>
+#include <iostream>
 
 using namespace LeddarCore;
 using namespace LeddarConnection;
 
-const uint8_t LICENSE_USER_SIZE = 2 * REGMAP_KEY_LENGTH;
-const uint8_t LICENSE_NUMBER = 3;
+constexpr uint8_t LICENSE_USER_SIZE = 2 * REGMAP_KEY_LENGTH;
+constexpr uint8_t LICENSE_NUMBER    = 3;
+constexpr uint8_t NUMBER_OF_RETRY   = 5; ///< Number of retry if CRC failed.
 
 using namespace LeddarDevice;
 
@@ -139,9 +143,9 @@ LdSensorVu::InitProperties( void )
     mProperties->AddProperty( new LdTextProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_GROUP_ID_NUMBER, 0, REGMAP_GROUP_ID_LENGTH, LdTextProperty::TYPE_ASCII,
                               "Group ID Number" ) );
     mProperties->AddProperty( new LdBitFieldProperty( LdProperty::CAT_CONSTANT, LdProperty::F_SAVE, LdPropertyIds::ID_OPTIONS, 0, 4, "Options" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_ACCUMULATION_EXP, 0, 1,
+    mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_ACCUMULATION_EXP, 0, 1, true,
                               "Accumulation Exponent" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_OVERSAMPLING_EXP, 0, 1,
+    mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_OVERSAMPLING_EXP, 0, 1, true,
                               "Oversampling Exponent" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_BASE_POINT_COUNT, 0, 1,
                               "Base Point Count" ) );
@@ -217,12 +221,18 @@ LdSensorVu::InitProperties( void )
     GetResultStates()->GetProperties()->AddProperty( new LdFloatProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_RS_PREDICT_TEMP, 0, 4, 0, 1,
             "System Predicted Temperature" ) );
     GetResultStates()->GetProperties()->AddProperty( new LdFloatProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_RS_CPU_LOAD, 0, 4, 0, 1, "CPU Load" ) );
-    GetResultStates()->GetProperties()->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_RS_BACKUP, 0, 4, "Calibration Backup Flag" ) );
+    GetResultStates()->GetProperties()->AddProperty( new LdEnumProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_RS_BACKUP, 0, 4,true , "Calibration Backup Flag" ) );
 
+    GetResultStates()->GetProperties()->GetEnumProperty(LdPropertyIds::ID_RS_BACKUP)->AddEnumPair(0, "Invalid");
+    GetResultStates()->GetProperties()->GetEnumProperty(LdPropertyIds::ID_RS_BACKUP)->AddEnumPair(1, "Factory backup");
+    GetResultStates()->GetProperties()->GetEnumProperty(LdPropertyIds::ID_RS_BACKUP)->AddEnumPair(2, "User backup");
 
     mProperties->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_CONNECTION_TYPE )->ForceValue( 0,
             P_SPI ); //We set it as SPI here. SetCarrier function will change it to modbus if needed
     mProperties->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_CONNECTION_TYPE )->SetClean();
+
+    
+    GetResultEchoes()->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_CURRENT_LED_INTENSITY, 0, 2, "Current Led power" ) );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -267,17 +277,17 @@ LdSensorVu::GetConfig()
         lTextProp->SetClean();
 
         // Accumulation exponent
-        LeddarCore::LdIntegerProperty *lIntProp = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_ACCUMULATION_EXP );
-        lIntProp->SetValue( 0, lCfgData->mAccumulationExp );
-        lIntProp->SetClean();
+        auto *lEnumProp = GetProperties()->GetEnumProperty( LeddarCore::LdPropertyIds::ID_ACCUMULATION_EXP );
+        lEnumProp->SetValue( 0, lCfgData->mAccumulationExp );
+        lEnumProp->SetClean();
 
         // Oversampling exponent
-        lIntProp = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_OVERSAMPLING_EXP );
-        lIntProp->SetValue( 0, lCfgData->mOversamplingExp );
-        lIntProp->SetClean();
+        lEnumProp = GetProperties()->GetEnumProperty( LeddarCore::LdPropertyIds::ID_OVERSAMPLING_EXP );
+        lEnumProp->SetValue( 0, lCfgData->mOversamplingExp );
+        lEnumProp->SetClean();
 
         // Base point count
-        lIntProp = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_BASE_POINT_COUNT );
+        auto *lIntProp = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_BASE_POINT_COUNT );
         lIntProp->SetValue( 0, lCfgData->mBasePointCount );
         lIntProp->SetClean();
 
@@ -403,7 +413,7 @@ LdSensorVu::GetConfig()
         uint8_t lLedPwrCount = *( lOutputBuffer + offsetof( sAdvCfgData, mLedUsrPowerCount ) - offsetof( sAdvCfgData, mLedUserPowerEnable ) );
         lIntProp = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_LED_USR_PWR_COUNT );
         lIntProp->ForceValue( 0, lLedPwrCount );
-        lBoolProp->SetClean();
+        lIntProp->SetClean();
 
         // -------------  Read advanced config data from sensor (part 4) -------------
         mConnectionUniversal->Read( 0xb, GetBankAddress( REGMAP_ADV_CFG_DATA ) + offsetof( sAdvCfgData, mLedUserPercentLut ),
@@ -460,6 +470,7 @@ LdSensorVu::GetConfig()
         lFloatProp->SetScale( lDistanceScale );
         lFloatProp->SetCount( 1 );
         lFloatProp->ForceRawValue( 0, *lPeakRealDistanceOffset );
+        lFloatProp->SetClean();
 
         // -------------  Read advanced config data from sensor (part 6) -------------
         LeddarCore::LdBitFieldProperty *lBitFieldProp = GetProperties()->GetBitProperty( LeddarCore::LdPropertyIds::ID_TEMP_COMP );
@@ -477,6 +488,7 @@ LdSensorVu::GetConfig()
         {
             lBitFieldProp->SetBit( 0, 1 );
         }
+        lBitFieldProp->SetClean();
 
         // Initialize results.
         uint32_t lTotalSegments = mProperties->GetIntegerProperty( LdPropertyIds::ID_VSEGMENT )->ValueT<uint16_t>() *
@@ -529,15 +541,15 @@ LdSensorVu::SetConfig()
         memcpy( lCfgData->mDeviceName, lTextProp->Value().c_str(), REGMAP_PRODUCT_NAME_LENGTH );
 
         // Accumulation Exponent
-        LeddarCore::LdIntegerProperty *lIntProp = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_ACCUMULATION_EXP );
-        lCfgData->mAccumulationExp = lIntProp->ValueT<uint8_t>();
+        auto *lEnumProp = GetProperties()->GetEnumProperty( LeddarCore::LdPropertyIds::ID_ACCUMULATION_EXP );
+        lCfgData->mAccumulationExp = lEnumProp->ValueT<uint8_t>();
 
         // Oversampling exponent
-        lIntProp = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_OVERSAMPLING_EXP );
-        lCfgData->mOversamplingExp = lIntProp->ValueT<uint8_t>();
+        lEnumProp = GetProperties()->GetEnumProperty( LeddarCore::LdPropertyIds::ID_OVERSAMPLING_EXP );
+        lCfgData->mOversamplingExp = lEnumProp->ValueT<uint8_t>();
 
         // Base point count
-        lIntProp = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_BASE_POINT_COUNT );
+        auto *lIntProp = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_BASE_POINT_COUNT );
         lCfgData->mBasePointCount = lIntProp->ValueT<uint8_t>();
 
         // Segment enable
@@ -592,7 +604,7 @@ LdSensorVu::SetConfig()
         lCfgData->mSensitivity = lFloatProp->RawValue();
 
         // Current LED power level
-        LeddarCore::LdEnumProperty *lEnumProp = GetProperties()->GetEnumProperty( LeddarCore::LdPropertyIds::ID_LED_INTENSITY );
+        lEnumProp = GetProperties()->GetEnumProperty( LeddarCore::LdPropertyIds::ID_LED_INTENSITY );
         lCfgData->mLedUserCurrentPowerPercent = static_cast<uint8_t>( lEnumProp->Value() );
 
         // Auto LED power enable
@@ -725,13 +737,19 @@ LdSensorVu::GetConstants()
         lBitProp->ForceValue( 0, lDevInfo->mOptions );
         lBitProp->SetClean();
 
-        lIntProp = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_ACCUMULATION_EXP );
-        lIntProp->SetLimits( lDevInfo->mAccExpMin, lDevInfo->mAccExpMax );
-        lIntProp->SetClean();
+        auto *lAccumulationExp = GetProperties()->GetEnumProperty( LeddarCore::LdPropertyIds::ID_ACCUMULATION_EXP );        
+        for( size_t i = lDevInfo->mAccExpMin; i <= lDevInfo->mAccExpMax; ++i )
+        {
+            lAccumulationExp->AddEnumPair( i, LeddarUtils::LtStringUtils::IntToString( 1 << i ) );
+        }
+        lAccumulationExp->SetClean();
 
-        lIntProp = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_OVERSAMPLING_EXP );
-        lIntProp->SetLimits( lDevInfo->mOvrExpMin, lDevInfo->mOvrExpMax );
-        lIntProp->SetClean();
+        auto *lOverSExp = GetProperties()->GetEnumProperty( LeddarCore::LdPropertyIds::ID_OVERSAMPLING_EXP );
+        for( size_t i = lDevInfo->mOvrExpMin; i <= lDevInfo->mOvrExpMax; ++i )
+        {
+            lOverSExp->AddEnumPair( i, LeddarUtils::LtStringUtils::IntToString( 1 << i ) );
+        }
+        lOverSExp->SetClean();
 
         lIntProp = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_BASE_POINT_COUNT );
         lIntProp->SetLimits( lDevInfo->mBasePointMin, lDevInfo->mBasePointMax );
@@ -760,7 +778,7 @@ LdSensorVu::GetConstants()
         LeddarCore::LdFloatProperty *lFloatProp = GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_BASE_SAMPLE_DISTANCE );
         lFloatProp->SetScale( lDevInfo->mDistanceScale );
         lFloatProp->ForceRawValue( 0, lDevInfo->mBaseSplDist );
-        lIntProp->SetClean();
+        lFloatProp->SetClean();
 
         lIntProp = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_MAX_ECHOES_PER_CHANNEL );
         lIntProp->ForceValue( 0, lDevInfo->mDetectionPerSegmentCountMax );
@@ -851,9 +869,28 @@ LdSensorVu::UpdateConstants()
                 LeddarCore::LdPropertyIds::ID_DISTANCE_SCALE )->ValueT<uint32_t>() );
 
     GetProperties()->GetBitProperty( LdPropertyIds::ID_SEGMENT_ENABLE )->SetLimit( ( 1 << ( GetProperties()->GetIntegerProperty( LdPropertyIds::ID_HSEGMENT )->Value() + 1 ) ) - 1 );
+
+     //In some recording, EnumPair are not saved, so we put special cases here
+    auto *lAccumulationExp = GetProperties()->GetEnumProperty( LeddarCore::LdPropertyIds::ID_ACCUMULATION_EXP );
+    if( lAccumulationExp->EnumSize() == 0 )
+    {
+        for( size_t i = 0; i <= 0x0a; ++i ) //0x0a magic number : taken from live sensors, should be the max possible value
+        {
+            lAccumulationExp->AddEnumPair( i, LeddarUtils::LtStringUtils::IntToString( 1 << i ) );
+        }
+        lAccumulationExp->SetClean();
+    }
+
+    auto *lOverSExp = GetProperties()->GetEnumProperty( LeddarCore::LdPropertyIds::ID_OVERSAMPLING_EXP );
+    if( lOverSExp->EnumSize() == 0 )
+    {
+        for( size_t i = 0; i <= 5; ++i ) //5 magic number : taken from live sensors, should be the max possible value
+        {
+            lOverSExp->AddEnumPair( i, LeddarUtils::LtStringUtils::IntToString( 1 << i ) );
+        }
+        lOverSExp->SetClean();
+    }
 }
-
-
 
 // *****************************************************************************
 // Function: LdSensorVu::GetCalib
@@ -1016,6 +1053,7 @@ LdSensorVu::GetEchoes()
                 mConnectionUniversal->Read( 0xb, lEchoStartAddr, sizeof( sEchoLigth )* lEchoCountToReadNow, 1, 5000 );
                 sEchoLigth *lDetections = reinterpret_cast<sEchoLigth *>( lOutputBuffer );
                 std::vector<LdEcho> *lEchoes = lResultEchoes->GetEchoes( LeddarConnection::B_SET );
+                auto lAmplitudeScale = GetProperties()->GetIntegerProperty(LeddarCore::LdPropertyIds::ID_FILTERED_AMP_SCALE)->Value();
 
                 for( int i = 0; i < lEchoCountToReadNow; ++i )
                 {
@@ -1023,11 +1061,12 @@ LdSensorVu::GetEchoes()
                     ( *lEchoes )[ i ].mDistance = lDetections[ i ].mDistance;
                     ( *lEchoes )[ i ].mAmplitude = lDetections[ i ].mAmplitude;
                     ( *lEchoes )[ i ].mFlag = lDetections[ i ].mFlag;
+                    ( *lEchoes )[ i ].mBase = 512 * lAmplitudeScale;
                 }
             }
 
             lResultEchoes->SetEchoCount( lEchoCount );
-            lResultEchoes->SetCurrentLedPower( lCurrentLwdPower );
+            mEchoes.SetPropertyValue( LeddarCore::LdPropertyIds::ID_CURRENT_LED_INTENSITY, 0, lCurrentLwdPower );
         }
         else
         {
@@ -1096,12 +1135,12 @@ LdSensorVu::GetStates()
                 // Read backup flag
                 uint32_t lBackupFlag;
                 mConnectionUniversal->ReadRegister( GetBankAddress( REGMAP_CMD_LIST ) + offsetof( sCmdList, mBackupStatus ), ( uint8_t * )&lBackupFlag, sizeof( lBackupFlag ), 5 );
-                aResultStates.GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_RS_BACKUP )->ForceValue( 0, lBackupFlag );
+                aResultStates.GetProperties()->GetEnumProperty( LeddarCore::LdPropertyIds::ID_RS_BACKUP )->ForceValue( 0, lBackupFlag );
             }
             catch( ... )
             {
                 mBackupFlagAvailable = false;
-                aResultStates.GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_RS_BACKUP )->ForceValue( 0, 0 );
+                aResultStates.GetProperties()->GetEnumProperty( LeddarCore::LdPropertyIds::ID_RS_BACKUP )->ForceValue( 0, 0 );
                 throw LeddarException::LtException( "Error to read the calibration backup flag, please update your sensor firmware." );
             }
         }
@@ -1156,6 +1195,9 @@ LdSensorVu::GetLicenses( void )
         lLicenses.push_back( lLicense );
     }
 
+    lLicenseInfoProp->SetClean();
+    lLicenseProp->SetClean();
+
     //And update volatile license property
     LdIntegerProperty *lVolLicenseInfoProp = GetProperties()->GetIntegerProperty( LdPropertyIds::ID_VOLATILE_LICENSE_INFO );
     LdBufferProperty *lVolLicenseProp = GetProperties()->GetBufferProperty( LdPropertyIds::ID_VOLATILE_LICENSE );
@@ -1179,6 +1221,9 @@ LdSensorVu::GetLicenses( void )
         lVolLicenseProp->SetCount( 1 );
         lVolLicenseProp->ForceValue( 0, lVolatileLicenseKey, REGMAP_KEY_LENGTH );
     }
+
+    lVolLicenseInfoProp->SetClean();
+    lVolLicenseProp->SetClean();
 
     return lLicenses;
 }
@@ -1548,6 +1593,965 @@ LdSensorVu::DeleteBackup( void )
     }
 
     mConnectionUniversal->SetWriteEnable( false );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LeddarDevice::LdSensorVu::UpdateFirmware( const std::string &aFileName, LeddarCore::LdIntegerProperty *aProcessPercentage, LeddarCore::LdBoolProperty *aCancel )
+///
+/// \brief  Updates the firmware/fpga/driver using the provided ltb file - Override default function to handle fpga data, otherwise, same behaviour
+///
+/// \exception  std::logic_error    Raised when a logic error condition occurs.
+///
+/// \param          aFileName           Path to the ltb file.
+/// \param [in,out] aProcessPercentage  If non-null, the process percentage.
+/// \param [in,out] aCancel             If non-null, the cancel.
+///
+/// \author David Lévy
+/// \date   January 2021
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void LeddarDevice::LdSensorVu::UpdateFirmware( const std::string &aFileName, LeddarCore::LdIntegerProperty *aProcessPercentage, LeddarCore::LdBoolProperty *aCancel )
+{
+    LeddarUtils::LtFileUtils::LtLtbReader lLtbReader( aFileName );
+
+    if( lLtbReader.GetDeviceType() != GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_DEVICE_TYPE )->Value() )
+    {
+        throw std::logic_error( "Provided file is not for this device" );
+    }
+
+    const std::list<std::pair<uint32_t, std::vector<uint8_t>>> lFirmwares = lLtbReader.GetFirmwares();
+
+    auto lDSP      = std::find_if( lFirmwares.cbegin(), lFirmwares.cend(),
+                              []( const std::pair<uint32_t, std::vector<uint8_t>> &a ) { return a.first == LeddarUtils::LtFileUtils::LtLtbReader::ID_LTB_GALAXY_BINARY; } );
+    auto lFPGAAlgo = std::find_if( lFirmwares.cbegin(), lFirmwares.cend(),
+                                   []( const std::pair<uint32_t, std::vector<uint8_t>> &a ) { return a.first == LeddarUtils::LtFileUtils::LtLtbReader::ID_LTB_FPGA_ALGO; } );
+    auto lFPGAData = std::find_if( lFirmwares.cbegin(), lFirmwares.cend(),
+                                   []( const std::pair<uint32_t, std::vector<uint8_t>> &a ) { return a.first == LeddarUtils::LtFileUtils::LtLtbReader::ID_LTB_FPGA_DATA; } );
+    auto lFPGAEraseAlgo = std::find_if( lFirmwares.cbegin(), lFirmwares.cend(),
+                                   []( const std::pair<uint32_t, std::vector<uint8_t>> &a ) { return a.first == LeddarUtils::LtFileUtils::LtLtbReader::ID_LTB_FPGA_ERASE_ALGO; } );
+    auto lFPGAEraseData = std::find_if( lFirmwares.cbegin(), lFirmwares.cend(),
+                                   []( const std::pair<uint32_t, std::vector<uint8_t>> &a ) { return a.first == LeddarUtils::LtFileUtils::LtLtbReader::ID_LTB_FPGA_ERASE_DATA; } );
+    auto lAsicHexData = std::find_if( lFirmwares.cbegin(), lFirmwares.cend(),
+                                   []( const std::pair<uint32_t, std::vector<uint8_t>> &a ) { return a.first == LeddarUtils::LtFileUtils::LtLtbReader::ID_LTB_ASIC_HEX; } );
+    if( lDSP != lFirmwares.cend() )
+    {
+        UpdateFirmware( FT_DSP, LdFirmwareData( ( *lDSP ).second ), aProcessPercentage, aCancel );
+    }
+    else if( lAsicHexData != lFirmwares.cend() )
+    {
+        UpdateFirmware( FT_ASIC, LdFirmwareData( ( *lAsicHexData ).second ), aProcessPercentage, aCancel );
+    }
+    else if( lFPGAAlgo != lFirmwares.cend() && lFPGAData != lFirmwares.cend() && lFPGAEraseAlgo != lFirmwares.cend() && lFPGAEraseData != lFirmwares.cend() )
+    {
+        UpdateFirmware( FT_FPGA, LdFirmwareData( ( *lFPGAEraseData ).second, ( *lFPGAEraseAlgo ).second ), aProcessPercentage, aCancel );
+        UpdateFirmware( FT_FPGA, LdFirmwareData( ( *lFPGAData ).second, ( *lFPGAAlgo ).second ), aProcessPercentage, aCancel );
+    }
+    else
+    {
+        throw std::logic_error( "No data in ltb file" );
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LeddarDevice::LdSensorVu::UpdateFirmware( eFirmwareType aFirmwareType, const LdFirmwareData &aFirmwareData, LeddarCore::LdIntegerProperty *aProcessPercentage, LeddarCore::LdBoolProperty *aCancel )
+///
+/// \brief  Updates the firmware
+///
+/// \param          aFirmwareType       Firmware type to send. (see \ref LeddarDevice::LdSensor::eFirmwareType)
+/// \param          aFirmwareData       Firmware data.
+/// \param [in,out] aProcessPercentage  If non-null, Pourcentage of completion set by this function.
+/// \param [in,out] aCancel             If non-null, Set to true to cancel the operation.
+///
+/// \author David Lévy
+/// \date   January 2021
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void LeddarDevice::LdSensorVu::UpdateFirmware( eFirmwareType aFirmwareType, const LdFirmwareData &aFirmwareData, LeddarCore::LdIntegerProperty *aProcessPercentage,
+                                                LeddarCore::LdBoolProperty *aCancel )
+{
+    switch( aFirmwareType )
+    {
+    case LeddarDevice::LdSensor::FT_DSP:
+        UpdateDSP( &aFirmwareData.mFirmwareData[0], static_cast<uint32_t>( aFirmwareData.mFirmwareData.size() ), aCancel, aProcessPercentage, nullptr );
+        break;
+
+    case LeddarDevice::LdSensor::FT_FPGA:
+        if( aFirmwareData.mAlgoData.size() == 0 )
+        {
+            throw std::logic_error( "Missing firmware data" );
+        }
+
+        UpdateFPGA( &aFirmwareData.mAlgoData[0], static_cast<uint32_t>( aFirmwareData.mAlgoData.size() ), &aFirmwareData.mFirmwareData[0],
+                    static_cast<uint32_t>( aFirmwareData.mFirmwareData.size() ), aCancel, true, aProcessPercentage, nullptr );
+        break;
+
+    case LeddarDevice::LdSensor::FT_ASIC:
+    {
+        IntelHEX::IntelHexMem *lHexMem =
+            LeddarUtils::LtFileUtils::LoadHexFromBuffer( &aFirmwareData.mFirmwareData[0], static_cast<uint32_t>( aFirmwareData.mFirmwareData.size() ) );
+
+        try
+        {
+            UpdateAsic( *lHexMem, false, aProcessPercentage );
+        }
+        catch( ... )
+        {
+            delete lHexMem;
+            throw;
+        }
+
+        delete lHexMem;
+        break;
+    }
+
+    default:
+        throw std::logic_error( "Invalid firmware type" );
+        break;
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LeddarDevice::LdSensorVu::UpdateDSP( const uint8_t *aData, const uint32_t &aDataSize, LeddarCore::LdBoolProperty *aCancel, LeddarCore::LdIntegerProperty *aProcessPercentage, LeddarCore::LdIntegerProperty *aState )
+///
+/// \brief  Updates the DSP
+///
+/// \param          aData               The firmware data.
+/// \param          aDataSize           Size of the data.
+/// \param [in,out] aCancel             Cancel update
+/// \param [in,out] aProcessPercentage  Progression %
+/// \param [in,out] aState              Current state
+///
+/// \author Patrick Boulay
+/// \date   April 2016
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void LeddarDevice::LdSensorVu::UpdateDSP( const uint8_t *aData, const uint32_t &aDataSize, LeddarCore::LdBoolProperty *aCancel, LeddarCore::LdIntegerProperty *aProcessPercentage,
+                                          LeddarCore::LdIntegerProperty *aState )
+{
+    uint32_t lMinimumBufferSize = 100 * 1024;
+    uint32_t lBufferSizeTemp    = mConnectionUniversal->GetInternalBuffersSize();
+
+    if( lBufferSizeTemp < lMinimumBufferSize )
+    {
+        mConnectionUniversal->ResizeInternalBuffers( 100 * 1024 );
+    }
+
+    // Get comm internal buffer
+    uint8_t *lInputBuffer, *lOutputBuffer;
+    mConnectionUniversal->InternalBuffers( lInputBuffer, lOutputBuffer );
+    const uint32_t lBufferSize = 1024 * 4;
+    uint32_t lSizeToSend       = ( aDataSize > lBufferSize ) ? lBufferSize : aDataSize;
+    uint32_t lRamAddr          = LeddarDefines::LdSensorVuDefines::RAM_UPDATE_LOGICAL_ADDR;
+    uint32_t lFlashAddr        = LeddarDefines::LdSensorVuDefines::MAIN_APP_BASE_ADDR;
+    uint16_t lTotalOperation   = ( aDataSize / lBufferSize ) + ( ( aDataSize % lBufferSize ) > 0 ? 1 : 0 );
+    uint8_t lAppStatus;
+
+    try
+    {
+        uint16_t lAppCrc16 = CRCUTILS_CRC16_INIT_VALUE;
+        uint16_t lRamCrc16 = CRCUTILS_CRC16_INIT_VALUE;
+
+        // Hard resert
+        if( aState != nullptr )
+            aState->ForceValue( 0, LeddarDefines::LdSensorVuDefines::FIUP_JUMP_IN_BOOTLOADER );
+
+        mConnectionUniversal->Reset( LeddarDefines::RT_HARD_RESET, true );
+
+        if( aCancel != nullptr && aCancel->Value( 0 ) )
+            throw 0;
+
+        // Set bootloader for writing
+        if( aState != nullptr )
+            aState->ForceValue( 0, LeddarDefines::LdSensorVuDefines::FIUP_ENABLE_WRITE );
+
+        uint32_t lUniqueId[4];
+        GetUniqueId( lUniqueId );
+        mConnectionUniversal->SetWriteEnable( true );
+
+        // Chip erage
+        if( aState != nullptr )
+            aState->ForceValue( 0, LeddarDefines::LdSensorVuDefines::FIUP_CHIP_ERASE );
+
+        ResetToDefaultWithoutWriteEnable();
+
+        if( aCancel != nullptr && aCancel->Value( 0 ) )
+            throw 0;
+
+        // Open firmware update session.
+        OpenFirmwareUpdateSession();
+
+        // Copy data
+        if( aState != nullptr )
+            aState->ForceValue( 0, LeddarDefines::LdSensorVuDefines::FIUP_COPY_DATA );
+
+        uint16_t lPourcentageCount = 0;
+        uint16_t lTryCount         = NUMBER_OF_RETRY;
+
+        if( aProcessPercentage != 0 )
+            aProcessPercentage->ForceValue( 0, 0 );
+
+        uint32_t lSizeSent = 0;
+
+        while( lSizeSent != aDataSize )
+        {
+            // Evaluate the cumulative CRC16 of this block (one first try only)
+            if( lTryCount == NUMBER_OF_RETRY )
+            {
+                lRamCrc16 = LeddarUtils::LtCRCUtils::Crc16( CRCUTILS_CRC16_INIT_VALUE, aData + lSizeSent, lSizeToSend );
+                lAppCrc16 = LeddarUtils::LtCRCUtils::Crc16( lAppCrc16, aData + lSizeSent, lSizeToSend );
+            }
+
+            // Send data block in ram
+            memcpy( lInputBuffer, &( aData[lSizeSent] ), lSizeToSend );
+            mConnectionUniversal->Write( 0x2, lRamAddr, lSizeToSend );
+
+            // Write block in flash and wait until the device is ready.
+            StartFirmwareUpdateProcess( lFlashAddr, lSizeToSend, lRamCrc16 );
+
+            // LeddarUtils::LtTimeUtils::Wait(10);
+            mConnectionUniversal->IsDeviceReady( 10000 );
+
+            // Get firmware update status
+            GetFirmwareUpdateStatus( &lAppStatus );
+
+            switch( lAppStatus )
+            {
+            case LeddarDefines::LdSensorVuDefines::BL_APP_UPDATE_SUCCESS:
+                lTryCount = NUMBER_OF_RETRY;
+                lFlashAddr += lSizeToSend;
+                lSizeSent += lSizeToSend;
+                lSizeToSend = ( ( aDataSize - lSizeSent ) > lBufferSize ) ? lBufferSize : ( aDataSize - lSizeSent );
+
+                if( aProcessPercentage != 0 )
+                    aProcessPercentage->ForceValue( 0, ( uint32_t )( ( (float)( ++lPourcentageCount ) / (float)lTotalOperation ) * 100. ) );
+
+                break;
+
+            case LeddarDefines::LdSensorVuDefines::BL_APP_UPDATE_ERROR:
+                throw std::runtime_error( "RAM block to Flash writting error.\r\n" );
+
+            case LeddarDefines::LdSensorVuDefines::BL_APP_UPDATE_CRC_ERROR:
+                if( --lTryCount == 0 )
+                    throw std::runtime_error( "Verify error on firmware update." );
+
+                break;
+
+            case LeddarDefines::LdSensorVuDefines::BL_APP_UPDATE_ERR_OVERSIZE:
+                throw std::runtime_error( "Oversize to RAM available dimension." );
+
+            default:
+                throw std::runtime_error( "Unkown update status." );
+            }
+
+            if( aCancel != nullptr && aCancel->Value( 0 ) )
+                throw 0;
+        }
+
+        if( aProcessPercentage != 0 )
+            aProcessPercentage->ForceValue( 0, 100 );
+
+        // Close firmware update session
+        CloseFirmwareUpdateSession( &lAppStatus );
+
+        if( lAppStatus != LeddarDefines::LdSensorVuDefines::BL_APP_UPDATE_STATUS_NONE )
+        {
+            throw std::runtime_error( "Close firmware update failed." );
+        }
+
+        // Disable write enable.
+        if( aState != nullptr )
+            aState->ForceValue( 0, LeddarDefines::LdSensorVuDefines::FIUP_DISABLE_WRITE );
+
+        mConnectionUniversal->SetWriteEnable( false );
+
+        // Check data integrity
+        if( aState != nullptr )
+            aState->ForceValue( 0, LeddarDefines::LdSensorVuDefines::FIUP_CHECK_DATA_INTEGRITY );
+
+        uint16_t lCRC16 = GetAppCrc16( aDataSize );
+
+        if( lAppCrc16 != lCRC16 )
+            throw std::runtime_error( "Bad CRC error on firmware update, CRC: " + LeddarUtils::LtStringUtils::IntToString( lCRC16 ) );
+
+        // Jump in firmware
+        if( aState != nullptr )
+            aState->ForceValue( 0, LeddarDefines::LdSensorVuDefines::FIUP_SOFTWARE_RESET );
+
+        Reset( LeddarDefines::RT_SOFT_RESET );
+    }
+    catch( std::exception & )
+    {
+        mConnectionUniversal->SetWriteEnable( false );
+        throw;
+    }
+    catch( ... )
+    {
+    }
+
+    mConnectionUniversal->SetWriteEnable( false );
+}
+
+// *****************************************************************************
+// Function: LdSensorVu::GetUniqueId
+//
+/// \brief   Get unique ID of the device.
+///
+/// \param  aUniqueId   Unique ID of the device (array for 4 bytes).
+///
+/// \author  Patrick Boulay
+///
+/// \since   April 2016
+// *****************************************************************************
+void LdSensorVu::GetUniqueId( uint32_t *aUniqueId )
+{
+    // Get comm internal buffer
+    uint8_t *lInputBuffer, *lOutputBuffer;
+    mConnectionUniversal->InternalBuffers( lInputBuffer, lOutputBuffer );
+
+    uint32_t lBuffer = 1;
+    memcpy( lInputBuffer, &lBuffer, sizeof( lBuffer ) );
+    mConnectionUniversal->Write( 0x2, LeddarDefines::LdSensorVuDefines::SPECIAL_BOOT_COMMANDS, sizeof( uint32_t ) );
+    mConnectionUniversal->Read( 0xb, LeddarDefines::LdSensorVuDefines::SPECIAL_BOOT_COMMANDS, sizeof( uint32_t ) * 4 );
+    memcpy( aUniqueId, ( ( uint8_t * )lOutputBuffer ), sizeof( uint32_t ) * 4 );
+}
+
+// ****************************************************************************
+/// Function:   LdSensorVu::OpenFirmwareUpdateSession
+///
+/// \brief      Open an application firmware update session: used for RAM block
+///             update method.
+///
+/// \pre        MCU in bootloader environment.
+///
+/// \author     Frédéric Parent
+///
+/// \since      June 8, 2016
+// ****************************************************************************
+
+void
+LdSensorVu::OpenFirmwareUpdateSession()
+{
+    uint8_t lStatus;
+    uint32_t lData = 7;
+
+    mConnectionUniversal->Write( 0x2, LeddarDefines::LdSensorVuDefines::SPECIAL_BOOT_COMMANDS,
+                                 ( uint8_t * )&lData, sizeof( lData ) );
+    mConnectionUniversal->Read( 0xb, LeddarDefines::LdSensorVuDefines::SPECIAL_BOOT_COMMANDS, &lStatus, 1 );
+
+    switch( lStatus )
+    {
+        case LeddarDefines::LdSensorVuDefines::BL_APP_UPDATE_STATUS_NONE:
+            break;
+
+        case LeddarDefines::LdSensorVuDefines::BL_APP_UPDATE_ERR_OUT_OF_MEMORY:
+            throw std::runtime_error( "Out of memory for RAM block." );
+
+        case LeddarDefines::LdSensorVuDefines::BL_APP_UPDATE_SESSION_OPENNED:
+            throw std::runtime_error( "Update session is already opened." );
+
+        case LeddarDefines::LdSensorVuDefines::BL_APP_OTHER_UPDATE_SESSION_OPENNED:
+            throw std::runtime_error( "Update session is already opened." );
+
+        default:
+            throw std::runtime_error( "Start firmware update failed with unknown error." );
+    }
+
+}
+
+// ****************************************************************************
+/// Function:   LdSensorVu::StartFirmwareUpdateProcess
+
+/// \brief      Start the application firmware update process: this write data
+///             from RAM block into Flash memory. When this function is successful
+///             called, application must call \ref LdConnectionUniversal::IsDeviceReady function
+///             to poll the availability of the Vu device.
+///
+/// \pre        MCU in bootloader environment.
+///
+/// \param[in] addr     Address of data to write to flash
+/// \param[in] dataSize Size of the data to write
+/// \param[in] crc      CRC of the data
+///
+/// \author     Frédéric Parent
+///
+/// \since      June 8, 2016
+// ****************************************************************************
+void
+LdSensorVu::StartFirmwareUpdateProcess( uint32_t addr, uint32_t dataSize, uint16_t crc )
+{
+    uint32_t data[4];
+    data[0] = 8;
+    data[1] = addr;
+    data[2] = dataSize;
+    data[3] = crc;
+    // When send this following command, Vu device can still in "erasing/programming"
+    // mode in the status register: WriteDataBlock must not being in wait ready state.
+    mConnectionUniversal->Write( 0x2, LeddarDefines::LdSensorVuDefines::SPECIAL_BOOT_COMMANDS,
+                                 ( uint8_t * )&data, sizeof( data ) );
+}
+// ****************************************************************************
+/// Function:   LdSensorVu::GetFirmwareUpdateStatus
+/// \brief      Get the application firmware update status. Before call this
+///             function, ensure that device is ready by \ref LdConnectionUniversal::IsDeviceReady
+///             function. This function is only valid on update by RAM block
+///             method.
+/// \pre        MCU in bootloader environment.
+/// \param[out] *aStatus     Application firmware update returned status.
+/// \author     Frédéric Parent
+/// \since      June 8, 2016
+// ****************************************************************************
+void
+LdSensorVu::GetFirmwareUpdateStatus( uint8_t *aStatus )
+{
+    uint32_t lData = 9;
+    mConnectionUniversal->Write( 0x2, LeddarDefines::LdSensorVuDefines::SPECIAL_BOOT_COMMANDS,
+                                 ( uint8_t * )&lData, sizeof( lData ) );
+    mConnectionUniversal->Read( 0xb, LeddarDefines::LdSensorVuDefines::SPECIAL_BOOT_COMMANDS, aStatus, 1 );
+
+}
+
+// ****************************************************************************
+/// Function:   LdSensorVu::CloseFirmwareUpdateSession
+/// \brief      Close application firmware update session using RAM block method.
+/// \pre        MCU in bootloader environment.
+/// \param[out] *aStatus     Return status.
+/// \author     Frédéric Parent
+/// \since      June 8, 2016
+// ****************************************************************************
+void
+LdSensorVu::CloseFirmwareUpdateSession( uint8_t *aStatus )
+{
+    uint32_t lData = 10;
+    mConnectionUniversal->Write( 0x2, LeddarDefines::LdSensorVuDefines::SPECIAL_BOOT_COMMANDS,
+                                 ( uint8_t * )&lData, sizeof( lData ) );
+    mConnectionUniversal->Read( 0xb, LeddarDefines::LdSensorVuDefines::SPECIAL_BOOT_COMMANDS, aStatus, 1 );
+
+}
+
+// *****************************************************************************
+// Function: LdSensorVu::GetAppCrc16
+//
+/// \brief   Get firmware crc
+///
+/// \param   aSize Size of data to calculate crc.
+///
+/// \author  Patrick Boulay
+///
+/// \since   April 2016
+// *****************************************************************************
+
+uint16_t
+LdSensorVu::GetAppCrc16( uint32_t aSize )
+{
+    // Get comm internal buffer
+    uint8_t *lInputBuffer, *lOutputBuffer;
+    /*const uint16_t lBufferSize = */mConnectionUniversal->InternalBuffers( lInputBuffer, lOutputBuffer );
+
+    uint32_t lArg[] = { 0, aSize, 0, 0 };
+    uint16_t lCrc;
+    memcpy( lInputBuffer, lArg, sizeof( lArg ) );
+    mConnectionUniversal->Write( 0x2, LeddarDefines::LdSensorVuDefines::SPECIAL_BOOT_COMMANDS, sizeof( lArg ) );
+    // Let the sensor calculate the CRC with a big safe delay
+    LeddarUtils::LtTimeUtils::Wait( 100 );
+    mConnectionUniversal->Read( 0xb, LeddarDefines::LdSensorVuDefines::SPECIAL_BOOT_COMMANDS,  sizeof( lCrc ) );
+    memcpy( &lCrc, &lOutputBuffer[0], sizeof( lCrc ) );
+
+    return lCrc;
+}
+
+// *****************************************************************************
+// Function: LdSensorVu::UpdateFPGA
+//
+/// \brief   Update the FPGA of the device.
+///
+/// \param  aAlgo               Array contianing the FPGA algo.
+/// \param  aAlgoSize           Array algo size.
+/// \param  aData               Array contianing the FPGA data.
+/// \param  aDataSize           Array data size.
+/// \param  aCancel             Cancel update (can be modified by other thread)
+/// \param  aVerify             Verify the the transfert.
+/// \param  aProcessPercentage  Property containing the execution pourcentage.
+/// \param  aState              Pointer to the state of the FPGA
+///
+/// \exception std::runtime_error If the verify fail.
+///
+/// \author  Patrick Boulay
+///
+/// \since   April 2016
+// *****************************************************************************
+void LdSensorVu::UpdateFPGA( const uint8_t *aAlgo,
+                           const uint32_t &aAlgoSize,
+                           const uint8_t *aData,
+                           const uint32_t &aDataSize,
+                           LeddarCore::LdBoolProperty  *aCancel,
+                           bool aVerify,
+                           LeddarCore::LdIntegerProperty *aProcessPercentage,
+                           LeddarCore::LdIntegerProperty *aState )
+{
+
+    // Get comm internal buffer
+    uint8_t *lInputBuffer, *lOutputBuffer;
+    const uint16_t lBufferSize = mConnectionUniversal->InternalBuffers( lInputBuffer, lOutputBuffer );
+
+    uint16_t lTotalOperation = ( aAlgoSize / lBufferSize )
+                               + ( ( aAlgoSize  %  lBufferSize ) > 0 ? 1 : 0 )
+                               + ( aDataSize / lBufferSize )
+                               + ( ( aDataSize  %  lBufferSize ) > 0 ? 1 : 0 );
+
+    try
+    {
+
+        uint16_t lFpgaCrc = LeddarUtils::LtCRCUtils::Crc16( CRCUTILS_CRC16_INIT_VALUE, aAlgo, aAlgoSize );
+        lFpgaCrc = LeddarUtils::LtCRCUtils::Crc16( lFpgaCrc, aData, aDataSize );
+
+        // Hard reset
+        if( aState != nullptr )
+            aState->ForceValue( 0, LeddarDefines::LdSensorVuDefines::FPUP_JUMP_IN_BOOTLOADER );
+
+        mConnectionUniversal->Reset( LeddarDefines::RT_HARD_RESET, true );
+
+        if( aCancel != nullptr && aCancel->Value( 0 ) )
+            throw 0;
+
+        // Open FPGA update session
+        uint32_t lUniqueId[4];
+        GetUniqueId( lUniqueId );
+        uint16_t lMagicNumber = LeddarUtils::LtCRCUtils::Crc16( CRCUTILS_CRC16_INIT_VALUE, lUniqueId, sizeof( lUniqueId ) );
+        OpenFPGAUpdateSession( aAlgoSize, aDataSize, lFpgaCrc );
+
+        if( aState != nullptr )
+            aState->ForceValue( 0, LeddarDefines::LdSensorVuDefines::FPUP_ENABLE_WRITE );
+
+        if( aCancel != nullptr && aCancel->Value( 0 ) )
+            throw 0;
+
+        // Send algo file
+        if( aState != nullptr )
+            aState->ForceValue( 0, LeddarDefines::LdSensorVuDefines::FPUP_COPY_DATA );
+
+        uint32_t lDstAddr = LeddarDefines::LdSensorVuDefines::RAM_UPDATE_LOGICAL_ADDR;
+        uint32_t lSizeSent = 0;
+        uint32_t lSizeToSend = ( aAlgoSize > lBufferSize ) ? lBufferSize : aAlgoSize;
+        uint16_t lPourcentageCount = 0;
+        int16_t lVerifyTry = 4;
+
+
+
+        if( aProcessPercentage != 0 )
+            aProcessPercentage->ForceValue( 0, 100 );
+
+        while( lSizeSent != aAlgoSize )
+        {
+            // Send data block to bootloader
+            memcpy( lInputBuffer, &( aAlgo[lSizeSent] ), lSizeToSend );
+            mConnectionUniversal->Write( 0x2, lDstAddr, lSizeToSend );
+
+            if( aVerify )
+            {
+                // Unlock bootloader to read the next data block
+                UnlockBootloader( lMagicNumber );
+
+                try
+                {
+                    mConnectionUniversal->Read( 0xb, lDstAddr, lSizeToSend );
+                }
+                catch( std::exception & )
+                {
+                    if( lVerifyTry-- > 0 )
+                    {
+                        continue;
+                    }
+
+                    throw;
+                }
+
+                lVerifyTry = 4;
+
+                for( int i = 0; i < ( int )lSizeToSend; i++ )
+                {
+                    if( lOutputBuffer[i] != aAlgo[lSizeSent + i] )
+                    {
+                        if( --lVerifyTry > 0 )
+                        {
+                            std::cout << "Verify error on algo, retry to write the block" << std::endl;
+                            continue;
+                        }
+                        else
+                        {
+                            throw std::runtime_error( "Verify error on algo update." );
+                        }
+                    }
+                }
+            }
+
+            lDstAddr += lSizeToSend;
+            lSizeSent += lSizeToSend;
+            lSizeToSend = ( ( aAlgoSize - lSizeSent ) > lBufferSize ) ? lBufferSize : ( aAlgoSize - lSizeSent );
+
+            if( aProcessPercentage != 0 )
+                aProcessPercentage->ForceValue( 0, ( uint32_t )( ( ( float )( ++lPourcentageCount ) / ( float )lTotalOperation ) * 100. ) );
+
+            if( aCancel != nullptr && aCancel->Value( 0 ) )
+                throw 0;
+
+            lVerifyTry = 4;
+        }
+
+        // Send data file
+        lDstAddr = LeddarDefines::LdSensorVuDefines::RAM_UPDATE_LOGICAL_ADDR + aAlgoSize;
+        lSizeSent = 0;
+        lSizeToSend = ( aDataSize > lBufferSize ) ? lBufferSize : aDataSize;
+        lVerifyTry = 4;
+
+        while( lSizeSent != aDataSize )
+        {
+            // Send data block to bootloader
+            memcpy( lInputBuffer, &( aData[lSizeSent] ), lSizeToSend );
+            mConnectionUniversal->Write( 0x2, lDstAddr, lSizeToSend );
+
+            if( aVerify )
+            {
+                // Unlock bootloader to read the next data block
+                UnlockBootloader( lMagicNumber );
+
+                // Read a data block from bootloader to compare
+                try
+                {
+                    mConnectionUniversal->Read( 0xb, lDstAddr, lSizeToSend );
+                }
+                catch( std::exception & )
+                {
+                    if( lVerifyTry-- > 0 )
+                    {
+                        continue;
+                    }
+
+                    throw;
+                }
+
+                lVerifyTry = 4;
+
+                for( int i = 0; i < ( int )lSizeToSend; i++ )
+                {
+                    if( lOutputBuffer[i] != aData[lSizeSent + i] )
+                    {
+                        if( --lVerifyTry > 0 )
+                        {
+                            std::cout << "Verify error on data, retry to write the block" << std::endl;
+                            continue;
+                        }
+                        else
+                        {
+                            throw std::runtime_error( "Verify error on data update." );
+                        }
+                    }
+                }
+            }
+
+            lDstAddr += lSizeToSend;
+            lSizeSent += lSizeToSend;
+            lSizeToSend = ( ( aDataSize - lSizeSent ) > lBufferSize ) ? lBufferSize : ( aDataSize - lSizeSent );
+
+            if( aProcessPercentage != 0 )
+                aProcessPercentage->ForceValue( 0, ( uint32_t )( ( ( float )( 3 + ++lPourcentageCount ) / ( float )lTotalOperation ) * 100. ) );
+
+            if( aCancel != nullptr && aCancel->Value( 0 ) )
+                throw 0;
+
+            LeddarUtils::LtTimeUtils::Wait( 10 );
+            lVerifyTry = 4;
+        }
+
+        if( aProcessPercentage != 0 )
+            aProcessPercentage->ForceValue( 0, 100 );
+
+
+
+        // Trigger fpga update
+        if( aState != nullptr )
+            aState->ForceValue( 0, LeddarDefines::LdSensorVuDefines::FPUP_UPDATE_FPGA );
+
+        StartFpgaUpdateProcess();
+
+        if( !mConnectionUniversal->IsDeviceReady( 60000 ) )
+        {
+            throw LeddarException::LtComException( "Device not ready" );
+        }
+
+
+        GetFpgaUpdateStatus();
+
+        if( aCancel != nullptr && aCancel->Value( 0 ) )
+            throw 0;
+
+        // Close flag update session
+        if( aState != nullptr )
+            aState->ForceValue( 0, LeddarDefines::LdSensorVuDefines::FPUP_DISABLE_WRITE );
+
+        CloseFPGAUpdateSession();
+
+        // Hard reset
+        if( aState != nullptr )
+            aState->ForceValue( 0, LeddarDefines::LdSensorVuDefines::FPUP_RESET );
+
+        std::cout << "Resetting the sensor..." << std::endl;
+        mConnectionUniversal->Reset( LeddarDefines::RT_HARD_RESET, false );
+
+
+    }
+    catch( std::exception & )
+    {
+        throw;
+    }
+    catch( ... )
+    {
+    }
+}
+
+// *****************************************************************************
+// Function: LdSensorVu::OpenFPGAUpdateSession
+//
+/// \brief   Open FPGA update session
+///
+/// \param  aAlgoSize   Array algo size.
+/// \param  aDataSize   Array data size.
+/// \param  aFpgaCrc    CRC.
+///
+/// \author  Patrick Boulay
+///
+/// \since   April 2016
+// *****************************************************************************
+void LdSensorVu::OpenFPGAUpdateSession( uint32_t aAlgoSize, uint32_t aDataSize, uint16_t aFpgaCrc )
+{
+
+    // Get comm internal buffer
+    uint8_t *lInputBuffer, *lOutputBuffer;
+    /*const uint16_t lBufferSize = */mConnectionUniversal->InternalBuffers( lInputBuffer, lOutputBuffer );
+
+    uint32_t lArg[] = { 4, 1, aAlgoSize, aDataSize, aFpgaCrc };
+    memcpy( lInputBuffer, lArg, sizeof( lArg ) );
+    mConnectionUniversal->Write( 0x2, LeddarDefines::LdSensorVuDefines::SPECIAL_BOOT_COMMANDS, sizeof( lArg ) );
+    mConnectionUniversal->Read( 0xb, LeddarDefines::LdSensorVuDefines::SPECIAL_BOOT_COMMANDS, 1 );
+    uint8_t &lStatus = *lOutputBuffer;
+
+    switch( lStatus )
+    {
+        case LeddarDefines::LdSensorVuDefines::BL_FPGA_UPDATE_STATUS_NONE:
+            break;
+
+        case LeddarDefines::LdSensorVuDefines::BL_FPGA_UPDATE_TYPE_UNSUPPORTED:
+            throw std::runtime_error( "FPGA update type is unsupported." );
+
+        case LeddarDefines::LdSensorVuDefines::BL_FPGA_UPDATE_SESSION_OPENNED:
+            throw std::runtime_error( "Update session is already opened." );
+
+        default:
+            throw std::runtime_error( "Incorrect status: " + LeddarUtils::LtStringUtils::IntToString( lStatus ) );
+    }
+}
+
+// *****************************************************************************
+// Function: LdSensorVu::CloseFPGAUpdateSession
+//
+/// \brief   Close FPGA update session
+///
+/// \author  Patrick Boulay
+///
+/// \since   April 2016
+// *****************************************************************************
+
+void
+LdSensorVu::CloseFPGAUpdateSession( void )
+{
+
+    // Get comm internal buffer
+    uint8_t *lInputBuffer, *lOutputBuffer;
+    /*const uint16_t lBufferSize = */mConnectionUniversal->InternalBuffers( lInputBuffer, lOutputBuffer );
+
+    uint32_t lArg[] = { 4, 0, 0, 0, 0 };
+    memcpy( lInputBuffer, lArg, sizeof( lArg ) );
+    mConnectionUniversal->Write( 0x2, LeddarDefines::LdSensorVuDefines::SPECIAL_BOOT_COMMANDS,  sizeof( lArg ) );
+    mConnectionUniversal->Read( 0xb, LeddarDefines::LdSensorVuDefines::SPECIAL_BOOT_COMMANDS,  1 );
+    uint8_t &lStatus = lOutputBuffer[0];
+
+    if( lStatus != LeddarDefines::LdSensorVuDefines::BL_FPGA_UPDATE_STATUS_NONE )
+    {
+        throw std::runtime_error( "FPGA update status error: " + LeddarUtils::LtStringUtils::IntToString( lStatus ) );
+    }
+
+}
+
+
+
+// *****************************************************************************
+// Function: LdSensorVu::UnlockBootloader
+//
+/// \brief   Unlock the bootloader
+///
+/// \param  aMagicNumber   Magic number
+///
+/// \author  Patrick Boulay
+///
+/// \since   April 2016
+// *****************************************************************************
+
+void
+LdSensorVu::UnlockBootloader( uint32_t aMagicNumber )
+{
+    // Get comm internal buffer
+    uint8_t *lInputBuffer, *lOutputBuffer;
+    /*const uint16_t lBufferSize = */mConnectionUniversal->InternalBuffers( lInputBuffer, lOutputBuffer );
+
+    uint32_t lArg[] = { 2, aMagicNumber };
+    memcpy( lInputBuffer, lArg, sizeof( lArg ) );
+    mConnectionUniversal->Write( 0x2, LeddarDefines::LdSensorVuDefines::SPECIAL_BOOT_COMMANDS, sizeof( lArg ) );
+}
+
+// *****************************************************************************
+// Function: LdSensorVu::StartFpgaUpdateProcess
+//
+/// \brief   Start the FPGA update process.
+///
+/// \author  Patrick Boulay
+///
+/// \since   April 2016
+// *****************************************************************************
+
+void
+LdSensorVu::StartFpgaUpdateProcess( void )
+{
+    // Get comm internal buffer
+    uint8_t *lInputBuffer, *lOutputBuffer;
+    /*const uint16_t lBufferSize = */mConnectionUniversal->InternalBuffers( lInputBuffer, lOutputBuffer );
+
+    uint32_t lBuffer = 5;
+    memcpy( lInputBuffer, &lBuffer, sizeof( lBuffer ) );
+    // When send this following command, Vu device can still in "erasing/programming"
+    // mode in the status register: WriteDataBlock must not being in wait ready state.
+    mConnectionUniversal->Write( 0x2, LeddarDefines::LdSensorVuDefines::SPECIAL_BOOT_COMMANDS, sizeof( uint32_t ), false, -1 );
+}
+
+// *****************************************************************************
+// Function: LdSensorVu::GetFpgaUpdateStatus
+//
+/// \brief   Get FPGA update status.
+///
+/// \author  Patrick Boulay
+///
+/// \since   April 2016
+// *****************************************************************************
+
+void
+LdSensorVu::GetFpgaUpdateStatus( void )
+{
+    // Get comm internal buffer
+    uint8_t *lInputBuffer, *lOutputBuffer;
+    /*const uint16_t lBufferSize = */mConnectionUniversal->InternalBuffers( lInputBuffer, lOutputBuffer );
+
+    uint32_t lBuffer = 6;
+    memcpy( lInputBuffer, &lBuffer, sizeof( lBuffer ) );
+    mConnectionUniversal->Write( 0x2, LeddarDefines::LdSensorVuDefines::SPECIAL_BOOT_COMMANDS, sizeof( uint32_t ) );
+    mConnectionUniversal->Read( 0xb, LeddarDefines::LdSensorVuDefines::SPECIAL_BOOT_COMMANDS,  1 );
+    uint8_t lStatus = *lOutputBuffer;
+
+    switch( lStatus )
+    {
+        case LeddarDefines::LdSensorVuDefines::BL_FPGA_UPDATE_SUCCESS:
+            return;
+
+        case LeddarDefines::LdSensorVuDefines::BL_FPGA_UPDATE_CRC_ERROR:
+            throw std::runtime_error( "Bad CRC-16." );
+
+        case LeddarDefines::LdSensorVuDefines::BL_FPGA_UPDATE_ERR_VERIFY_FAIL:
+            throw std::runtime_error( "Verify failed." );
+
+        case LeddarDefines::LdSensorVuDefines::BL_FPGA_UPDATE_ERR_FIND_ALGO_FILE:
+            throw std::runtime_error( "Algo file not found." );
+
+        case LeddarDefines::LdSensorVuDefines::BL_FPGA_UPDATE_ERR_FIND_DATA_FILE:
+            throw std::runtime_error( "Data file not found." );
+
+        case LeddarDefines::LdSensorVuDefines::BL_FPGA_UPDATE_ERR_WRONG_VERSION:
+            throw std::runtime_error( "Wrong version." );
+
+        case LeddarDefines::LdSensorVuDefines::BL_FPGA_UPDATE_ERR_ALGO_FILE_ERROR:
+            throw std::runtime_error( "Algo file error." );
+
+        case LeddarDefines::LdSensorVuDefines::BL_FPGA_UPDATE_ERR_DATA_FILE_ERROR:
+            throw std::runtime_error( "Data file error." );
+
+        case LeddarDefines::LdSensorVuDefines::BL_FPGA_UPDATE_ERR_OUT_OF_MEMORY:
+            throw std::runtime_error( "Device out of memory." );
+
+        default:
+            throw std::runtime_error( "Incorect status: " + LeddarUtils::LtStringUtils::IntToString( lStatus ) );
+    }
+}
+
+// *****************************************************************************
+// Function: LdSensorVu::UpdateAsic
+//
+/// \brief   Update the Asic of the device.
+///
+/// \param  aIntelHex   Inter file structure.
+/// \param  aVerify     Verify the the transfert.
+/// \param  aProcessPercentage Property containing the execution pourcentage.
+///
+/// \exception std::runtime_error If the verify fail.
+///
+/// \author  Patrick Boulay
+///
+/// \since   April 2016
+// *****************************************************************************
+void LdSensorVu::UpdateAsic( const IntelHEX::IntelHexMem &aIntelHex,
+                           bool aVerify,
+                           LeddarCore::LdIntegerProperty *aProcessPercentage )
+{
+    const uint32_t lPacketSize = 512;
+    uint32_t lSize = aIntelHex.end - aIntelHex.start + 1;
+    uint16_t lBuffer[2] = { static_cast<uint16_t>( lSize ), aIntelHex.start };
+
+    // Write asic patch header on device.
+    mConnectionUniversal->Write( 0x2, LeddarDefines::LdSensorVuDefines::ASIC_PACTH_BASE_ADDR, ( uint8_t * )lBuffer, sizeof( lBuffer ) );
+
+    // Write data
+    uint32_t lNbPacket = lSize / lPacketSize;
+    uint32_t lExtraBytes = lSize % lPacketSize;
+
+    if( lExtraBytes > 0 )
+        lNbPacket++;
+
+    uint16_t lTotalOperation = ( aVerify ? lNbPacket * 2 : lNbPacket );
+
+    for( uint32_t i = 0; i < lNbPacket; i++ )
+    {
+        mConnectionUniversal->Write( 0x2, LeddarDefines::LdSensorVuDefines::ASIC_PACTH_DATA_ADDR + i * lPacketSize, ( uint8_t * )&aIntelHex.mem[aIntelHex.start + i * lPacketSize],
+                                     lPacketSize );
+        uint16_t lTransactionCRC16 = 0;
+        mConnectionUniversal->Read( 0xb, GetBankAddress( REGMAP_TRN_CFG ) + offsetof( sTransactionCfg, mTransactionCrc ), ( uint8_t * )&lTransactionCRC16, sizeof( lTransactionCRC16 ) );
+
+        if( aProcessPercentage != 0 )
+            aProcessPercentage->ForceValue( 0, ( uint32_t )( ( ( float )i / ( float )lTotalOperation ) * 100. ) );
+    }
+
+    // Check data integrity
+    if( aVerify )
+    {
+        for( uint32_t i = 0; i < lNbPacket; i++ )
+        {
+            uint8_t lReadBuffer[lPacketSize];
+            mConnectionUniversal->Read( 0xb, LeddarDefines::LdSensorVuDefines::ASIC_PACTH_DATA_ADDR + i * lPacketSize, lReadBuffer, lPacketSize );
+
+            for( uint32_t j = 0; j < lPacketSize; j++ )
+            {
+                if( aIntelHex.mem[aIntelHex.start + i * lPacketSize + j] != lReadBuffer[j] )
+                    throw std::runtime_error( "Verify error on Asic update." );
+            }
+
+            if( aProcessPercentage != 0 )
+                aProcessPercentage->ForceValue( 0, ( uint32_t )( ( ( float )( i + lPacketSize ) / ( float )lTotalOperation ) * 100. ) );
+        }
+    }
+
+    if( aProcessPercentage != 0 )
+        aProcessPercentage->ForceValue( 0, 100 );
 }
 
 #ifdef BUILD_MODBUS

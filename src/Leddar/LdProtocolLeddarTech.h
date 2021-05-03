@@ -47,35 +47,36 @@ namespace LeddarConnection
         LdProtocolLeddarTech( const LdConnectionInfo *aConnectionInfo, LdConnection *aInterface );
         virtual ~LdProtocolLeddarTech( void );
 
-        virtual void            Connect( void ) override;
-        virtual void            Disconnect( void ) override;
-        virtual bool            IsConnected( void ) const override { return mIsConnected; }
-        virtual void            SetConnected( bool aIsConnected ) { mIsConnected = aIsConnected; }
+        void            Connect( void ) override;
+        void            Disconnect( void ) override;
+        bool            IsConnected( void ) const override { return mIsConnected; }
+        void            SetConnected( bool aIsConnected ) { mIsConnected = aIsConnected; }
 
-        virtual void            QueryDeviceInfo( void ) {};
-        virtual void            StartRequest( uint16_t aCode );
-        virtual void            SendRequest( void );
-        virtual void            ReadAnswer( void ) = 0;
-        virtual void            ReadRequest( void );
-        virtual uint16_t        GetRequestCode( void ) { return mRequestCode; }
-        virtual sIdentifyInfo   GetInfo( void ) { return mIdentityInfo; }
-        virtual uint32_t        GetMessageSize( void ) { return static_cast<uint32_t>( mMessageSize ); }
-        virtual void            AddElement( uint16_t aId, uint16_t aCount, uint32_t aSize, const void *aData, uint32_t aStride );
-        virtual void            AddElementFromProperty( LeddarCore::LdProperty *aProperty );
-        virtual void            AddElementFromProperties( LeddarCore::LdPropertiesContainer *aPropertiesContainer, LeddarCore::LdProperty::eCategories aCategory );
-        virtual bool            ReadElement( void );
-        virtual void            ReadElementToProperties( LeddarCore::LdPropertiesContainer *aProperties );
-        virtual void            PushElementDataToBuffer( void *aDest, uint16_t aCount, uint32_t aSize, size_t aStride );
-        virtual void           *GetElementData( void ) const;
-        virtual uint16_t        GetElementId( void ) const { return mElementId; }
-        virtual uint16_t        GetElementCount( void ) const { return mElementCount; }
-        virtual uint32_t        GetElementSize( void ) const { return mElementSize; }
-        uint16_t                GetAnswerCode( void ) const { return mAnswerCode; }
-        void                    SetDataServer( bool aIsDataServer );
+        virtual void    QueryDeviceInfo( void ) {};
+        void            StartRequest( uint16_t aCode );
+        void            SendRequest( void );
+        virtual void    ReadAnswer( void ) = 0;
+        virtual void    ReadRequest( void );
+        uint16_t        GetRequestCode( void ) const { return mRequestCode; }
+        sIdentifyInfo   GetInfo( void ) const { return mIdentityInfo; }
+        uint32_t        GetMessageSize( void ) const { return static_cast<uint32_t>( mMessageSize ); }
+        void            AddElement( uint16_t aId, uint16_t aCount, uint32_t aSize, const void *aData, uint32_t aStride );
+        void            AddElementFromProperty( LeddarCore::LdProperty *aProperty );
+        void            AddElementFromProperties( LeddarCore::LdPropertiesContainer *aPropertiesContainer, LeddarCore::LdProperty::eCategories aCategory );
+        bool            ReadElement( void );
+        void            ReadElementToProperties( LeddarCore::LdPropertiesContainer *aProperties );
+        void            CopySingleElementToProperty( LeddarCore::LdPropertiesContainer *aProperties);
+        void            PushElementDataToBuffer( void *aDest, uint16_t aCount, uint32_t aSize, size_t aStride );
+        void           *GetElementData( void ) const;
+        uint16_t        GetElementId( void ) const { return mElementId; }
+        uint16_t        GetElementCount( void ) const { return mElementCount; }
+        uint32_t        GetElementSize( void ) const { return mElementSize; }
+        uint16_t        GetAnswerCode( void ) const { return mAnswerCode; }
+        void            SetDataServer( bool aIsDataServer );
 
     protected:
         virtual void     Write( uint32_t /*aSize*/ ) {};
-        virtual void     Read( uint32_t aSize ) = 0;
+        virtual uint32_t Read( uint32_t aSize ) = 0;
 
         void             VerifyConnection( void ) const;
         virtual bool     ReadElementToProperty( LeddarCore::LdPropertiesContainer *aProperties );

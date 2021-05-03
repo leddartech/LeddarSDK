@@ -72,12 +72,11 @@ LdProtocolLeddartechEthernetUDP::~LdProtocolLeddartechEthernetUDP( void )
 /// \since   August 2017
 // *****************************************************************************
 
-void
-LdProtocolLeddartechEthernetUDP::Read( uint32_t )
+uint32_t LdProtocolLeddartechEthernetUDP::Read( uint32_t )
 {
     uint16_t lPortFrom = 0;
     std::string lAddressFrom = "";
-    mInterfaceEthernet->ReceiveFrom( lAddressFrom, lPortFrom, mTransferOutputBuffer, mTransferBufferSize );
+    return mInterfaceEthernet->ReceiveFrom( lAddressFrom, lPortFrom, mTransferOutputBuffer, mTransferBufferSize );
 }
 
 
@@ -112,7 +111,8 @@ LdProtocolLeddartechEthernetUDP::Connect( void )
 void
 LdProtocolLeddartechEthernetUDP::Disconnect( void )
 {
-    mInterfaceEthernet->CloseUDPSocket();
+    if( mIsConnected )
+        mInterfaceEthernet->CloseUDPSocket();
     mIsConnected = false;
 }
 

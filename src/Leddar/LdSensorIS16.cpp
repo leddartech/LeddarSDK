@@ -8,14 +8,15 @@
 
 #include "LdSensorIS16.h"
 
-#if defined(BUILD_M16) && defined(BUILD_USB)
+#if defined( BUILD_M16 ) && defined( BUILD_USB )
 
-#include "comm/LtComLeddarTechPublic.h"
-#include "comm/Legacy/M16/LtComM16.h"
 #include "LdPropertyIds.h"
+#include "LtTimeUtils.h"
+#include "comm/Legacy/M16/LtComM16.h"
+#include "comm/LtComLeddarTechPublic.h"
 
-LeddarDevice::LdSensorIS16::LdSensorIS16( LeddarConnection::LdConnection *aConnection ) :
-    LdSensorM16( aConnection )
+LeddarDevice::LdSensorIS16::LdSensorIS16( LeddarConnection::LdConnection *aConnection )
+    : LdSensorM16( aConnection )
 {
     InitProperties();
 }
@@ -32,9 +33,9 @@ void LeddarDevice::LdSensorIS16::InitProperties( void )
 {
     using namespace LeddarCore;
 
-    //Constants
-    mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_INFO, LdProperty::F_NONE, LdPropertyIds::ID_REFRESH_RATE_LIST,
-                              LtComM16::M16_ID_MEASUREMENT_RATE_LIST, 4, 65536, 2, "List of available measurement rates" ) );
+    // Constants
+    mProperties->AddProperty( new LdFloatProperty( LdProperty::CAT_INFO, LdProperty::F_NO_MODIFIED_WARNING, LdPropertyIds::ID_REFRESH_RATE_LIST,
+                                                   LtComM16::M16_ID_MEASUREMENT_RATE_LIST, 4, 65536, 2, "List of available measurement rates" ) );
 
     //Config
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_IS16_ZONE_RISING_DB,
@@ -75,6 +76,12 @@ void LeddarDevice::LdSensorIS16::InitProperties( void )
     mProperties->AddProperty( new LdBoolProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_IS16_LOCK_PANEL,
                               LtComM16::IS16_ID_CFG_CONTROL_PANEL_ACCESS, "Control panel access. Locked on 1" ) );
 
+    // Other
+    mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_OTHER, LdProperty::F_EDITABLE | LdProperty::F_SAVE | LdProperty::F_NO_MODIFIED_WARNING,
+                                                  LdPropertyIds::ID_IS16_MEASUREMENT_RATE, LtComM16::M16_ID_MEASUREMENT_RATE, 4, true,
+                                                  "Target refresh rate" ) ); // TODO Connect this property to UpdateParamsForTargetRefreshRate
+    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_OTHER, LdProperty::F_EDITABLE | LdProperty::F_SAVE | LdProperty::F_NO_MODIFIED_WARNING,
+                                                     LdPropertyIds::ID_IS16_USEFUL_RANGE, 0, 2, "Usefull range" ) ); // TODO connect this property to PointCountToRange
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -94,6 +101,18 @@ void LeddarDevice::LdSensorIS16::UpdateConstants( void )
     GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_IS16_TEACH_MARGIN )->SetScale( lDistanceScale );
 
     LdSensorM16::UpdateConstants();
+
+    auto *lRefreshRatesList  = GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_REFRESH_RATE_LIST );
+    auto *lTargetRefreshRate = GetProperties()->GetEnumProperty( LeddarCore::LdPropertyIds::ID_IS16_MEASUREMENT_RATE );
+
+    if( lRefreshRatesList->Count() > 0 ) // IS16
+    {
+        lTargetRefreshRate->ClearEnum();
+        for( size_t i = 0; i < lRefreshRatesList->Count(); ++i )
+        {
+            lTargetRefreshRate->AddEnumPair( lRefreshRatesList->RawValue( i ), LeddarUtils::LtStringUtils::IntToString( lRefreshRatesList->Value( i ) ) );
+        }
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -106,11 +125,7 @@ void LeddarDevice::LdSensorIS16::UpdateConstants( void )
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void LeddarDevice::LdSensorIS16::GetConstants( void )
 {
-    LdSensorM16::GetConstants();
-    uint16_t lIds[] =
-    {
-        LtComM16::M16_ID_MEASUREMENT_RATE_LIST
-    };
+    uint16_t lIds[] = { LtComM16::M16_ID_MEASUREMENT_RATE_LIST };
 
     mProtocolConfig->StartRequest( LtComLeddarTechPublic::LT_COMM_CFGSRV_REQUEST_GET );
     mProtocolConfig->AddElement( LtComLeddarTechPublic::LT_COMM_ID_ELEMENT_LIST, LT_ALEN( lIds ), sizeof( lIds[0] ), lIds, sizeof( lIds[0] ) );
@@ -118,6 +133,22 @@ void LeddarDevice::LdSensorIS16::GetConstants( void )
 
     mProtocolConfig->ReadAnswer();
     mProtocolConfig->ReadElementToProperties( GetProperties() );
+    LdSensorM16::GetConstants();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LeddarDevice::LdSensorIS16::GetConfig()
+///
+/// \brief  Gets the configuration
+///
+/// \author David Lévy
+/// \date   December 2020
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void LeddarDevice::LdSensorIS16::GetConfig()
+{
+    LdSensorM16::GetConfig();
+    UpdateRefreshRateForTargetAccOvers();
+    GetProperties()->GetEnumProperty( LeddarCore::LdPropertyIds::ID_IS16_MEASUREMENT_RATE )->SetClean();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -125,39 +156,129 @@ void LeddarDevice::LdSensorIS16::GetConstants( void )
 ///
 /// \brief  Updates the parameters (accumulation, oversampling) for target refresh rate. IS16 only. You need to call SetConfig to apply it
 ///
-/// \param  aTargetRefreshRate  Target refresh rate - Check available value in ID_REFRESH_RATE_LIST
+/// \param  aTargetRefreshRate  Non scaled target refresh rate - Use ID_IS16_MEASUREMENT_RATE for available values
 ///
 /// \author David Levy
 /// \date   April 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void LeddarDevice::LdSensorIS16::UpdateParamsForTargetRefreshRate( float aTargetRefreshRate )
+void LeddarDevice::LdSensorIS16::UpdateParamsForTargetRefreshRate( uint32_t aTargetRefreshRate )
 {
-    //First validate input value
-    LeddarCore::LdFloatProperty *lRefreshRates = GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_REFRESH_RATE_LIST );
-    uint32_t lScaledRefresh = 0;
-
-    if( lRefreshRates->Count() > 0 ) //IS16
+    // First validate input value
+    try
     {
-        for( size_t i = 0; i < lRefreshRates->Count(); ++i )
-        {
-            if( aTargetRefreshRate == lRefreshRates->Value( i ) )
-            {
-                lScaledRefresh = lRefreshRates->RawValue( i );
-                break;
-            }
-        }
+        GetProperties()->GetEnumProperty( LeddarCore::LdPropertyIds::ID_IS16_MEASUREMENT_RATE )->GetEnumIndexFromValue( aTargetRefreshRate );
     }
-
-    if( lScaledRefresh == 0 )
+    catch( const std::out_of_range & )
     {
         throw std::invalid_argument( "Target refresh rate invalid, check LeddarCore::LdPropertyIds::ID_REFRESH_RATE_LIST property for valid values" );
     }
 
     mProtocolConfig->StartRequest( LtComM16::M16_CFGSRV_REQUEST_MESUREMENT_RATE_TO_PARAMS );
-    mProtocolConfig->AddElement( LtComM16::M16_ID_MEASUREMENT_RATE, 1, sizeof( uint32_t ), &lScaledRefresh, static_cast<uint32_t>( sizeof( uint32_t ) ) );
+    mProtocolConfig->AddElement( LtComM16::M16_ID_MEASUREMENT_RATE, 1, sizeof( uint32_t ), &aTargetRefreshRate, static_cast<uint32_t>( sizeof( uint32_t ) ) );
     mProtocolConfig->SendRequest();
     mProtocolConfig->ReadAnswer();
     mProtocolConfig->ReadElementToProperties( GetProperties() );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LeddarDevice::LdSensorIS16::UpdateRefreshRateForTargetAccOvers()
+///
+/// \brief  Updates the refresh rate for target accumulation and oversampling
+///
+/// \author David Lévy
+/// \date   December 2020
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void LeddarDevice::LdSensorIS16::UpdateRefreshRateForTargetAccOvers()
+{
+    auto lAcc            = GetProperties()->GetEnumProperty( LeddarCore::LdPropertyIds::ID_ACCUMULATION_EXP )->ValueT<uint32_t>();
+    auto lOverS          = GetProperties()->GetEnumProperty( LeddarCore::LdPropertyIds::ID_OVERSAMPLING_EXP )->ValueT<uint32_t>();
+    auto lBasePointCount = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_BASE_POINT_COUNT )->ValueT<uint32_t>();
+    mProtocolConfig->StartRequest( LtComM16::M16_CFGSRV_REQUEST_PARAMS_TO_MESUREMENT_RATE );
+    mProtocolConfig->AddElement( LtComLeddarTechPublic::LT_COMM_ID_CFG_ACCUMULATION_EXPONENT, 1, sizeof( uint32_t ), &lAcc, static_cast<uint32_t>( sizeof( uint32_t ) ) );
+    mProtocolConfig->AddElement( LtComLeddarTechPublic::LT_COMM_ID_CFG_OVERSAMPLING_EXPONENT, 1, sizeof( uint32_t ), &lOverS, static_cast<uint32_t>( sizeof( uint32_t ) ) );
+    mProtocolConfig->AddElement( LtComLeddarTechPublic::LT_COMM_ID_CFG_BASE_SAMPLE_COUNT, 1, sizeof( uint32_t ), &lBasePointCount, static_cast<uint32_t>( sizeof( uint32_t ) ) );
+    mProtocolConfig->SendRequest();
+    mProtocolConfig->ReadAnswer();
+    mProtocolConfig->ReadElementToProperties( GetProperties() );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LeddarDevice::LdSensorIS16::SetDefaultQuickLimits( uint8_t aZone )
+///
+/// \brief  Sets default limits for the quick mode
+///
+/// \param  aZone   The zone.
+///
+/// \author David Lévy
+/// \date   December 2020
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void LeddarDevice::LdSensorIS16::SetDefaultQuickLimits( uint8_t aZone )
+{
+    mProtocolConfig->StartRequest( LtComM16::IS16_CFGSRV_REQUEST_QUICK_MODE );
+    mProtocolConfig->AddElement( LtComM16::IS16_ID_LVLS_CONFIG_ZONE, 1, sizeof( uint8_t ), &aZone, sizeof( uint8_t ) );
+    mProtocolConfig->SendRequest();
+    mProtocolConfig->ReadAnswer();
+    // Must reload config since this call modifies it.
+    GetConfig();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LeddarDevice::LdSensorIS16::Teach( uint8_t aZone, uint16_t aDuration )
+///
+/// \brief  Perform a teach with the parameters given in the teach command.
+///
+/// \param  aZone       The zone.
+/// \param  aDuration   The duration, in number of frame, 0 = default
+///
+/// \author David Lévy
+/// \date   December 2020
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void LeddarDevice::LdSensorIS16::Teach( uint8_t aZone, uint16_t aDuration )
+{
+    uint8_t lState = LtComM16::IS16_TEACH_STATE_START;
+    mProtocolConfig->StartRequest( LtComM16::IS16_CFGSRV_REQUEST_TEACH );
+    mProtocolConfig->AddElement( LtComM16::IS16_ID_LVLS_TEACH_STATE, 1, sizeof( uint8_t ), &lState, sizeof( uint8_t ) );
+    mProtocolConfig->AddElement( LtComM16::IS16_ID_LVLS_CONFIG_ZONE, 1, sizeof( uint8_t ), &aZone, sizeof( uint8_t ) );
+    if( aDuration != 0 )
+    {
+        mProtocolConfig->AddElement( LtComM16::IS16_ID_LVLS_TEACH_FRAME, 1, sizeof( uint16_t ), &aDuration, sizeof( uint16_t ) );
+    }
+    mProtocolConfig->SendRequest();
+    mProtocolConfig->ReadAnswer();
+
+    uint32_t lCount     = 0;
+    uint8_t lTeachState = LtComM16::IS16_TEACH_STATE_START;
+    uint16_t lIds[]     = { LtComM16::IS16_ID_LVLS_TEACH_STATE };
+
+    do
+    {
+        LeddarUtils::LtTimeUtils::Wait( 100 );
+
+        mProtocolConfig->StartRequest( LtComLeddarTechPublic::LT_COMM_CFGSRV_REQUEST_GET );
+        mProtocolConfig->AddElement( LtComLeddarTechPublic::LT_COMM_ID_ELEMENT_LIST, LT_ALEN( lIds ), sizeof( lIds[0] ), lIds, sizeof( lIds[0] ) );
+        mProtocolConfig->SendRequest();
+        mProtocolConfig->ReadAnswer();
+
+        while( mProtocolConfig->ReadElement() )
+        {
+            if( mProtocolConfig->GetElementId() == LtComM16::IS16_ID_LVLS_TEACH_STATE )
+            {
+                std::vector<uint8_t> lTeachStates( mProtocolConfig->GetElementCount(), 0 );
+                mProtocolConfig->PushElementDataToBuffer( lTeachStates.data(), mProtocolConfig->GetElementCount(), sizeof( lTeachStates[0] ), sizeof( ( lTeachStates[0] ) ) );
+                lTeachState = lTeachStates[aZone];
+            }
+        }
+
+    } while( lTeachState == LtComM16::IS16_TEACH_STATE_TEACHING && ++lCount < 50 );
+
+    if( lTeachState == LtComM16::IS16_TEACH_STATE_STOPPED )
+    {
+        GetConfig();
+    }
+    else
+    {
+        throw std::runtime_error("Teaching of the detection zone has failed");
+    }
 }
 
 #endif

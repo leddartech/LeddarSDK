@@ -42,7 +42,7 @@ namespace LeddarConnection
 
     protected:
         virtual void Write( uint32_t aSize ) override;
-        virtual void Read( uint32_t aSize ) override;
+        virtual uint32_t Read( uint32_t aSize ) override;
 
     private:
         LdInterfaceUsb *mInterfaceUSB;

@@ -38,7 +38,7 @@ namespace LeddarConnection
         virtual void Connect( void ) override;
         virtual void Disconnect( void ) override;
 
-        virtual void Read( uint8_t aEndPoint, uint8_t *aData, uint32_t aSize ) override;
+        virtual uint32_t Read( uint8_t aEndPoint, uint8_t *aData, uint32_t aSize ) override;
         virtual void Write( uint8_t aEndPoint, uint8_t *aData, uint32_t aSize ) override;
         virtual void ControlTransfert( uint8_t aRequestType, uint8_t aRequest, uint8_t *aData, uint32_t aSize, uint16_t aTimeout = 1000 ) override;
 

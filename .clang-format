@@ -1,0 +1,23 @@
+---
+BasedOnStyle: LLVM
+AlignConsecutiveAssignments: 'true'
+AlignConsecutiveDeclarations: 'false'
+AlignOperands: 'true'
+AlignTrailingComments: 'true'
+BreakBeforeBraces: Allman
+ColumnLimit: '180'
+IndentWidth: '4'
+Language: Cpp
+NamespaceIndentation: All
+PointerAlignment: Right
+Standard: Cpp11
+TabWidth: '4'
+UseTab: Never
+SpaceBeforeAssignmentOperators: 'true'
+SpaceBeforeParens: Never
+SpaceInEmptyParentheses: 'false'
+SpacesInParentheses: 'true'
+BreakConstructorInitializers: BeforeComma
+BreakInheritanceList: AfterColon
+
+...

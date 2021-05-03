@@ -141,7 +141,7 @@ LdSensorVu8Modbus::GetEchoes( void )
 
     uint8_t lEchoCount = lResponse[MODBUS_DATA_OFFSET];
 
-    if( lReceivedSize >= MODBUS_DATA_OFFSET + 1u + lEchoCount * 6u )
+    if( lReceivedSize >= MODBUS_DATA_OFFSET + 1u + lEchoCount * sizeof( LtComLeddarVu8Modbus::sLeddarVu8ModbusDetections ) )
     {
         mEchoes.SetEchoCount( lEchoCount );
         LtComLeddarVu8Modbus::sLeddarVu8ModbusDetections *lDetections = ( LtComLeddarVu8Modbus::sLeddarVu8ModbusDetections * )&lResponse[MODBUS_DATA_OFFSET + 1];
@@ -156,17 +156,18 @@ LdSensorVu8Modbus::GetEchoes( void )
             lDetections++;
         }
 
-        LtComLeddarVu8Modbus::sLeddarVu8ModbusDetectionsTrailing *lDetectionsTrail = ( LtComLeddarVu8Modbus::sLeddarVu8ModbusDetectionsTrailing * )lDetections;
-
-        if( lReceivedSize >= MODBUS_DATA_OFFSET + 1u + lEchoCount * 6u + 7u )
+        if( lReceivedSize >=
+            MODBUS_DATA_OFFSET + 1u + lEchoCount * sizeof( LtComLeddarVu8Modbus::sLeddarVu8ModbusDetections ) + sizeof( LtComLeddarVu8Modbus::sLeddarVu8ModbusDetectionsTrailing ) )
         {
+
+            LtComLeddarVu8Modbus::sLeddarVu8ModbusDetectionsTrailing *lDetectionsTrail = (LtComLeddarVu8Modbus::sLeddarVu8ModbusDetectionsTrailing *)lDetections;
             if( mEchoes.GetTimestamp( LeddarConnection::B_GET ) == lDetectionsTrail->mTimestamp )
             {
                 return false;
             }
 
             mEchoes.SetTimestamp( lDetectionsTrail->mTimestamp );
-            mEchoes.SetCurrentLedPower( lDetectionsTrail->mLedPower );
+            mEchoes.SetPropertyValue( LeddarCore::LdPropertyIds::ID_CURRENT_LED_INTENSITY, 0, lDetectionsTrail->mLedPower );
         }
     }
     else
@@ -361,7 +362,7 @@ LdSensorVu8Modbus::GetSerialConfig( void )
 
     LeddarCore::LdEnumProperty *lSPBaud = GetProperties()->GetEnumProperty( LeddarCore::LdPropertyIds::ID_COM_SERIAL_PORT_BAUDRATE );
     LeddarCore::LdIntegerProperty *lSPDataBits = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_SERIAL_PORT_DATA_BITS );
-    LeddarCore::LdIntegerProperty *lSPParity = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_SERIAL_PORT_PARITY );
+    LeddarCore::LdEnumProperty *lSPParity = GetProperties()->GetEnumProperty( LeddarCore::LdPropertyIds::ID_COM_SERIAL_PORT_PARITY );
     LeddarCore::LdIntegerProperty *lSPStopBits = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_SERIAL_PORT_STOP_BITS );
     LeddarCore::LdIntegerProperty *lSPPortAddress = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_SERIAL_PORT_ADDRESS );
     LeddarCore::LdIntegerProperty *lSPFlowControl = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_SERIAL_PORT_FLOW_CONTROL );
@@ -623,7 +624,7 @@ LdSensorVu8Modbus::SetSerialConfig( void )
         lSerialPortSettings->mLogicalPortNumber = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_SERIAL_PORT_LOGICAL_PORT )->ValueT<uint8_t>( i );
         lSerialPortSettings->mBaudrate = GetProperties()->GetEnumProperty( LeddarCore::LdPropertyIds::ID_COM_SERIAL_PORT_BAUDRATE )->Value( i );
         lSerialPortSettings->mDataSize = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_SERIAL_PORT_DATA_BITS )->ValueT<uint8_t>( i );
-        lSerialPortSettings->mParity = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_SERIAL_PORT_PARITY )->ValueT<uint8_t>( i );
+        lSerialPortSettings->mParity = GetProperties()->GetEnumProperty( LeddarCore::LdPropertyIds::ID_COM_SERIAL_PORT_PARITY )->ValueT<uint8_t>( i );
         lSerialPortSettings->mStopBits = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_SERIAL_PORT_STOP_BITS )->ValueT<uint8_t>( i );
         lSerialPortSettings->mFlowControl = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_SERIAL_PORT_FLOW_CONTROL )->ValueT<uint8_t>( i );
         lSerialPortSettings->mAddress = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_COM_SERIAL_PORT_ADDRESS )->ValueT<uint8_t>( i );
@@ -726,8 +727,8 @@ LdSensorVu8Modbus::InitProperties( void )
     mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_COM_SERIAL_PORT_BAUDRATE, 0, 4, true,
                               "Serial Port Baudrate" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE, LdPropertyIds::ID_COM_SERIAL_PORT_DATA_BITS, 0, 1, "Serial Port Data Bits" ) );
-    mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_SERIAL_PORT_PARITY, 0, 1,
-                              "Serial Port Parity: 0 = None - 1 = Odd - 2 = Even" ) );
+    mProperties->AddProperty( new LdEnumProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE | LdProperty::F_EDITABLE, LdPropertyIds::ID_COM_SERIAL_PORT_PARITY, 0, 1, true, 
+                              "Serial Port Parity" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_SAVE, LdPropertyIds::ID_COM_SERIAL_PORT_STOP_BITS, 0, 1,
                               "Serial port number of stop bits" ) );
     mProperties->AddProperty( new LdIntegerProperty( LdProperty::CAT_CONFIGURATION, LdProperty::F_EDITABLE | LdProperty::F_SAVE, LdPropertyIds::ID_COM_SERIAL_PORT_ADDRESS, 0, 1,
@@ -794,7 +795,6 @@ LdSensorVu8Modbus::InitProperties( void )
                               LtComLeddarVu8Modbus::DID_SEGMENT_ENABLE, 2, "Segments Enable" ) );
 
     // Set limits and enums
-    mProperties->GetIntegerProperty( LdPropertyIds::ID_COM_SERIAL_PORT_PARITY )->SetLimits( 0, 2 );
     mProperties->GetIntegerProperty( LdPropertyIds::ID_COM_SERIAL_PORT_STOP_BITS )->SetLimits( 1, 2 );
     GetProperties()->GetIntegerProperty( LdPropertyIds::ID_COM_SERIAL_PORT_ADDRESS )->SetLimits( 1, MODBUS_MAX_ADDR );
     GetProperties()->GetIntegerProperty( LdPropertyIds::ID_COM_SERIAL_PORT_MAX_ECHOES )->SetLimits( 1, LEDDARVU8_MAX_SERIAL_DETECTIONS );
@@ -843,5 +843,12 @@ LdSensorVu8Modbus::InitProperties( void )
     lLedPower->AddEnumPair( 53, "53" );
     lLedPower->AddEnumPair( 81, "81" );
     lLedPower->AddEnumPair( 100, "100" );
+
+    LdEnumProperty *lSerialParity = GetProperties()->GetEnumProperty( LeddarCore::LdPropertyIds::ID_COM_SERIAL_PORT_PARITY );
+    lSerialParity->AddEnumPair( 0, "None" );
+    lSerialParity->AddEnumPair( 1, "Odd" );
+    lSerialParity->AddEnumPair( 2, "Even" );
+
+    GetResultEchoes()->AddProperty( new LdIntegerProperty( LdProperty::CAT_INFO, LdProperty::F_SAVE, LdPropertyIds::ID_CURRENT_LED_INTENSITY, 0, 1, "Current Led power" ) );
 }
 #endif

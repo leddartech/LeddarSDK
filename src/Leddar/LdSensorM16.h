@@ -40,12 +40,23 @@ namespace LeddarDevice
         virtual void    Reset( LeddarDefines::eResetType aType, LeddarDefines::eResetOptions aOptions = LeddarDefines::RO_NO_OPTION, uint32_t = 0 ) override;
         void            RequestProperties( LeddarCore::LdPropertiesContainer *aProperties, std::vector<uint16_t> aDeviceIds );
         void            SetProperties( LeddarCore::LdPropertiesContainer *aProperties, std::vector<uint16_t> aDeviceIds, unsigned int aRetryNbr = 0 );
+        void UpdateFirmware( const std::string &aFileName, LeddarCore::LdIntegerProperty *aProcessPercentage, LeddarCore::LdBoolProperty *aCancel ) override;
+        void UpdateFirmware( eFirmwareType aFirmwareType, const LdFirmwareData &aFirmwareData, LeddarCore::LdIntegerProperty *aProcessPercentage,
+                             LeddarCore::LdBoolProperty *aCancel ) override;
 
         virtual void                        RemoveLicense( const std::string &aLicense ) override;
         virtual void                        RemoveAllLicenses( void ) override;
         virtual LeddarDefines::sLicense     SendLicense( const std::string &aLicense, bool aVolatile = false ) override;
         LeddarDefines::sLicense             SendLicense( const uint8_t *aLicense, bool aVolatile = false );
         virtual std::vector<LeddarDefines::sLicense> GetLicenses( void ) override;
+
+        float PointCountToRange( uint32_t aBasePointCount );
+        void ReadDefaultStaticThresholdTable();
+        float GetStartTraceDistance( int aValue = -1 );
+
+        // Needed by the M16 FPGA update functions
+        static LeddarConnection::LdProtocolLeddartechUSB *gConnection;
+        static LeddarCore::LdIntegerProperty *gPercentageDone;
 
     protected:
         LeddarConnection::LdProtocolLeddartechUSB    *mProtocolConfig;

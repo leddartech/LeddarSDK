@@ -15,28 +15,18 @@
 #pragma once
 
 #include "LdObject.h"
-#include "LdPropertiesContainer.h"
-#include "LdIntegerProperty.h"
 
 namespace LeddarConnection
 {
     class LdResultProvider : public LeddarCore::LdObject
     {
-    public:
-        LdResultProvider( void );
+      public:
+        LdResultProvider( void ) = default;
         void UpdateFinished( void ) { EmitSignal( LeddarCore::LdObject::NEW_DATA ); }
+        void HandleException( std::exception_ptr aEptr ) { EmitSignal( LeddarCore::LdObject::EXCEPTION, (void *)&aEptr ); }
 
-        uint32_t        GetTimestamp( void ) const { return static_cast<uint32_t>( mTimestamp->Value() ); }
-        virtual void    SetTimestamp( uint32_t aTimestamp ) { mTimestamp->ForceValue( 0, aTimestamp ); }
-
-        LeddarCore::LdPropertiesContainer *GetProperties( void ) { return &mProperties; }
-
-    protected:
-        LeddarCore::LdIntegerProperty *mTimestamp, *mTimestamp64;
-        LeddarCore::LdPropertiesContainer mProperties;
-
-    private:
-        LdResultProvider( const LdResultProvider &aProvider ); //Disable copy constructor
-        LdResultProvider &operator=( const LdResultProvider &aProvider );//Disable equal constructor
+      private:
+        LdResultProvider( const LdResultProvider &aProvider ) = delete;            // Disable copy constructor
+        LdResultProvider &operator=( const LdResultProvider &aProvider ) = delete; // Disable equal constructor
     };
-}
+} // namespace LeddarConnection

@@ -25,12 +25,13 @@ namespace LeddarDevice
     class LdDevice : public LeddarCore::LdObject
     {
     public:
-        ~LdDevice();
+        ~LdDevice() override;
 
         virtual void Connect( void );
         virtual void Disconnect( void );
         virtual LeddarConnection::LdConnection *GetConnection( void ) { return mConnection; }
         LeddarCore::LdPropertiesContainer *GetProperties( void ) { return mProperties; }
+        const LeddarCore::LdPropertiesContainer *GetProperties( void ) const { return mProperties; }
 
 
     protected:
@@ -43,6 +44,6 @@ namespace LeddarDevice
         LdDevice &operator=( const LdDevice &aDevice );//Disable equal constructor
 
         bool mDeleteProperties;
-        LeddarConnection::LdConnection *mConnection;
+        LeddarConnection::LdConnection *mConnection = nullptr;
     };
 }

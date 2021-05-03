@@ -223,83 +223,91 @@ namespace LtComLeddarTechPublic
         LT_COMM_ID_TRIGGER_MODE = 0x10B1,                            ///<          {uint8_t} Acquisition mode, 0 = Running, 1 = Trigger, 2 = Stop
         LT_COMM_ID_CROSSTALK_FILTER_SCALE = 0x10C1,                  ///< (0x10C1) {LtUint32} Optical Crosstalk Filter scale for fixed-point value
         LT_COMM_ID_INTER_TILE_CROSSTALK_FILTER_SCALE = 0x10C2,       ///< (0x10C2) {LtUint32} Inter-tile Crosstalk Filter scale for fixed-point value
+        LT_COMM_ID_SOFT_RESET                        = 0x10C5,       ///< (0x10C5) (uint8_t) Software reset (keep ethernet connection alive)
 
+        LT_COMM_ID_PLATFORM_SPECIFIC_BASE_V2 = 0x2000                ///< (0x2000) Platform specific element ids starting base. Ids defined in a separate header file.
+    } eLtCommGenericElementsIdCodes;
+
+    typedef enum eLtCommAutoElementsIdCodes
+    {
         // CONSTANTS
-        LT_COMM_ID_AUTO_CHANNEL_NUMBER_HORIZONTAL = 0x2001,          ///< (0x2001) {uint16_t} Number of horizontal channels
-        LT_COMM_ID_AUTO_CHANNEL_NUMBER_VERTICAL = 0x2002,            ///< (0x2002) {uint16_t} Number of vertical channels
-        LT_COMM_ID_AUTO_CHANNEL_SUB_NUMBER_HORIZONTAL = 0x2003,      ///< (0x2003) {uint16_t}[Number of sub zone] Number of horizontal channels
-        LT_COMM_ID_AUTO_SUB_HFOV = 0x2004,                           ///< (0x2004) {LtFloat32}[Number of zones] Horizontal field of views of the sensor
-        LT_COMM_ID_AUTO_SUB_POSITION = 0x2006,                       ///< (0x2006) {LtFloat32}[Number of zones] Horizontal position of each zone, relative to the center of the sensor
+        LT_COMM_ID_AUTO_CHANNEL_NUMBER_HORIZONTAL     = 0x2001, ///< (0x2001) {uint16_t} Number of horizontal channels
+        LT_COMM_ID_AUTO_CHANNEL_NUMBER_VERTICAL       = 0x2002, ///< (0x2002) {uint16_t} Number of vertical channels
+        LT_COMM_ID_AUTO_CHANNEL_SUB_NUMBER_HORIZONTAL = 0x2003, ///< (0x2003) {uint16_t}[Number of sub zone] Number of horizontal channels
+        LT_COMM_ID_AUTO_SUB_HFOV                      = 0x2004, ///< (0x2004) {LtFloat32}[Number of zones] Horizontal field of views of the sensor
+        LT_COMM_ID_AUTO_SUB_POSITION                  = 0x2006, ///< (0x2006) {LtFloat32}[Number of zones] Horizontal position of each zone, relative to the center of the sensor
 
-        LT_COMM_ID_AUTO_LED_AUTO_FRAME_AVG_LIMITS = 0x2020,          ///< (0x2020) {uint16_t[2]} Minimum and maximum number of auto acq avg frame permitted
-        LT_COMM_ID_AUTO_LED_AUTO_ECHO_AVG_LIMITS = 0x2021,           ///< (0x2021) {uint16_t[2]} Minimum and maximum number of auto acq avg echo permitted
+        LT_COMM_ID_AUTO_LED_AUTO_FRAME_AVG_LIMITS = 0x2020, ///< (0x2020) {uint16_t[2]} Minimum and maximum number of auto acq avg frame permitted
+        LT_COMM_ID_AUTO_LED_AUTO_ECHO_AVG_LIMITS  = 0x2021, ///< (0x2021) {uint16_t[2]} Minimum and maximum number of auto acq avg echo permitted
 
         // CONFIG
-        LT_COMM_ID_AUTO_NUMBER_DATA_SENT = 0x2501,                   ///< (0x2501) {uint32_t[2]} Index of the first trace sent + number of traces sent by the data server
-        LT_COMM_ID_AUTO_DATA_SERVER_PORT = 0x2502,                   ///< (0x2502) {uint16_t} LCA3 Data server port
-        LT_COMM_ID_AUTO_DATA_SERVER_PROTOCOL = 0x2503,               ///< (0x2503) {uint8_t} TCP or UDP see \ref eLtCommProtocol
+        LT_COMM_ID_AUTO_NUMBER_DATA_SENT     = 0x2501, ///< (0x2501) {uint32_t[2]} Index of the first trace sent + number of traces sent by the data server
+        LT_COMM_ID_AUTO_DATA_SERVER_PORT     = 0x2502, ///< (0x2502) {uint16_t} LCA3 Data server port
+        LT_COMM_ID_AUTO_DATA_SERVER_PROTOCOL = 0x2503, ///< (0x2503) {uint8_t} TCP or UDP see \ref eLtCommProtocol
 
-        LT_COMM_ID_AUTO_LED_AUTO_FRAME_AVG = 0x2520,                 ///< (0x2520) {uint16_t} auto acq avg frame
-        LT_COMM_ID_AUTO_LED_AUTO_ECHO_AVG = 0x2521,                  ///< (0x2521) {uint16_t} auto acq avg echo
+        LT_COMM_ID_AUTO_LED_AUTO_FRAME_AVG = 0x2520, ///< (0x2520) {uint16_t} auto acq avg frame
+        LT_COMM_ID_AUTO_LED_AUTO_ECHO_AVG  = 0x2521, ///< (0x2521) {uint16_t} auto acq avg echo
 
-        LT_COMM_ID_AUTO_PROCESS_SATURATION_ENABLE = 0x253F,          ///< (0x253F) {BOOL} - saturation template replacement enable
-        LT_COMM_ID_AUTO_XTALK_OPTIC_SEG_ENABLE = 0x2540,             ///< (0x2540) {bool} - xtalk optic segment enable
-        LT_COMM_ID_AUTO_XTALK_OPTIC_LINE_ENABLE = 0x2541,            ///< (0x2541) {bool} - xtalk optic line enable
-        LT_COMM_ID_AUTO_XTALK_OPTIC_ECH_SEG_ENABLE = 0x2542,         ///< (0x2542) {bool} - xtalk optical echoes segment enable
-        LT_COMM_ID_AUTO_XTALK_OPTIC_ECH_LINE_ENABLE = 0x2543,        ///< (0x2543) {bool} - xtalk optical echoes line enable
+        LT_COMM_ID_AUTO_PROCESS_SATURATION_ENABLE   = 0x253F, ///< (0x253F) {BOOL} - saturation template replacement enable
+        LT_COMM_ID_AUTO_XTALK_OPTIC_SEG_ENABLE      = 0x2540, ///< (0x2540) {bool} - xtalk optic segment enable
+        LT_COMM_ID_AUTO_XTALK_OPTIC_LINE_ENABLE     = 0x2541, ///< (0x2541) {bool} - xtalk optic line enable
+        LT_COMM_ID_AUTO_XTALK_OPTIC_ECH_SEG_ENABLE  = 0x2542, ///< (0x2542) {bool} - xtalk optical echoes segment enable
+        LT_COMM_ID_AUTO_XTALK_OPTIC_ECH_LINE_ENABLE = 0x2543, ///< (0x2543) {bool} - xtalk optical echoes line enable
 
-        LT_COMM_ID_AUTO_THRESHOLD_OPTIONS = 0x2545,                  ///< (0x2545) {uint8_t} - Threshold config, see \ref eLtCommThresholdOptions
-        LT_COMM_ID_AUTO_AUTOMATIC_THRESH_SENSITIVITY = 0x2546,       ///< (0x2546) {int32_t} - Automatic threshold sensitivity (in dB)
+        LT_COMM_ID_AUTO_THRESHOLD_OPTIONS                   = 0x2545, ///< (0x2545) {uint8_t} - Threshold config, see \ref eLtCommThresholdOptions
+        LT_COMM_ID_AUTO_AUTOMATIC_THRESH_SENSITIVITY        = 0x2546, ///< (0x2546) {int32_t} - Automatic threshold sensitivity (in dB)
         LT_COMM_ID_AUTO_AUTOMATIC_THRESH_SENSITIVITY_LIMITS = 0x2547, ///< (0x2547) {int32_t[2]} - Min and max value of automatic threshold sensitivity
 
-        LT_COMM_ID_AUTO_ACC_DIST_ENABLE = 0x2550,                    ///< (0x2550) {bool}     - accumulation according to distance enable
-        LT_COMM_ID_AUTO_ACC_DIST_POSITION = 0x2551,                  ///< (0x2551) {uint32_t} - start position of accumulation according to distance
-        LT_COMM_ID_AUTO_ACC_DIST_EXP = 0x2552,                       ///< (0x2552) {uint32_t} - number of accumulation according to distance
-        LT_COMM_ID_LIMIT_AUTO_ACC_DIST_POSITION = 0x2553,            ///< (0x2553) {uint32_t} - minimum and maximum for position of accumulation according to distance
-        LT_COMM_ID_LIMIT_AUTO_ACC_DIST_EXP = 0x2554,                 ///< (0x2554) {uint32_t} - minimum and maximum for number of accumulation according to distance
-        LT_COMM_ID_AUTO_THREHSOLD_POS_OFFSET = 0x2555,               ///< (0x2555) {uint32_t}   Start position of threshold table offset
-        LT_COMM_ID_LIMIT_AUTO_THR_POS_OFFSET = 0x2556,               ///< (0x2556) {uint32_t}   minimum and maximum for Start position of threshold table offset
+        LT_COMM_ID_AUTO_ACC_DIST_ENABLE         = 0x2550, ///< (0x2550) {bool}     - accumulation according to distance enable
+        LT_COMM_ID_AUTO_ACC_DIST_POSITION       = 0x2551, ///< (0x2551) {uint32_t} - start position of accumulation according to distance
+        LT_COMM_ID_AUTO_ACC_DIST_EXP            = 0x2552, ///< (0x2552) {uint32_t} - number of accumulation according to distance
+        LT_COMM_ID_LIMIT_AUTO_ACC_DIST_POSITION = 0x2553, ///< (0x2553) {uint32_t} - minimum and maximum for position of accumulation according to distance
+        LT_COMM_ID_LIMIT_AUTO_ACC_DIST_EXP      = 0x2554, ///< (0x2554) {uint32_t} - minimum and maximum for number of accumulation according to distance
+        LT_COMM_ID_AUTO_THREHSOLD_POS_OFFSET    = 0x2555, ///< (0x2555) {uint32_t}   Start position of threshold table offset
+        LT_COMM_ID_LIMIT_AUTO_THR_POS_OFFSET    = 0x2556, ///< (0x2556) {uint32_t}   minimum and maximum for Start position of threshold table offset
 
-        LT_COMM_ID_AUTO_THRESH_AGG_AMP = 0x2560,                     ///< (0x2560) {LtFixedPoint} - optical threshold that considered a pulse like an aggressor.
-        LT_COMM_ID_AUTO_THRESH_VICTIM_DIST = 0x2561,                 ///< (0x2561) {LtFixedPoint} - optical threshold that considered a pulse like a victim
-        LT_COMM_ID_AUTO_THRESH_ELEC_AGG_AMP = 0x2562,                ///< (0x2562) {LtFixedPoint} - electronic threshold that considered a pulse like an aggressor
-        LT_COMM_ID_AUTO_THRESH_ECH_VICTIM_LEFT = 0x2563,             ///< (0x2563) {LtFixedPoint} - electronic threshold that considered a pulse like a victim
-        LT_COMM_ID_AUTO_THRESH_ECH_VICTIM_RIGHT = 0x2564,            ///< (0x2564) {LtFixedPoint} - electronic threshold that considered a pulse like a victim
-        LT_COMM_ID_AUTO_THRESH_GAUSS_SENSIB = 0x2565,                ///< (0x2565) {LtFixedPoint} - sensibility of the gaussian correction used by the echoes xtalk algorithm
-        LT_COMM_ID_AUTO_THRESH_M_PEAK = 0x2566,                      ///< (0x2566) {LtFixedPoint} - detection threshold used by the Mpeaklight function
+        LT_COMM_ID_AUTO_THRESH_AGG_AMP          = 0x2560, ///< (0x2560) {LtFixedPoint} - optical threshold that considered a pulse like an aggressor.
+        LT_COMM_ID_AUTO_THRESH_VICTIM_DIST      = 0x2561, ///< (0x2561) {LtFixedPoint} - optical threshold that considered a pulse like a victim
+        LT_COMM_ID_AUTO_THRESH_ELEC_AGG_AMP     = 0x2562, ///< (0x2562) {LtFixedPoint} - electronic threshold that considered a pulse like an aggressor
+        LT_COMM_ID_AUTO_THRESH_ECH_VICTIM_LEFT  = 0x2563, ///< (0x2563) {LtFixedPoint} - electronic threshold that considered a pulse like a victim
+        LT_COMM_ID_AUTO_THRESH_ECH_VICTIM_RIGHT = 0x2564, ///< (0x2564) {LtFixedPoint} - electronic threshold that considered a pulse like a victim
+        LT_COMM_ID_AUTO_THRESH_GAUSS_SENSIB     = 0x2565, ///< (0x2565) {LtFixedPoint} - sensibility of the gaussian correction used by the echoes xtalk algorithm
+        LT_COMM_ID_AUTO_THRESH_M_PEAK           = 0x2566, ///< (0x2566) {LtFixedPoint} - detection threshold used by the Mpeaklight function
 
-        LT_COMM_ID_AUTO_PDLT_TRIANGLE_THREHSOLD         = 0x2570,    ///< (0x2570) {LtFixedPoint} Threshold table offset in \ref LT_COMM_ID_AMPLITUDE_SCALE
-        LT_COMM_ID_AUTO_PDLT_TRIANGLE_THREHSOLD_LIMITS  = 0x2571,    ///< (0x2571) {LtFixedPoint[2]} Min and max value of \ref LT_COMM_ID_AUTO_PDLT_TRIANGLE_THREHSOLD
-        LT_COMM_ID_AUTO_PDLT_TRIANGLE_THR_DIST_END      = 0x2572,    ///< (0x2572) {LtFixedPoint} Meter distance value in \ref LT_COMM_ID_DISTANCE_SCALE
-        LT_COMM_ID_AUTO_PDLT_TRIANGLE_THR_DIST_END_LIMITS = 0x2573,  ///< (0x2573) {LtFixedPoint[2]} Min and max value of \ref LT_COMM_ID_AUTO_PDLT_TRIANGLE_THR_DIST_END
+        LT_COMM_ID_AUTO_PDLT_TRIANGLE_THREHSOLD           = 0x2570, ///< (0x2570) {LtFixedPoint} Threshold table offset in \ref LT_COMM_ID_AMPLITUDE_SCALE
+        LT_COMM_ID_AUTO_PDLT_TRIANGLE_THREHSOLD_LIMITS    = 0x2571, ///< (0x2571) {LtFixedPoint[2]} Min and max value of \ref LT_COMM_ID_AUTO_PDLT_TRIANGLE_THREHSOLD
+        LT_COMM_ID_AUTO_PDLT_TRIANGLE_THR_DIST_END        = 0x2572, ///< (0x2572) {LtFixedPoint} Meter distance value in \ref LT_COMM_ID_DISTANCE_SCALE
+        LT_COMM_ID_AUTO_PDLT_TRIANGLE_THR_DIST_END_LIMITS = 0x2573, ///< (0x2573) {LtFixedPoint[2]} Min and max value of \ref LT_COMM_ID_AUTO_PDLT_TRIANGLE_THR_DIST_END
 
         LT_COMM_ID_AUTO_CHANNEL_ANGLES_AZIMUT           = 0x2580,    ///< (0x2580) {LtFloat32[NumberOfChannels]} Azimut angles in degrees from the center of the FoV to the center of each channel
         LT_COMM_ID_AUTO_CHANNEL_ANGLES_ELEVATION        = 0x2581,    ///< (0x2581) {LtFloat32[NumberOfChannels]} Elevation angles in degrees from the center of the FoV to the center of each channel
 
-        LT_COMM_ID_AUTO_SYSTEM_TIME                     = 0x259B,    ///< (0x259B) {uint64_t} Timestamp in microseconds since 1970/01/01
-        LT_COMM_ID_AUTO_TIME_SYNC_METHOD                = 0x259C,    ///< (0x259C) {uint8_t} Time synchronization method to be used: 0 = none, 1 = PTP, 2 = PPS
+        LT_COMM_ID_AUTO_SYSTEM_TIME      = 0x259B, ///< (0x259B) {uint64_t} Timestamp in microseconds since 1970/01/01
+        LT_COMM_ID_AUTO_TIME_SYNC_METHOD = 0x259C, ///< (0x259C) {uint8_t} Time synchronization method to be used: 0 = none, 1 = PTP, 2 = PPS
         LT_COMM_ID_AUTO_PPS_RISING_EDGE  = 0x259D, ///< (0x259D) {uint8_t} Transition edge to use for PPS. 0 = falling edge, 1 = rising edge
 
-        LT_COMM_ID_AUTO_XTALK_INTER_TILE_ENABLE         = 0x25B0,    ///< (0x25B0) {BOOL} Inter tile xtalk algorithm enable
-        LT_COMM_ID_AUTO_SPACIAL_FILTER_ENABLE           = 0x25B1,    ///< (0x25B1) {BOOL} Spacial filtering algorithm enable
-        LT_COMM_ID_AUTO_CORRECT_DISTANCE_AT_TILES_INTERSECTIONS_ENABLE   = 0x25B2,  ///< (0x25B2) {BOOL} Correct Distance At Tiles Intersections algorithm enable
+        LT_COMM_ID_AUTO_XTALK_INTER_TILE_ENABLE                        = 0x25B0, ///< (0x25B0) {BOOL} Inter tile xtalk algorithm enable
+        LT_COMM_ID_AUTO_SPACIAL_FILTER_ENABLE                          = 0x25B1, ///< (0x25B1) {BOOL} Spacial filtering algorithm enable
+        LT_COMM_ID_AUTO_CORRECT_DISTANCE_AT_TILES_INTERSECTIONS_ENABLE = 0x25B2, ///< (0x25B2) {BOOL} Correct Distance At Tiles Intersections algorithm enable
+        LT_COMM_ID_AUTO_HOMOGENIZE_DIST_IN_SAME_TARGET_ENABLE          = 0x25B3, ///< (0x25B3) {BOOL} Homogenize distance belonging to the same target enable
 
+        // LT_COMM_ID_AUTO_ACQUISITION_MODE = 0x9876,
+        // LT_COMM_ID_AUTO_ACQUISITION_MODE_LIMITS = 0x9877,
+        // DATA
+        LT_COMM_ID_AUTO_ECHOES_CHANNEL_INDEX = 0x2700, ///< (0x2700) {uint16_t} - Index of the echo channel for 3D sensors.
+        LT_COMM_ID_AUTO_ECHOES_VALID         = 0x2701, ///< (0x2701) {uint16_t} - Bitfield with verious information
+        LT_COMM_ID_AUTO_ECHOES_AMPLITUDE     = 0x2702, ///< (0x2702) {int16_t} - Echo amplitude
+        LT_COMM_ID_AUTO_ECHOES_DISTANCE      = 0x2703, ///< (0x2703) {uint16_t} - Echo distance
+        LT_COMM_ID_AUTO_ECHOES_TIMESTAMP_UTC = 0x2704, ///< (0x2704) {uint64_t} - Echo UTC timestamp
 
-        //LT_COMM_ID_AUTO_ACQUISITION_MODE = 0x9876,
-        //LT_COMM_ID_AUTO_ACQUISITION_MODE_LIMITS = 0x9877,
-        //DATA
-        LT_COMM_ID_AUTO_ECHOES_CHANNEL_INDEX = 0x2700,               ///< (0x2700) {uint16_t} - Index of the echo channel for 3D sensors.
-        LT_COMM_ID_AUTO_ECHOES_VALID = 0x2701,                       ///< (0x2701) {uint16_t} - Bitfield with verious information
-        LT_COMM_ID_AUTO_ECHOES_AMPLITUDE = 0x2702,                   ///< (0x2702) {int16_t} - Echo amplitude
-        LT_COMM_ID_AUTO_ECHOES_DISTANCE = 0x2703,                    ///< (0x2703) {uint16_t} - Echo distance
-        LT_COMM_ID_AUTO_ECHOES_TIMESTAMP_UTC = 0x2704,               ///< (0x2704) {uint64_t} - Echo UTC timestamp
+        LT_COMM_ID_AUTO_APD_TEMP       = 0x2710, ///< (0x2710) {LtFixedPoint} - Temperature of the APD (photodiode)
+        LT_COMM_ID_AUTO_APD_TEMP_SCALE = 0x2711, ///< (0x2711) {LtUInt32} - Temperature scale of the APD (photodiode)
+        LT_COMM_ID_AUTO_NOISE_LEVEL     = 0x2716,                    ///< (0x2716) {LtUInt32} - Noise level
 
-        LT_COMM_ID_AUTO_APD_TEMP        = 0x2710,                    ///< (0x2710) {LtFixedPoint} - Temperature of the APD (photodiode)
-        LT_COMM_ID_AUTO_APD_TEMP_SCALE  = 0x2711,                    ///< (0x2711) {LtUInt32} - Temperature scale of the APD (photodiode)
-
-        LT_COMM_ID_AUTO_V3M_TEMP = 0x2719,                          ///< (0x2719) {LtFixedPoint} - Temperature of the V3M (photodiode) without scaling
-        LT_COMM_ID_AUTO_PMIC_TEMP = 0x2720,                         ///< (0x2720) {LtFixedPoint} - Temperature of the PMIC without scaling
-        LT_COMM_ID_AUTO_TIMESTAMP64 = 0x2721,                       ///< (0x2721) {LtUInt64} - TimeStamp with 64 bits resolution for PTP
+        LT_COMM_ID_AUTO_V3M_TEMP    = 0x2719, ///< (0x2719) {LtFixedPoint} - Temperature of the V3M (photodiode) without scaling
+        LT_COMM_ID_AUTO_PMIC_TEMP   = 0x2720, ///< (0x2720) {LtFixedPoint} - Temperature of the PMIC without scaling
+        LT_COMM_ID_AUTO_TIMESTAMP64 = 0x2721, ///< (0x2721) {LtUInt64} - TimeStamp with 64 bits resolution for PTP
+        LT_COMM_ID_AUTO_NOISE_LEVEL_MEAN = 0x2722,                  ///< (0x2716) {LtUInt32} - Noise level averaged for each channel
 
         LT_COMM_ID_AUTO_EXTERNAL_TRIGGER = 0x2900,                   ///< (0x2900) {BOOL} - enable/disable  external trigger
 
@@ -310,7 +318,7 @@ namespace LtComLeddarTechPublic
         //*********************************************************************************************************************************************************************************************
         LT_COMM_ID_PRODUCT_SPECIFIC_BASE = 0x8000                    ///< (0x8000) Product specific element ids starting base. Ids defined in a separate header file.
                                            //*********************************************************************************************************************************************************************************************
-    } eLtCommGenericElementsIdCodes;
+    } eLtCommAutoElementsIdCodes;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     /// \enum   eLtCommCfgSrvGenericRequestCodes
@@ -345,6 +353,7 @@ namespace LtComLeddarTechPublic
         LT_COMM_CFGSRV_REQUEST_RESET_CONFIG = 0x7011                                                    ///< (0x7011) Reset the shadow configuration to default data.
 
     } eLtCommCfgSrvGenericRequestCodes;
+
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     /// \enum   eLtCommGenericAnswerCodes
@@ -508,7 +517,8 @@ namespace LtComLeddarTechPublic
         LT_COMM_DEVICE_TYPE_TRACKER_TRANS       = 0x0010,   ///< Tracker product with updated algorithm and specific hardcoded tuning
         LT_COMM_DEVICE_TYPE_LCA2_REFDESIGN      = 0x0011,   ///< LCA2 RefDesign
         LT_COMM_DEVICE_TYPE_PIXELL              = 0x0012,   ///< Pixell
-
+        LT_COMM_DEVICE_TYPE_CYCLOP              = 0x0013,   ///< Cyclop
+            
         LT_COMM_DEVICE_TYPE_AUTO_FAMILY         = 0x0100,   ///< LeddarAuto product family
 
         LT_COMM_DEVICE_TYPE_LCA2_DISCRETE       = 0xFFFA   ///< LCA2 Discrete platform

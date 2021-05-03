@@ -16,13 +16,13 @@
 #ifdef BUILD_ETHERNET
 
 #include "LdConnectionInfo.h"
-#include "LtStringUtils.h"
 #include "LtExceptions.h"
-#include "comm/LtComLeddarTechPublic.h"
-#include "comm/LtComEthernetPublic.h"
-#include "comm/Legacy/DTec/LtComDTec.h"
-#include "LtTimeUtils.h"
+#include "LtStringUtils.h"
 #include "LtSystemUtils.h"
+#include "LtTimeUtils.h"
+#include "comm/Legacy/DTec/LtComDTec.h"
+#include "comm/LtComEthernetPublic.h"
+#include "comm/LtComLeddarTechPublic.h"
 
 #include <cerrno>
 #include <cstring>
@@ -30,25 +30,24 @@
 
 #define WIN32_LEAN_AND_MEAN
 
-
-#if defined(_WIN32) && defined(__MINGW32__)
+#if defined( _WIN32 ) && defined( __MINGW32__ )
 #define _WIN32_WINNT 0x0501
 #endif
 
 #ifdef _WIN32
 
+#include <iphlpapi.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <windows.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#include <iphlpapi.h>
-#include <stdlib.h>
-#include <stdio.h>
 
 // Need to link with Ws2_32.lib, Mswsock.lib, and Advapi32.lib
-#pragma comment (lib, "Ws2_32.lib")
-#pragma comment (lib, "Mswsock.lib")
-#pragma comment (lib, "AdvApi32.lib")
-#pragma comment (lib, "iphlpapi.lib")
+#pragma comment( lib, "Ws2_32.lib" )
+#pragma comment( lib, "Mswsock.lib" )
+#pragma comment( lib, "AdvApi32.lib" )
+#pragma comment( lib, "iphlpapi.lib" )
 
 #define LAST_ERROR WSAGetLastError()
 
@@ -57,36 +56,36 @@
 #define LAST_ERROR errno
 #define SOCKET_ERROR -1
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <ifaddrs.h>
 #include <arpa/inet.h>
-#include <netinet/in.h>
+#include <ifaddrs.h>
 #include <netdb.h>
+#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #endif
 
-//For request broadcast
-#define HELLO_PORT                          48620
+// For request broadcast
+#define HELLO_PORT 48620
 
 #ifdef _WIN32
 class LdWSAManager
 {
-public:
-    LdWSAManager() {
+  public:
+    LdWSAManager()
+    {
         WSADATA lWsaData;
 
-        if( WSAStartup( MAKEWORD( 2, 2 ), &lWsaData ) != 0 ) {
+        if( WSAStartup( MAKEWORD( 2, 2 ), &lWsaData ) != 0 )
+        {
             throw std::runtime_error( "Failed to initialize socket (WSAStartup)." );
         }
     }
 
-    ~LdWSAManager() {
-        WSACleanup();
-    }
+    ~LdWSAManager() { WSACleanup(); }
 };
 
 static LdWSAManager sWSAManager;
@@ -101,14 +100,17 @@ static LdWSAManager sWSAManager;
 ///
 /// \since   October 2016
 // *****************************************************************************
-LeddarConnection::LdEthernet::LdEthernet( const LdConnectionInfoEthernet *aConnectionInfo, LdConnection *aInterface ) :
-    LdInterfaceEthernet( aConnectionInfo, aInterface ),
+LeddarConnection::LdEthernet::LdEthernet( const LdConnectionInfoEthernet *aConnectionInfo, LdConnection *aInterface )
+    : LdInterfaceEthernet( aConnectionInfo, aInterface )
+    ,
 #ifdef _WIN32
-    mSocket( INVALID_SOCKET ),
-    mUDPSocket( INVALID_SOCKET ),
+    mSocket( INVALID_SOCKET )
+    , mUDPSocket( INVALID_SOCKET )
+    ,
 #else
-    mSocket( 0 ),
-    mUDPSocket( 0 ),
+    mSocket( 0 )
+    , mUDPSocket( 0 )
+    ,
 #endif
     mIsConnected( false )
 {
@@ -124,10 +126,7 @@ LeddarConnection::LdEthernet::LdEthernet( const LdConnectionInfoEthernet *aConne
 ///
 /// \since   October 2016
 // *****************************************************************************
-LeddarConnection::LdEthernet::~LdEthernet( void )
-{
-    LdEthernet::Disconnect();
-}
+LeddarConnection::LdEthernet::~LdEthernet( void ) { LdEthernet::Disconnect(); }
 
 // *****************************************************************************
 // Function: LdEthernet::Connect
@@ -138,20 +137,18 @@ LeddarConnection::LdEthernet::~LdEthernet( void )
 ///
 /// \since   October 2016
 // *****************************************************************************
-void
-LeddarConnection::LdEthernet::Connect( void )
+void LeddarConnection::LdEthernet::Connect( void )
 {
     // Resolve the server address and port
     struct addrinfo lHints;
     struct addrinfo *lResult = nullptr;
     memset( &lHints, 0, sizeof( lHints ) );
 
-    lHints.ai_family = AF_UNSPEC;
+    lHints.ai_family   = AF_UNSPEC;
     lHints.ai_socktype = SOCK_STREAM;
     lHints.ai_protocol = IPPROTO_TCP;
 
-    if( getaddrinfo( mConnectionInfoEthernet->GetIP().c_str(), LeddarUtils::LtStringUtils::IntToString( mConnectionInfoEthernet->GetPort() ).c_str(),
-                     &lHints, &lResult ) != 0 )
+    if( getaddrinfo( mConnectionInfoEthernet->GetIP().c_str(), LeddarUtils::LtStringUtils::IntToString( mConnectionInfoEthernet->GetPort() ).c_str(), &lHints, &lResult ) != 0 )
     {
         throw LeddarException::LtComException( "Failed to initialize socket (getaddrinfo): " + LeddarUtils::LtSystemUtils::ErrnoToString( LAST_ERROR ) );
     }
@@ -174,26 +171,26 @@ LeddarConnection::LdEthernet::Connect( void )
         // Set OS buffer size
         int lSocketBufferSize = 100000;
 #ifdef WIN32
-        int lResponse = setsockopt(mSocket, SOL_SOCKET, SO_RCVBUF, (char *)&lSocketBufferSize, sizeof(lSocketBufferSize));
+        int lResponse = setsockopt( mSocket, SOL_SOCKET, SO_RCVBUF, (char *)&lSocketBufferSize, sizeof( lSocketBufferSize ) );
 #else
-        int lResponse = setsockopt(mSocket, SOL_SOCKET, SO_RCVBUF, &lSocketBufferSize, sizeof(lSocketBufferSize));
+        int lResponse = setsockopt( mSocket, SOL_SOCKET, SO_RCVBUF, &lSocketBufferSize, sizeof( lSocketBufferSize ) );
 #endif
-        if (SOCKET_ERROR == lResponse)
+        if( SOCKET_ERROR == lResponse )
         {
-            throw LeddarException::LtComException("Unable to set option on TCP socket" + LeddarUtils::LtSystemUtils::ErrnoToString(LAST_ERROR), LAST_ERROR);
+            throw LeddarException::LtComException( "Unable to set option on TCP socket" + LeddarUtils::LtSystemUtils::ErrnoToString( LAST_ERROR ), LAST_ERROR );
         }
 
         // Set receive timeout.
 #ifdef _WIN32
-        uint32_t lTimeout = mConnectionInfoEthernet->GetTimeout();
-        uint32_t lSockOptResult = setsockopt( mSocket, SOL_SOCKET, SO_RCVTIMEO, ( char * )&lTimeout, sizeof( lTimeout ) );
+        uint32_t lTimeout       = mConnectionInfoEthernet->GetTimeout();
+        uint32_t lSockOptResult = setsockopt( mSocket, SOL_SOCKET, SO_RCVTIMEO, (char *)&lTimeout, sizeof( lTimeout ) );
 
         if( lSockOptResult == SOCKET_ERROR )
 #else
         struct timeval lTimeout;
 
-        lTimeout.tv_sec = mConnectionInfoEthernet->GetTimeout() / 1000;
-        lTimeout.tv_usec = ( mConnectionInfoEthernet->GetTimeout() % 1000 ) * 1000;
+        lTimeout.tv_sec    = mConnectionInfoEthernet->GetTimeout() / 1000;
+        lTimeout.tv_usec   = ( mConnectionInfoEthernet->GetTimeout() % 1000 ) * 1000;
         int lSockOptResult = setsockopt( mSocket, SOL_SOCKET, SO_RCVTIMEO, &lTimeout, sizeof( lTimeout ) );
 
         if( lSockOptResult < 0 )
@@ -204,14 +201,14 @@ LeddarConnection::LdEthernet::Connect( void )
 
         // Set send timeout.
 #ifdef _WIN32
-        lSockOptResult = setsockopt( mSocket, SOL_SOCKET, SO_SNDTIMEO, ( char * )&lTimeout, sizeof( lTimeout ) );
+        lSockOptResult = setsockopt( mSocket, SOL_SOCKET, SO_SNDTIMEO, (char *)&lTimeout, sizeof( lTimeout ) );
 
         if( lSockOptResult == SOCKET_ERROR )
         {
 #else
-        lTimeout.tv_sec = mConnectionInfoEthernet->GetTimeout() / 1000;
+        lTimeout.tv_sec  = mConnectionInfoEthernet->GetTimeout() / 1000;
         lTimeout.tv_usec = ( mConnectionInfoEthernet->GetTimeout() % 1000 ) * 1000;
-        lSockOptResult = setsockopt( mSocket, SOL_SOCKET, SO_SNDTIMEO, &lTimeout, sizeof( lTimeout ) );
+        lSockOptResult   = setsockopt( mSocket, SOL_SOCKET, SO_SNDTIMEO, &lTimeout, sizeof( lTimeout ) );
 
         if( lSockOptResult < 0 )
         {
@@ -219,8 +216,7 @@ LeddarConnection::LdEthernet::Connect( void )
             throw LeddarException::LtComException( "Failed to set socket option SO_SNDTIMEO (setsockopt): " + LeddarUtils::LtSystemUtils::ErrnoToString( LAST_ERROR ) );
         }
 
-
-        int32_t lConnectResult = connect( mSocket, lResult->ai_addr, ( int )lResult->ai_addrlen );
+        int32_t lConnectResult = connect( mSocket, lResult->ai_addr, (int)lResult->ai_addrlen );
 #ifdef _WIN32
 
         if( lConnectResult == SOCKET_ERROR )
@@ -232,7 +228,6 @@ LeddarConnection::LdEthernet::Connect( void )
         }
 
         mIsConnected = true;
-
     }
     catch( ... )
     {
@@ -244,7 +239,7 @@ LeddarConnection::LdEthernet::Connect( void )
             {
                 mSocket = CloseSocket( mSocket );
             }
-            catch( ... ) //Only throw if it cannot close the socket, we want to throw the first exception as it will be more meaningfull
+            catch( ... ) // Only throw if it cannot close the socket, we want to throw the first exception as it will be more meaningfull
             {
             }
         }
@@ -262,8 +257,7 @@ LeddarConnection::LdEthernet::Connect( void )
 ///
 /// \since   October 2016
 // *****************************************************************************
-void
-LeddarConnection::LdEthernet::Disconnect( void )
+void LeddarConnection::LdEthernet::Disconnect( void )
 {
 #ifdef _WIN32
 
@@ -307,13 +301,12 @@ LeddarConnection::LdEthernet::Disconnect( void )
 ///
 /// \since   October 2016
 // *****************************************************************************
-void
-LeddarConnection::LdEthernet::Send( uint8_t *aBuffer, uint32_t aSize )
+void LeddarConnection::LdEthernet::Send( uint8_t *aBuffer, uint32_t aSize )
 {
 
-    uint32_t lBytesToSend = aSize;
-    const char *lCurrentBuffer = ( const char * )aBuffer;
-    int lBytesSent = 0;
+    uint32_t lBytesToSend      = aSize;
+    const char *lCurrentBuffer = (const char *)aBuffer;
+    int lBytesSent             = 0;
 
     while( lBytesToSend > 0 )
     {
@@ -365,19 +358,17 @@ LeddarConnection::LdEthernet::Send( uint8_t *aBuffer, uint32_t aSize )
 ///
 /// \since   October 2016
 // *****************************************************************************
-size_t
-LeddarConnection::LdEthernet::Receive( uint8_t *aBuffer, uint32_t aSize )
+size_t LeddarConnection::LdEthernet::Receive( uint8_t *aBuffer, uint32_t aSize )
 {
     int32_t lBytesReceived = 0;
 
     try
     {
-        lBytesReceived = recv( mSocket, ( char * )aBuffer, aSize, MSG_WAITALL );
+        lBytesReceived = recv( mSocket, (char *)aBuffer, aSize, MSG_WAITALL );
     }
     catch( std::exception &e )
     {
-        throw LeddarException::LtComException( "Error in recv() : (" + LeddarUtils::LtStringUtils::IntToString( LAST_ERROR ) + ")" + std::string(
-                e.what() ) );
+        throw LeddarException::LtComException( "Error in recv() : (" + LeddarUtils::LtStringUtils::IntToString( LAST_ERROR ) + ")" + std::string( e.what() ) );
     }
 
     if( lBytesReceived == 0 )
@@ -404,13 +395,13 @@ LeddarConnection::LdEthernet::Receive( uint8_t *aBuffer, uint32_t aSize )
         }
     }
 
-    if( lBytesReceived < aSize )
+    if( lBytesReceived < static_cast<int64_t>( aSize ) )
     {
-        //Retry once to get all expected data
-        int32_t lBytesReceived2 = recv( mSocket, ( char * )( aBuffer + lBytesReceived ), aSize, MSG_WAITALL );
+        // Retry once to get all expected data
+        int32_t lBytesReceived2 = recv( mSocket, (char *)( aBuffer + lBytesReceived ), aSize, MSG_WAITALL );
         lBytesReceived += lBytesReceived2;
 
-        if( lBytesReceived < aSize )
+        if( lBytesReceived < static_cast<int64_t>( aSize ) )
         {
             throw LeddarException::LtComException( "Incomplete data received.", LeddarException::ERROR_COM_READ, false );
         }
@@ -420,7 +411,7 @@ LeddarConnection::LdEthernet::Receive( uint8_t *aBuffer, uint32_t aSize )
         }
     }
 
-    return ( uint32_t )lBytesReceived;
+    return (uint32_t)lBytesReceived;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -444,7 +435,7 @@ uint64_t LeddarConnection::LdEthernet::CloseSocket( const SOCKET aSocket )
     lRet = closesocket( aSocket );
 #else
     errno = 0;
-    lRet = close( aSocket );
+    lRet  = close( aSocket );
 #endif
 
     if( lRet != 0 )
@@ -472,8 +463,7 @@ uint64_t LeddarConnection::LdEthernet::CloseSocket( const SOCKET aSocket )
 /// \since   March 2017
 // *****************************************************************************
 
-void
-LeddarConnection::LdEthernet::OpenUDPSocket( uint32_t aPort, uint32_t aTimeout )
+void LeddarConnection::LdEthernet::OpenUDPSocket( uint32_t aPort, uint32_t aTimeout, bool aNeedToBind )
 {
     mUDPSocket = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
 #ifdef _WIN32
@@ -490,27 +480,40 @@ LeddarConnection::LdEthernet::OpenUDPSocket( uint32_t aPort, uint32_t aTimeout )
 
     // Set receive timeout and OS buffer size
     int lSocketBufferSize = 100000;
+    auto lAddressGoup     = mConnectionInfoEthernet->GetMulticastIPGroup();
 #ifdef WIN32
-    int lResult = setsockopt( mUDPSocket, SOL_SOCKET, SO_RCVTIMEO, ( char * )&aTimeout, sizeof( aTimeout ) );
+    int lResult = setsockopt( mUDPSocket, SOL_SOCKET, SO_RCVTIMEO, (char *)&aTimeout, sizeof( aTimeout ) );
 
     if( SOCKET_ERROR == lResult )
     {
         throw LeddarException::LtComException( "Unable to set option on UDP socket " + LeddarUtils::LtSystemUtils::ErrnoToString( LAST_ERROR ), LAST_ERROR );
     }
 
-    lResult = setsockopt( mUDPSocket, SOL_SOCKET, SO_RCVBUF, ( char * )&lSocketBufferSize, sizeof( lSocketBufferSize ) );
+    lResult = setsockopt( mUDPSocket, SOL_SOCKET, SO_RCVBUF, (char *)&lSocketBufferSize, sizeof( lSocketBufferSize ) );
 
     if( SOCKET_ERROR == lResult )
     {
         throw LeddarException::LtComException( "Unable to set option on UDP socket " + LeddarUtils::LtSystemUtils::ErrnoToString( LAST_ERROR ), LAST_ERROR );
     }
+    if( !lAddressGoup.empty() )
+    {
 
+        struct ip_mreq mreq;
+        inet_pton( AF_INET, ( PCSTR )( lAddressGoup.c_str() ), &mreq.imr_multiaddr.s_addr );
+        mreq.imr_interface.s_addr = htonl( INADDR_ANY );
+        lResult                   = setsockopt( mUDPSocket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&mreq, sizeof( mreq ) );
+
+        if( SOCKET_ERROR == lResult )
+        {
+            throw LeddarException::LtComException( "Unable to set option on UDP socket " + LeddarUtils::LtSystemUtils::ErrnoToString( LAST_ERROR ), LAST_ERROR );
+        }
+    }
 #else
     struct timeval lTimeout;
 
-    lTimeout.tv_sec = aTimeout / 1000;
+    lTimeout.tv_sec  = aTimeout / 1000;
     lTimeout.tv_usec = ( aTimeout % 1000 ) * 1000;
-    int lResult = setsockopt( mUDPSocket, SOL_SOCKET, SO_RCVTIMEO, &lTimeout, sizeof( lTimeout ) );
+    int lResult      = setsockopt( mUDPSocket, SOL_SOCKET, SO_RCVTIMEO, &lTimeout, sizeof( lTimeout ) );
 
     if( SOCKET_ERROR == lResult )
     {
@@ -523,13 +526,24 @@ LeddarConnection::LdEthernet::OpenUDPSocket( uint32_t aPort, uint32_t aTimeout )
     {
         throw LeddarException::LtComException( "Unable to set option on UDP socket" + LeddarUtils::LtSystemUtils::ErrnoToString( LAST_ERROR ), LAST_ERROR );
     }
+    if( !lAddressGoup.empty() )
+    {
 
+        struct ip_mreq mreq;
+        inet_pton( AF_INET, lAddressGoup.c_str(), &mreq.imr_multiaddr.s_addr );
+        mreq.imr_interface.s_addr = htonl( INADDR_ANY );
+        lResult                   = setsockopt( mUDPSocket, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof( mreq ) );
+
+        if( SOCKET_ERROR == lResult )
+        {
+            throw LeddarException::LtComException( "Unable to set option on UDP socket " + LeddarUtils::LtSystemUtils::ErrnoToString( LAST_ERROR ), LAST_ERROR );
+        }
+    }
 #endif
-
-    if( aPort != 0 )
+    if( aNeedToBind )
     {
         struct sockaddr_in addr = {};
-        addr.sin_family = AF_INET;
+        addr.sin_family         = AF_INET;
 
 #ifdef _WIN32
         addr.sin_addr.s_addr = htonl( INADDR_ANY );
@@ -539,7 +553,7 @@ LeddarConnection::LdEthernet::OpenUDPSocket( uint32_t aPort, uint32_t aTimeout )
         addr.sin_port = htons( aPort );
         memset( addr.sin_zero, 0, sizeof( addr.sin_zero ) );
 
-        if( bind( mUDPSocket, ( const sockaddr * )&addr, sizeof( addr ) ) < 0 )
+        if( bind( mUDPSocket, (const sockaddr *)&addr, sizeof( addr ) ) < 0 )
         {
             throw LeddarException::LtComException( "Unable to set bind UDP socket(" + LeddarUtils::LtStringUtils::IntToString( LAST_ERROR ) + ")", LAST_ERROR );
         }
@@ -556,10 +570,96 @@ LeddarConnection::LdEthernet::OpenUDPSocket( uint32_t aPort, uint32_t aTimeout )
 /// \since   August 2017
 // *****************************************************************************
 
-void
-LeddarConnection::LdEthernet::CloseUDPSocket( void )
+void LeddarConnection::LdEthernet::CloseUDPSocket( void ) { mUDPSocket = CloseSocket( mUDPSocket ); }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn	uint32_t LeddarConnection::LdEthernet::GetUDPPort()
+///
+/// \brief	Gets UDP port
+///
+/// \author	Alain Ferron
+/// \date	January 2021
+///
+/// \exception	LeddarException::LtComException	Thrown when a Lt Com error condition occurs.
+///
+/// \returns	The UDP port.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+uint32_t LeddarConnection::LdEthernet::GetUDPPort()
 {
-    mUDPSocket = CloseSocket( mUDPSocket );
+    uint32_t lPort = 0;
+    struct sockaddr_in sin;
+#ifdef _WIN32
+    int addrlen = sizeof( sin );
+#else
+    socklen_t addrlen = sizeof( sin );
+#endif
+
+    if( getsockname( mUDPSocket, (struct sockaddr *)&sin, &addrlen ) == 0 )
+    {
+        lPort = ntohs( sin.sin_port );
+    }
+
+    else
+    {
+        throw LeddarException::LtComException( "Unable to get socket name(" + LeddarUtils::LtStringUtils::IntToString( LAST_ERROR ) + ")", LAST_ERROR );
+    }
+    return lPort;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn int LeddarConnection::LdEthernet::SelectUDP( uint32_t aTimeoutMS )
+///
+/// \brief  Check if there is data available on UDP port (call to select function)
+///
+/// \param  aTimeoutMS  The timeout in microseconds.
+///
+/// \returns    0 on timeout, 1 if data available
+///
+/// \author David Lévy
+/// \date   March 2021
+////////////////////////////////////////////////////////////////////////////////////////////////////
+int LeddarConnection::LdEthernet::SelectUDP( uint32_t aTimeoutus )
+{
+    fd_set rdFs;
+    struct timeval lTimeout = { aTimeoutus / 1000000, ( aTimeoutus % 1000000 ) };
+
+    FD_ZERO( &rdFs );
+    FD_SET( mUDPSocket, &rdFs );
+
+    int lReturn = select( mUDPSocket + 1, &rdFs, nullptr, nullptr, &lTimeout );
+
+    if(lReturn == SOCKET_ERROR)
+    {
+        throw LeddarException::LtComException( "Error checking for data availability:" + LeddarUtils::LtSystemUtils::ErrnoToString( LAST_ERROR ), LAST_ERROR );
+    }
+
+    return lReturn;
+}
+
+uint32_t LeddarConnection::LdEthernet::GetTCPRxIpAddress()
+{
+    uint32_t lIp = 0;
+    struct sockaddr_in sin;
+#ifdef _WIN32
+    int addrlen = sizeof( sin );
+#else
+    socklen_t addrlen = sizeof( sin );
+#endif
+
+    if( getsockname( mSocket, (struct sockaddr *)&sin, &addrlen ) == 0 )
+    {
+#ifdef _WIN32
+        lIp = ntohl( sin.sin_addr.S_un.S_addr );
+#else
+        lIp = ntohl( sin.sin_addr.s_addr );
+#endif
+    }
+
+    else
+    {
+        throw LeddarException::LtComException( "Unable to get socket name(" + LeddarUtils::LtStringUtils::IntToString( LAST_ERROR ) + ")", LAST_ERROR );
+    }
+    return lIp;
 }
 
 // *****************************************************************************
@@ -575,14 +675,14 @@ LeddarConnection::LdEthernet::CloseUDPSocket( void )
 /// \since   November 2016
 // *****************************************************************************
 
-std::vector<std::pair<SOCKET, unsigned long> > LeddarConnection::LdEthernet::OpenScanRequestSockets()
+std::vector<std::pair<SOCKET, unsigned long>> LeddarConnection::LdEthernet::OpenScanRequestSockets()
 {
-    std::vector<std::pair<SOCKET, unsigned long> > lInterfaces;
+    std::vector<std::pair<SOCKET, unsigned long>> lInterfaces;
     // Initialize Connection
 
-    std::vector< std::pair<unsigned long, unsigned long> > lIPPairs; //first = ip, second = subnetmask
+    std::vector<std::pair<unsigned long, unsigned long>> lIPPairs; // first = ip, second = subnetmask
 
-    //Get the ip / subnet mask for all interfaces
+    // Get the ip / subnet mask for all interfaces
 #ifdef _WIN32
     ULONG lSize = 0;
 
@@ -596,7 +696,6 @@ std::vector<std::pair<SOCKET, unsigned long> > LeddarConnection::LdEthernet::Ope
         for( DWORD i = 0; i < lBufferIP->dwNumEntries; ++i )
         {
             lIPPairs.push_back( { lBufferIP->table[i].dwAddr, lBufferIP->table[i].dwMask } );
-
         }
     }
     else
@@ -613,8 +712,8 @@ std::vector<std::pair<SOCKET, unsigned long> > LeddarConnection::LdEthernet::Ope
         while( p )
         {
             if( p->ifa_addr != nullptr && p->ifa_netmask != nullptr )
-                lIPPairs.push_back( std::make_pair( ( reinterpret_cast<sockaddr_in *>( p->ifa_addr ) )->sin_addr.s_addr,
-                                                    ( reinterpret_cast<sockaddr_in *>( p->ifa_netmask ) )->sin_addr.s_addr ) );
+                lIPPairs.push_back(
+                    std::make_pair( ( reinterpret_cast<sockaddr_in *>( p->ifa_addr ) )->sin_addr.s_addr, ( reinterpret_cast<sockaddr_in *>( p->ifa_netmask ) )->sin_addr.s_addr ) );
 
             p = p->ifa_next;
         }
@@ -646,24 +745,23 @@ std::vector<std::pair<SOCKET, unsigned long> > LeddarConnection::LdEthernet::Ope
         addr.sin_family = AF_INET;
 
 #ifdef _WIN32
-        addr.sin_addr.s_addr = lIPPairs[i].first; //Weird : need to bind to the computer IP on windows
+        addr.sin_addr.s_addr = lIPPairs[i].first; // Weird : need to bind to the computer IP on windows
 
 #else
-        addr.sin_addr.s_addr = INADDR_ANY; //And to the global broadcast address in linux
+        addr.sin_addr.s_addr = INADDR_ANY; // And to the global broadcast address in linux
 
 #endif
         addr.sin_port = htons( HELLO_PORT );
 
-        //allow broadcast
+        // allow broadcast
         int broadcast = 1;
 
-        //SO_REUSEADDR is the default behavior in windows. Usefull in linux to avoid "address already in use error in case of crash
-        if( setsockopt( lSocket, SOL_SOCKET, SO_BROADCAST, ( char * )&broadcast, sizeof( broadcast ) ) == 0 &&
-                setsockopt( lSocket, SOL_SOCKET, SO_REUSEADDR, ( char * )&broadcast, sizeof( broadcast ) ) == 0 &&
-                bind( lSocket, ( const sockaddr * )&addr, sizeof( addr ) ) == 0 )
+        // SO_REUSEADDR is the default behavior in windows. Usefull in linux to avoid "address already in use error in case of crash
+        if( setsockopt( lSocket, SOL_SOCKET, SO_BROADCAST, (char *)&broadcast, sizeof( broadcast ) ) == 0 &&
+            setsockopt( lSocket, SOL_SOCKET, SO_REUSEADDR, (char *)&broadcast, sizeof( broadcast ) ) == 0 && bind( lSocket, (const sockaddr *)&addr, sizeof( addr ) ) == 0 )
         {
             // The multicast scan address is the interface address filtered by the subnet mask
-            unsigned long lScanIP = lIPPairs[i].first  | ~lIPPairs[i].second;
+            unsigned long lScanIP = lIPPairs[i].first | ~lIPPairs[i].second;
             lInterfaces.push_back( std::make_pair( lSocket, lScanIP ) );
         }
         else
@@ -691,35 +789,29 @@ std::vector<std::pair<SOCKET, unsigned long> > LeddarConnection::LdEthernet::Ope
 ///
 /// \since   November 2016
 // *****************************************************************************
-void LeddarConnection::LdEthernet::GetDevicesListSendRequest( const std::vector<std::pair<SOCKET, unsigned long> > &aInterfaces, bool aWideBroadcast )
+void LeddarConnection::LdEthernet::GetDevicesListSendRequest( const std::vector<std::pair<SOCKET, unsigned long>> &aInterfaces, bool aWideBroadcast )
 {
 
-    typedef struct                          // LT_COMM_ID_REQUEST_HEADER
+    typedef struct // LT_COMM_ID_REQUEST_HEADER
     {
-        uint16_t  mSrvProtVersion;    ///< Protocol version.
-        uint16_t  mRequestCode;       ///< Protocol request code.
-        uint32_t  mRequestTotalSize;  ///< Request total size in bytes. The size includes this header size.
+        uint16_t mSrvProtVersion;   ///< Protocol version.
+        uint16_t mRequestCode;      ///< Protocol request code.
+        uint32_t mRequestTotalSize; ///< Request total size in bytes. The size includes this header size.
     } sLtCommRequestHeader;
 
-    sLtCommRequestHeader request =
-    {
-        LT_ETHERNET_IDENTIFY_PROT_VERSION,
-        LT_ETHERNET_IDT_REQUEST_IDENTIFY,
-        sizeof( sLtCommRequestHeader )
-    };
+    sLtCommRequestHeader request = { LT_ETHERNET_IDENTIFY_PROT_VERSION, LT_ETHERNET_IDT_REQUEST_IDENTIFY, sizeof( sLtCommRequestHeader ) };
 
-
-    bool lAllBroadcastFail  = true;
+    bool lAllBroadcastFail = true;
 
     for( size_t i = 0; i < aInterfaces.size(); ++i )
     {
-        sockaddr_in addr = {};
+        sockaddr_in addr     = {};
         addr.sin_family      = AF_INET;
         addr.sin_addr.s_addr = aWideBroadcast ? 0xFFFFFFFF : aInterfaces[i].second;
         addr.sin_port        = htons( HELLO_PORT );
 
-        //Broadcast request
-        if( sendto( aInterfaces[i].first, ( const char * )&request, sizeof( request ), 0, ( struct sockaddr * ) &addr, sizeof( addr ) ) >= 0 )
+        // Broadcast request
+        if( sendto( aInterfaces[i].first, (const char *)&request, sizeof( request ), 0, (struct sockaddr *)&addr, sizeof( addr ) ) >= 0 )
         {
             lAllBroadcastFail = false;
         }
@@ -742,22 +834,21 @@ void LeddarConnection::LdEthernet::GetDevicesListSendRequest( const std::vector<
 ///
 /// \since   November 2016
 // *****************************************************************************
-std::vector<LeddarConnection::LdConnectionInfo *> LeddarConnection::LdEthernet::GetDevicesListReadAnswer(
-    const std::vector<std::pair<SOCKET, unsigned long> > &aInterfaces )
+std::vector<LeddarConnection::LdConnectionInfo *> LeddarConnection::LdEthernet::GetDevicesListReadAnswer( const std::vector<std::pair<SOCKET, unsigned long>> &aInterfaces )
 {
     std::vector<LeddarConnection::LdConnectionInfo *> lResultList;
 
-    //Compute answer(s)
+    // Compute answer(s)
     sockaddr_in addrFrom;
     fd_set rdFs;
-    struct timeval lTimeout = {0, 001000};
+    struct timeval lTimeout = { 0, 001000 };
     int lSelRet;
 #ifdef _WIN32
     int addrFromSize;
 #else
     unsigned int addrFromSize;
 #endif
-    int lResult, lMaxfd = 0; //lMaxfd value is ignored in windows
+    int lResult, lMaxfd = 0; // lMaxfd value is ignored in windows
     char bufferIn[1024];
 
     FD_ZERO( &rdFs );
@@ -781,15 +872,14 @@ std::vector<LeddarConnection::LdConnectionInfo *> LeddarConnection::LdEthernet::
                 if( FD_ISSET( aInterfaces[i].first, &rdFs ) )
                 {
                     addrFromSize = sizeof( addrFrom );
-                    lResult = recvfrom( aInterfaces[i].first, bufferIn, sizeof( bufferIn ), 0, ( struct sockaddr * ) &addrFrom, &addrFromSize );
+                    lResult      = recvfrom( aInterfaces[i].first, bufferIn, sizeof( bufferIn ), 0, (struct sockaddr *)&addrFrom, &addrFromSize );
 
                     if( lResult >= 0 && static_cast<unsigned int>( lResult ) > sizeof( LtComLeddarTechPublic::sLtCommAnswerHeader ) )
                     {
-                        LtComLeddarTechPublic::sLtCommAnswerHeader const *pPtr = ( LtComLeddarTechPublic::sLtCommAnswerHeader * )bufferIn;
+                        LtComLeddarTechPublic::sLtCommAnswerHeader const *pPtr = (LtComLeddarTechPublic::sLtCommAnswerHeader *)bufferIn;
 
-                        if( ( pPtr->mSrvProtVersion == LT_ETHERNET_IDENTIFY_PROT_VERSION ) &&
-                                ( pPtr->mAnswerCode == LT_ETHERNET_ANSWER_OK ) &&
-                                ( pPtr->mRequestCode == LT_ETHERNET_IDT_REQUEST_IDENTIFY ) )
+                        if( ( pPtr->mSrvProtVersion == LT_ETHERNET_IDENTIFY_PROT_VERSION ) && ( pPtr->mAnswerCode == LT_ETHERNET_ANSWER_OK ) &&
+                            ( pPtr->mRequestCode == LT_ETHERNET_IDT_REQUEST_IDENTIFY ) )
                         {
                             LeddarConnection::LdConnectionInfoEthernet *lConnecInfo = nullptr;
                             LeddarConnection::LdConnectionInfo::eConnectionType lConnectionType;
@@ -798,9 +888,11 @@ std::vector<LeddarConnection::LdConnectionInfo *> LeddarConnection::LdEthernet::
                             LeddarConnection::LdConnectionInfoEthernet::eStatus lUsed = LeddarConnection::LdConnectionInfoEthernet::S_UNDEF;
 
                             if( pPtr->mAnswerSize == sizeof( LtComEthernetPublic::sLtIdtAnswerIdentifyLCA2Discrete ) &&
-                                    reinterpret_cast<LtComEthernetPublic::sLtIdtAnswerIdentifyLCA2Discrete const *>( bufferIn )->mDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_LCA2_DISCRETE )
+                                reinterpret_cast<LtComEthernetPublic::sLtIdtAnswerIdentifyLCA2Discrete const *>( bufferIn )->mDeviceType ==
+                                    LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_LCA2_DISCRETE )
                             {
-                                LtComEthernetPublic::sLtIdtAnswerIdentifyLCA2Discrete *lHeader = reinterpret_cast<LtComEthernetPublic::sLtIdtAnswerIdentifyLCA2Discrete *>( bufferIn );
+                                LtComEthernetPublic::sLtIdtAnswerIdentifyLCA2Discrete *lHeader =
+                                    reinterpret_cast<LtComEthernetPublic::sLtIdtAnswerIdentifyLCA2Discrete *>( bufferIn );
 
                                 lConnectionType = LeddarConnection::LdConnectionInfo::CT_ETHERNET_UNIVERSAL;
 
@@ -808,7 +900,8 @@ std::vector<LeddarConnection::LdConnectionInfo *> LeddarConnection::LdEthernet::
                                 {
                                     lUsed = LeddarConnection::LdConnectionInfoEthernet::S_ERROR;
                                 }
-                                else if( ( lHeader->mSensorState & ( LtComEthernetPublic::LT_COMM_IDT_SERVER_STATE_RUNNING | LtComEthernetPublic::LT_COMM_IDT_SERVER_STATE_CONNECTED ) ) ==
+                                else if( ( lHeader->mSensorState &
+                                           ( LtComEthernetPublic::LT_COMM_IDT_SERVER_STATE_RUNNING | LtComEthernetPublic::LT_COMM_IDT_SERVER_STATE_CONNECTED ) ) ==
                                          ( LtComEthernetPublic::LT_COMM_IDT_SERVER_STATE_RUNNING | LtComEthernetPublic::LT_COMM_IDT_SERVER_STATE_CONNECTED ) )
                                 {
                                     lUsed = LeddarConnection::LdConnectionInfoEthernet::S_CONNECTED;
@@ -818,23 +911,30 @@ std::vector<LeddarConnection::LdConnectionInfo *> LeddarConnection::LdEthernet::
                                     lUsed = LeddarConnection::LdConnectionInfoEthernet::S_NOT_CONNECTED;
                                 }
 
-                                lConnecInfo  = new LeddarConnection::LdConnectionInfoEthernet(
-                                    lIp, lHeader->mDataPort, "", lConnectionType, LeddarConnection::LdConnectionInfoEthernet::PT_TCP, lUsed, 2000, std::string( reinterpret_cast<char *>( lHeader->mDeviceName ) ) );
+                                lConnecInfo = new LeddarConnection::LdConnectionInfoEthernet( lIp, lHeader->mDataPort, "", lConnectionType,
+                                                                                              LeddarConnection::LdConnectionInfoEthernet::PT_TCP, lUsed, 2000,
+                                                                                              std::string( reinterpret_cast<char *>( lHeader->mDeviceName ) ) );
                                 lConnecInfo->SetDeviceType( lHeader->mDeviceType );
                             }
                             else if( pPtr->mAnswerSize == sizeof( LtComEthernetPublic::sLtIdtAnswerIdentifyLCAuto ) &&
-                                     ( reinterpret_cast<LtComEthernetPublic::sLtIdtAnswerIdentifyLCAuto const *>( bufferIn )->mDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_LCA2_REFDESIGN ||
-                                       reinterpret_cast<LtComEthernetPublic::sLtIdtAnswerIdentifyLCAuto const *>( bufferIn )->mDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_PIXELL ||
-                                       reinterpret_cast<LtComEthernetPublic::sLtIdtAnswerIdentifyLCAuto const *>( bufferIn )->mDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_LCA3_DISCRETE ) )
+                                     ( reinterpret_cast<LtComEthernetPublic::sLtIdtAnswerIdentifyLCAuto const *>( bufferIn )->mDeviceType ==
+                                           LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_LCA2_REFDESIGN ||
+                                       reinterpret_cast<LtComEthernetPublic::sLtIdtAnswerIdentifyLCAuto const *>( bufferIn )->mDeviceType ==
+                                           LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_PIXELL ||
+                                       reinterpret_cast<LtComEthernetPublic::sLtIdtAnswerIdentifyLCAuto const *>( bufferIn )->mDeviceType ==
+                                           LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_CYCLOP ||
+                                       reinterpret_cast<LtComEthernetPublic::sLtIdtAnswerIdentifyLCAuto const *>( bufferIn )->mDeviceType ==
+                                           LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_LCA3_DISCRETE ) )
                             {
                                 LtComEthernetPublic::sLtIdtAnswerIdentifyLCAuto *lHeader = reinterpret_cast<LtComEthernetPublic::sLtIdtAnswerIdentifyLCAuto *>( bufferIn );
-                                lConnectionType = LeddarConnection::LdConnectionInfo::CT_ETHERNET_LEDDARTECH;
+                                lConnectionType                                          = LeddarConnection::LdConnectionInfo::CT_ETHERNET_LEDDARTECH;
 
                                 if( lHeader->mSensorState & LtComEthernetPublic::LT_COMM_IDT_SERVER_STATE_ERROR )
                                 {
                                     lUsed = LeddarConnection::LdConnectionInfoEthernet::S_ERROR;
                                 }
-                                else if( ( lHeader->mSensorState & ( LtComEthernetPublic::LT_COMM_IDT_SERVER_STATE_RUNNING | LtComEthernetPublic::LT_COMM_IDT_SERVER_STATE_CONNECTED ) ) ==
+                                else if( ( lHeader->mSensorState &
+                                           ( LtComEthernetPublic::LT_COMM_IDT_SERVER_STATE_RUNNING | LtComEthernetPublic::LT_COMM_IDT_SERVER_STATE_CONNECTED ) ) ==
                                          ( LtComEthernetPublic::LT_COMM_IDT_SERVER_STATE_RUNNING | LtComEthernetPublic::LT_COMM_IDT_SERVER_STATE_CONNECTED ) )
                                 {
                                     lUsed = LeddarConnection::LdConnectionInfoEthernet::S_CONNECTED;
@@ -844,19 +944,25 @@ std::vector<LeddarConnection::LdConnectionInfo *> LeddarConnection::LdEthernet::
                                     lUsed = LeddarConnection::LdConnectionInfoEthernet::S_NOT_CONNECTED;
                                 }
 
-                                lConnecInfo = new LeddarConnection::LdConnectionInfoEthernet(
-                                    lIp, lHeader->mDataPort, "", lConnectionType, LeddarConnection::LdConnectionInfoEthernet::PT_TCP, lUsed, 2000, std::string( reinterpret_cast<char *>( lHeader->mDeviceName ) ) );
+                                lConnecInfo = new LeddarConnection::LdConnectionInfoEthernet( lIp, lHeader->mDataPort, "", lConnectionType,
+                                                                                              LeddarConnection::LdConnectionInfoEthernet::PT_TCP, lUsed, 2000,
+                                                                                              std::string( reinterpret_cast<char *>( lHeader->mDeviceName ) ) );
                                 lConnecInfo->SetDeviceType( lHeader->mDeviceType );
                             }
                             else if( pPtr->mAnswerSize == sizeof( LtComEthernetPublic::sLtIdtAnswerIdentifyDtec ) &&
-                                     ( reinterpret_cast< LtComEthernetPublic::sLtIdtAnswerIdentifyDtec const * >( bufferIn )->mDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_DTEC ||
-                                       reinterpret_cast< LtComEthernetPublic::sLtIdtAnswerIdentifyDtec const * >( bufferIn )->mDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_SIDETEC_M ||
-                                       reinterpret_cast< LtComEthernetPublic::sLtIdtAnswerIdentifyDtec const * >( bufferIn )->mDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_TRACKER ||
-                                       reinterpret_cast< LtComEthernetPublic::sLtIdtAnswerIdentifyDtec const * >( bufferIn )->mDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_VTEC ||
-                                       reinterpret_cast< LtComEthernetPublic::sLtIdtAnswerIdentifyDtec const * >( bufferIn )->mDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_TRACKER_TRANS ) )
+                                     ( reinterpret_cast<LtComEthernetPublic::sLtIdtAnswerIdentifyDtec const *>( bufferIn )->mDeviceType ==
+                                           LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_DTEC ||
+                                       reinterpret_cast<LtComEthernetPublic::sLtIdtAnswerIdentifyDtec const *>( bufferIn )->mDeviceType ==
+                                           LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_SIDETEC_M ||
+                                       reinterpret_cast<LtComEthernetPublic::sLtIdtAnswerIdentifyDtec const *>( bufferIn )->mDeviceType ==
+                                           LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_TRACKER ||
+                                       reinterpret_cast<LtComEthernetPublic::sLtIdtAnswerIdentifyDtec const *>( bufferIn )->mDeviceType ==
+                                           LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_VTEC ||
+                                       reinterpret_cast<LtComEthernetPublic::sLtIdtAnswerIdentifyDtec const *>( bufferIn )->mDeviceType ==
+                                           LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_TRACKER_TRANS ) )
                             {
-                                LtComEthernetPublic::sLtIdtAnswerIdentifyDtec *lHeader = reinterpret_cast< LtComEthernetPublic::sLtIdtAnswerIdentifyDtec * >( bufferIn );
-                                lConnectionType = LeddarConnection::LdConnectionInfo::CT_ETHERNET_LEDDARTECH;
+                                LtComEthernetPublic::sLtIdtAnswerIdentifyDtec *lHeader = reinterpret_cast<LtComEthernetPublic::sLtIdtAnswerIdentifyDtec *>( bufferIn );
+                                lConnectionType                                        = LeddarConnection::LdConnectionInfo::CT_ETHERNET_LEDDARTECH;
 
                                 if( lHeader->mServerState & LtComEthernetPublic::LT_COMM_IDT_SERVER_STATE_CONNECTED )
                                 {
@@ -872,11 +978,11 @@ std::vector<LeddarConnection::LdConnectionInfo *> LeddarConnection::LdEthernet::
                                 }
 
 #ifdef _WIN32
-                                std::wstring lWideName = std::wstring( reinterpret_cast<wchar_t *>( lHeader->mDeviceName ) );
+                                std::wstring lWideName  = std::wstring( reinterpret_cast<wchar_t *>( lHeader->mDeviceName ) );
                                 std::string lDeviceName = LeddarUtils::LtStringUtils::Utf8Encode( lWideName );
 #else
 
-                                //Poor conversion, but this encoding is poorly supported in c++99 non windows
+                                // Poor conversion, but this encoding is poorly supported in c++99 non windows
                                 for( uint8_t k = 0; k < LT_COMM_DEVICE_UNICODE_NAME_LENGTH; ++k )
                                 {
                                     lHeader->mDeviceName[k] = lHeader->mDeviceName[2 * k];
@@ -885,16 +991,14 @@ std::vector<LeddarConnection::LdConnectionInfo *> LeddarConnection::LdEthernet::
                                 std::string lDeviceName = std::string( lHeader->mDeviceName );
 
 #endif
-                                lConnecInfo = new LeddarConnection::LdConnectionInfoEthernet(
-                                    lIp, LtComDTec::DTEC_CONFIG_PORT, "", lConnectionType, LeddarConnection::LdConnectionInfoEthernet::PT_TCP, lUsed, 2000, lDeviceName );
+                                lConnecInfo = new LeddarConnection::LdConnectionInfoEthernet( lIp, LtComDTec::DTEC_CONFIG_PORT, "", lConnectionType,
+                                                                                              LeddarConnection::LdConnectionInfoEthernet::PT_TCP, lUsed, 2000, lDeviceName );
                                 lConnecInfo->SetDeviceType( lHeader->mDeviceType );
-
                             }
                             else
                             {
                                 continue;
                             }
-
 
                             // Check if the device is already in the result list to avoid duplicate device in the result list.
                             bool lExistingDevice = false;
@@ -903,9 +1007,8 @@ std::vector<LeddarConnection::LdConnectionInfo *> LeddarConnection::LdEthernet::
                             {
                                 LeddarConnection::LdConnectionInfoEthernet *lExistingConnectionInfo = dynamic_cast<LeddarConnection::LdConnectionInfoEthernet *>( *lIter );
 
-                                if( lConnecInfo != nullptr &&
-                                        lExistingConnectionInfo->GetIP() == lConnecInfo->GetIP() &&
-                                        lExistingConnectionInfo->GetPort() == lConnecInfo->GetPort() )
+                                if( lConnecInfo != nullptr && lExistingConnectionInfo->GetIP() == lConnecInfo->GetIP() &&
+                                    lExistingConnectionInfo->GetPort() == lConnecInfo->GetPort() )
                                 {
                                     lExistingDevice = true;
                                     delete lConnecInfo;
@@ -921,21 +1024,19 @@ std::vector<LeddarConnection::LdConnectionInfo *> LeddarConnection::LdEthernet::
                         else
                         {
                             // Don't throw an error: just ignore this packet and continue to scan other online devices...
-                            //throw std::runtime_error("Unknown identify echo received");
+                            // throw std::runtime_error("Unknown identify echo received");
                         }
-
                     }
                     else if( lResult >= 0 )
                     {
                         // Don't throw an error: just ignore this packet and continue to scan other online devices...
-                        //throw std::runtime_error("Unknown packet received");
+                        // throw std::runtime_error("Unknown packet received");
                     }
                 }
             }
         }
 
-    }
-    while( lSelRet > 0 );
+    } while( lSelRet > 0 );
 
     return lResultList;
 }
@@ -952,10 +1053,9 @@ std::vector<LeddarConnection::LdConnectionInfo *> LeddarConnection::LdEthernet::
 ///
 /// \since   November 2017
 // *****************************************************************************
-std::vector<LeddarConnection::LdConnectionInfo *>
-LeddarConnection::LdEthernet::GetDeviceList( uint32_t aTimeoutms, bool aWideBroadcast )
+std::vector<LeddarConnection::LdConnectionInfo *> LeddarConnection::LdEthernet::GetDeviceList( uint32_t aTimeoutms, bool aWideBroadcast )
 {
-    std::vector< std::pair<SOCKET, unsigned long> > lInterfaces;
+    std::vector<std::pair<SOCKET, unsigned long>> lInterfaces;
     lInterfaces = LeddarConnection::LdEthernet::OpenScanRequestSockets();
 
     LeddarConnection::LdEthernet::GetDevicesListSendRequest( lInterfaces, aWideBroadcast );
@@ -994,25 +1094,23 @@ LeddarConnection::LdEthernet::GetDeviceList( uint32_t aTimeoutms, bool aWideBroa
 /// \since   March 2017
 // *****************************************************************************
 
-void
-LeddarConnection::LdEthernet::SendTo( const std::string &aIpAddress, uint16_t aPort, const uint8_t *aData, uint32_t aSize )
+void LeddarConnection::LdEthernet::SendTo( const std::string &aIpAddress, uint16_t aPort, const uint8_t *aData, uint32_t aSize )
 {
     sockaddr_in lAddress;
 
     lAddress.sin_family = AF_INET;
-    lAddress.sin_port = htons( aPort );
+    lAddress.sin_port   = htons( aPort );
 #ifdef WIN32
     lAddress.sin_addr.S_un.S_addr = LeddarUtils::LtStringUtils::StringToIp4Addr( aIpAddress );
 #else
     lAddress.sin_addr.s_addr = LeddarUtils::LtStringUtils::StringToIp4Addr( aIpAddress );
 #endif
 
-    const int lResult = sendto( mUDPSocket, ( const char * )aData, aSize, 0, ( const sockaddr * )&lAddress, sizeof( lAddress ) );
+    const int lResult = sendto( mUDPSocket, (const char *)aData, aSize, 0, (const sockaddr *)&lAddress, sizeof( lAddress ) );
 
     if( lResult == SOCKET_ERROR )
     {
-        throw LeddarException::LtComException( "Error to send UDP data on address: " + aIpAddress  + " on port: " + LeddarUtils::LtStringUtils::IntToString(
-                aPort ) );
+        throw LeddarException::LtComException( "Error to send UDP data on address: " + aIpAddress + " on port: " + LeddarUtils::LtStringUtils::IntToString( aPort ) );
     }
 }
 
@@ -1034,14 +1132,13 @@ LeddarConnection::LdEthernet::SendTo( const std::string &aIpAddress, uint16_t aP
 ///
 /// \since   March 2017
 // *****************************************************************************
-uint32_t
-LeddarConnection::LdEthernet::ReceiveFrom( std::string &aIpAddress, uint16_t &aPort, uint8_t *aData, uint32_t aSize )
+uint32_t LeddarConnection::LdEthernet::ReceiveFrom( std::string &aIpAddress, uint16_t &aPort, uint8_t *aData, uint32_t aSize )
 {
     sockaddr_in lAddress;
     socklen_t lAddressSize = sizeof( lAddress );
-    int lErr = 0;
+    int lErr               = 0;
 
-    const int32_t lResult = recvfrom( mUDPSocket, ( char * )aData, aSize, 0, ( sockaddr * )&lAddress, &lAddressSize );
+    const int32_t lResult = recvfrom( mUDPSocket, (char *)aData, aSize, 0, (sockaddr *)&lAddress, &lAddressSize );
 
     if( lResult < 0 )
         lErr = LAST_ERROR;
@@ -1049,21 +1146,19 @@ LeddarConnection::LdEthernet::ReceiveFrom( std::string &aIpAddress, uint16_t &aP
 #ifdef WIN32
     aIpAddress = LeddarUtils::LtStringUtils::Ip4AddrToString( lAddress.sin_addr.S_un.S_addr );
 #else
-    aIpAddress = LeddarUtils::LtStringUtils::Ip4AddrToString( lAddress.sin_addr.s_addr );
+    aIpAddress               = LeddarUtils::LtStringUtils::Ip4AddrToString( lAddress.sin_addr.s_addr );
 #endif
     aPort = ntohs( lAddress.sin_port );
 
     if( lResult == SOCKET_ERROR )
     {
-        throw LeddarException::LtComException( "Error to receive UDP data on address: " + aIpAddress + " on port: "
-                                               + LeddarUtils::LtStringUtils::IntToString( aPort ) + " ("
-                                               + LeddarUtils::LtSystemUtils::ErrnoToString( lErr ) + ")" );
+        throw LeddarException::LtComException( "Error to receive UDP data on address: " + aIpAddress + " on port: " + LeddarUtils::LtStringUtils::IntToString( aPort ) + " (" +
+                                               LeddarUtils::LtSystemUtils::ErrnoToString( lErr ) + ")" ,lErr);
     }
     else if( lResult == 0 )
     {
         throw LeddarException::LtComException( "Error in Receive ( connection close ).", true );
     }
-
 
     return static_cast<uint32_t>( lResult );
 }
@@ -1079,20 +1174,19 @@ LeddarConnection::LdEthernet::ReceiveFrom( std::string &aIpAddress, uint16_t &aP
 ///
 /// \since   December 2017
 // *****************************************************************************
-void
-LeddarConnection::LdEthernet::FlushBuffer( void )
+void LeddarConnection::LdEthernet::FlushBuffer( void )
 {
-    //Set a temporary low timeout to flush the buffer
+    // Set a temporary low timeout to flush the buffer
 #ifdef _WIN32
-    uint32_t lTimeout = 1;
-    uint32_t lSockOptResult = setsockopt( mSocket, SOL_SOCKET, SO_RCVTIMEO, ( char * )&lTimeout, sizeof( lTimeout ) );
+    uint32_t lTimeout       = 1;
+    uint32_t lSockOptResult = setsockopt( mSocket, SOL_SOCKET, SO_RCVTIMEO, (char *)&lTimeout, sizeof( lTimeout ) );
 
     if( lSockOptResult == SOCKET_ERROR )
 #else
     struct timeval lTimeout;
 
-    lTimeout.tv_sec = 0;
-    lTimeout.tv_usec = 1000;
+    lTimeout.tv_sec    = 0;
+    lTimeout.tv_usec   = 1000;
     int lSockOptResult = setsockopt( mSocket, SOL_SOCKET, SO_RCVTIMEO, &lTimeout, sizeof( lTimeout ) );
 
     if( lSockOptResult < 0 )
@@ -1103,19 +1197,21 @@ LeddarConnection::LdEthernet::FlushBuffer( void )
 
     uint8_t lBuffer[512];
 
-    while( recv( mSocket, ( char * )lBuffer, 512, 0 ) > 0 ) {}
+    while( recv( mSocket, (char *)lBuffer, 512, 0 ) > 0 )
+    {
+    }
 
     // Set back the receive timeout.
 #ifdef _WIN32
-    lTimeout = mConnectionInfoEthernet->GetTimeout();
-    lSockOptResult = setsockopt( mSocket, SOL_SOCKET, SO_RCVTIMEO, ( char * )&lTimeout, sizeof( lTimeout ) );
+    lTimeout       = mConnectionInfoEthernet->GetTimeout();
+    lSockOptResult = setsockopt( mSocket, SOL_SOCKET, SO_RCVTIMEO, (char *)&lTimeout, sizeof( lTimeout ) );
 
     if( lSockOptResult == SOCKET_ERROR )
 #else
     lTimeout.tv_sec = mConnectionInfoEthernet->GetTimeout() / 1000;
 
     lTimeout.tv_usec = ( mConnectionInfoEthernet->GetTimeout() % 1000 ) * 1000;
-    lSockOptResult = setsockopt( mSocket, SOL_SOCKET, SO_RCVTIMEO, &lTimeout, sizeof( lTimeout ) );
+    lSockOptResult   = setsockopt( mSocket, SOL_SOCKET, SO_RCVTIMEO, &lTimeout, sizeof( lTimeout ) );
 
     if( lSockOptResult < 0 )
 #endif

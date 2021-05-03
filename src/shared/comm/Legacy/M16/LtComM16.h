@@ -27,7 +27,7 @@ namespace LtComM16
 
 #define M16_FILTERED_SCALE                  8192
 
-    const int8_t SMOOTHINGLIMITS[2]  = {-16, 16};
+    const int8_t SMOOTHINGLIMITS[2]  = {-17, 16};
     const uint8_t M16_ZONESDET_NB_NODES_MAX = 64; //Maximum number of expression nodes used for zones detector.
 
 
@@ -77,7 +77,7 @@ namespace LtComM16
 
         M16_ID_CFG_ACQ_OPTIONS                          = M16_ID_COMPUTE( 0x00A9 ),   ///< (0x10A9) {LtUInt16} Bits field of acquisition options. See \ref eLtCommPlatformM16AcqOptions.
         M16_ID_CFG_AUTO_ACQ_AVG_FRM                     = M16_ID_COMPUTE( 0x00AA ),   ///< (0x10AA) {LtUInt16} Number of frame to evaluate new automatic acquisition parameters from M16_DEFAULT_AUTO_AVG_FRM_MIN to M16_DEFAULT_AUTO_AVG_FRM_MAX.
-        M16_ID_ACQ_CURRENT_PARAMS                       = M16_ID_COMPUTE( 0x00AB ),   ///< (0x10AB) {LtUInt32} Current acquisition parameters states.
+        M16_ID_ACQ_CURRENT_PARAMS                       = M16_ID_COMPUTE( 0x00AB ),   ///< (0x10AB) {LtUInt32} Current acquisition parameters states. See \ref eLtCommPlateformGalaxyAcqCurrentParams
         M16_ID_MEASUREMENT_RATE                         = M16_ID_COMPUTE( 0x00AC ),   ///< (0x10AC) {LtFixedPoint} Measurement rate in M16_MEASUREMENT_RATE_SCALE.
         M16_ID_MEASUREMENT_RATE_LIST                    = M16_ID_COMPUTE( 0x00AD ),   ///< (0x10AD) {LtFixedPoint}[] List of supported measurement rate in M16_MEASUREMENT_RATE_SCALE.
         M16_ID_BEAM_RANGE                               = M16_ID_COMPUTE( 0x00AE ),   ///< (0x10AE) {LtFixedPoint} Beam range in M16_DISTANCE_SCALE for displaying accommodation.
@@ -116,6 +116,14 @@ namespace LtComM16
         M16_ID_STATIC_THRESHOLD_AMPLITUDES              = M16_ID_COMPUTE( 0x00CD ),   ///< (0x00CD) {LtFixedPoint}[8] Amplitudes for static threshold
     } eLtCommPlatformM16ElementIdCodes;
 
+    typedef enum eLtComPlatformIS16CfgSrvRequestCode
+    {
+        IS16_CFGSRV_REQUEST_TEACH = 0x8000, ///< (0x8000) Config by teach mode: need IS16_ID_LVLS_TEACH_STATE, IS16_ID_LVLS_CONFIG_ZONE and IS16_ID_LVLS_TEACH_FRAME
+        IS16_CFGSRV_REQUEST_QUICK_MODE = 0x8001, ///< (0x8001) Config by quick mode: need IS16_ID_LVLS_QUICK_LIMIT_MODE, IS16_ID_LVLS_CONFIG_ZONE,
+                                                 ///< IS16_ID_LVLS_QUICK_FAR_LIMIT and IS16_ID_LVLS_QUICK_NEAR_LIMIT
+
+    } eLtComPlatformIS16CfgSrvRequestCode;
+
     typedef enum eLtCommPlatformIS16ElementIdCodes
     {
         IS16_ID_CFG_DISCRETE_OUTPUTS_RISING_DEBOUNCE    = IS16_ID_COMPUTE( 0x0000 ),    ///< (0x8000) {uint16_t}[IS16_DISCRETE_OUTPUTS_MAX] Rising debouncing value in number of samples (from deasserted to asserted).
@@ -128,17 +136,17 @@ namespace LtComM16
         IS16_ID_CFG_LVLS_DETECT_ALGO_TYPE               = IS16_ID_COMPUTE( 0x0007 ),    ///< (0x8007) {uint8_t}[IS16_ZONES_MAX] Algorithm detection type per zone. See \ref eLtCommIS16DectectionAlgoType.
         IS16_ID_CFG_LVLS_ZONES_ENABLE                   = IS16_ID_COMPUTE( 0x0008 ),    ///< (0x8008) {uint8_t} Bits field of enabled zone.
 
-        //IS16_ID_LVLS_TEACH_STATE = IS16_ID_COMPUTE(0x0009),   /** (0x8009) {LtUInt8} Teach state: see \ref _eLtCommIS16TeachState. Beware, on LT_COMM_CFGSRV_REQUEST_GET, this element return an array with size of [IS16_ZONES_MAX]. */
-        //IS16_ID_LVLS_TEACH_FRAME = IS16_ID_COMPUTE(0x000A),   /** (0x800A) {LtUInt16} Number of msec frame to teach scene with sensor. */
-        //IS16_ID_LVLS_QUICK_LIMIT_MODE = IS16_ID_COMPUTE(0x000B),   /** (0x800B) {LtUInt8} Limit mode: see \ref _eLtCommIS16QuickLimitMode. */
+        IS16_ID_LVLS_TEACH_STATE = IS16_ID_COMPUTE( 0x0009 ),   ///< (0x8009) {LtUInt8} Teach state: Beware, on LT_COMM_CFGSRV_REQUEST_GET, this element return an array with size of [IS16_ZONES_MAX].
+        IS16_ID_LVLS_TEACH_FRAME = IS16_ID_COMPUTE( 0x000A ), ///< (0x800A) {LtUInt16} Number of frame to teach scene with sensor.
+        //IS16_ID_LVLS_QUICK_LIMIT_MODE = IS16_ID_COMPUTE(0x000B),   /** (0x800B) {LtUInt8} Limit mode: see _eLtCommIS16QuickLimitMode. */
         //IS16_ID_LVLS_QUICK_FAR_LIMIT = IS16_ID_COMPUTE(0x000C),   /** (0x800C) {LtFixedPoint} Far distance limit for quick config. */
         //IS16_ID_LVLS_QUICK_NEAR_LIMIT = IS16_ID_COMPUTE(0x000D),   /** (0x800D) {LtFixedPoint} Near distance limit for quick config. */
-        IS16_ID_CFG_LVLS_LAST_CONFIG_MODE = IS16_ID_COMPUTE( 0x000E ), ///< (0x800E) {uint8_t}[IS16_ZONES_MAX] The last configuration method done: see \ref eLtCommIS16ConfigMode.
-        //IS16_ID_LVLS_CONFIG_ZONE = IS16_ID_COMPUTE(0x000F),   /** (0x800F) {LtUInt8} The zone to configure in quick or teach mode. */
+        IS16_ID_CFG_LVLS_LAST_CONFIG_MODE  = IS16_ID_COMPUTE( 0x000E ), ///< (0x800E) {uint8_t}[IS16_ZONES_MAX] The last configuration method done: see \ref eLtCommIS16ConfigMode.
+        IS16_ID_LVLS_CONFIG_ZONE           = IS16_ID_COMPUTE( 0x000F ), ///< (0x800F) {LtUInt8} The zone to configure in quick or teach mode.
         IS16_ID_CFG_LVLS_SECURITY_DISTANCE = IS16_ID_COMPUTE( 0x0010 ), ///< (0x8010) {LtFixedPoint} Security distance to add or remove from teach limit.
-        IS16_ID_CFG_LCD_CONTRAST = IS16_ID_COMPUTE( 0x0011 ), ///< (0x8011) {uint8_t} LCD contrast percent.
+        IS16_ID_CFG_LCD_CONTRAST           = IS16_ID_COMPUTE( 0x0011 ), ///< (0x8011) {uint8_t} LCD contrast percent.
         IS16_ID_CFG_LCD_BACKLIGHT_BRIGHTNESS = IS16_ID_COMPUTE( 0x0012 ), ///< (0x8012) {uint8_t} LCD backlight brightness percent.
-        IS16_ID_CFG_CONTROL_PANEL_ACCESS = IS16_ID_COMPUTE( 0x0013 ), ///< (0x8013) {uint8_t} Control panel access. Locked on 1
+        IS16_ID_CFG_CONTROL_PANEL_ACCESS     = IS16_ID_COMPUTE( 0x0013 ), ///< (0x8013) {uint8_t} Control panel access. Locked on 1
 
     } eLtCommPlatformIS16ElementIdCodes;
 
@@ -155,7 +163,8 @@ namespace LtComM16
         M16_CFGSRV_REQUEST_LED_POWER_TO_PARAMS = M16_CFG_REQUEST_COMPUTE( 0x0002 ),                 ///< (0x1002) Convert led power to led intensity parameters.
         M16_CFGSRV_REQUEST_PARAMS_TO_LED_POWER = M16_CFG_REQUEST_COMPUTE( 0x0003 ),                 ///< (0x1003) Convert led intensity parameters to led power.
         M16_CFGSRV_REQUEST_PARAMS_TO_THRES_TABLE_OFFSET_MIN = M16_CFG_REQUEST_COMPUTE( 0x0004 ),    ///< (0x1004) Convert accumulation and oversampling parameters to the minimum permitted of table offset threshold.
-        M16_CFGSRV_REQUEST_BASE_SAMPLE_COUNT_TO_BEAM_RANGE = M16_CFG_REQUEST_COMPUTE( 0x0005 )      ///< (0x1005) Convert base sample count to beam range.
+        M16_CFGSRV_REQUEST_BASE_SAMPLE_COUNT_TO_BEAM_RANGE = M16_CFG_REQUEST_COMPUTE( 0x0005 ),     ///< (0x1005) Convert base sample count to beam range.
+        M16_CFGSRV_REQUEST_DEFAULT_STATIC_THRESHOLD_TABLE = M16_CFG_REQUEST_COMPUTE( 0x0006 ),      ///< (0x1006) Get the default stat. threshold table from the device.
     } eLtCommPlatformM16CfgSrvRequestCode;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -365,4 +374,25 @@ namespace LtComM16
         EVALKIT_OPERATOR_LOGIC_XNOR                 = 0x0005,   /** Inverted exclusive "OR" logic operator !(^). */
         EVALKIT_OPERATOR_LOGIC_NOT                  = 0x0006,   /** Inversion logic operator (!). */
     } eLtCommM16OperatorDefinitions;
+
+    /// \brief Current acquisition parameters transmitted on state messages.
+    typedef enum eLtCommPlateformGalaxyAcqCurrentParams
+    {
+        PGALAXY_ACQ_CURRENT_LED_INTENSITY_MASK  = 0x000000FF, /** Automatic led intensity mask. */
+        PGALAXY_ACQ_CURRENT_TRANS_IMP_GAIN_MASK = 0x00000100, /** Automatic transimpedance gain mask (0=disable, 1=enable). */
+        PGALAXY_ACQ_CURRENT_DEMERGE_OBJECT_MASK = 0x00000200, /** Demerge object status mask (1=all demerge, 0=otherwise). */
+        PGALAXY_ACQ_CURRENT_TEST_MODE_MASK      = 0x00000400, /** Test mode (fail safe) status mask (1=test mode ON, 0=test mode OFF). */
+        PGALAXY_ACQ_CURRENT_FLAGS_MASK = PGALAXY_ACQ_CURRENT_TRANS_IMP_GAIN_MASK | PGALAXY_ACQ_CURRENT_DEMERGE_OBJECT_MASK | PGALAXY_ACQ_CURRENT_TEST_MODE_MASK, /** Flag mask. */
+    } eLtCommPlateformGalaxyAcqCurrentParams;
+
+    /// \brief States of the teach command
+    typedef enum eLtCommIS16TeachState : uint8_t
+    {
+        IS16_TEACH_STATE_START    = 0, ///< Start teaching mode.
+        IS16_TEACH_STATE_CANCEL   = 1, ///< Cancel teaching mode.
+        IS16_TEACH_STATE_TEACHING = 2, ///< Teaching state.
+        IS16_TEACH_STATE_STOPPED  = 3, ///< Teaching stopped or successfully finished.
+        IS16_TEACH_STATE_FAILED   = 4, ///< Last teaching finished with a failure or canceled by user.
+    } eLtCommIS16TeachState;
 }
+

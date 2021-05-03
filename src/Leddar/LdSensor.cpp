@@ -62,6 +62,36 @@ LdSensor::~LdSensor()
 {
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn	void LeddarDevice::LdSensor::StartAcquisition(void)
+///
+/// \brief	Starts an acquisition
+///
+/// \author	Alain Ferron
+/// \date	October 2020
+///
+/// \exception	std::runtime_error	Raised when a runtime error condition occurs.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void LeddarDevice::LdSensor::StartAcquisition(void)
+{
+    throw std::runtime_error("Start acquisition is not supported");
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn	void LeddarDevice::LdSensor::StopAcquisition(void)
+///
+/// \brief	Stops an acquisition
+///
+/// \author	Alain Ferron
+/// \date	October 2020
+///
+/// \exception	std::runtime_error	Raised when a runtime error condition occurs.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void LeddarDevice::LdSensor::StopAcquisition(void)
+{
+    throw std::runtime_error("Stop acquisition is not supported");
+}
+
 // *****************************************************************************
 // Function: LdSensor::GetData
 //
@@ -111,16 +141,17 @@ LdSensor::GetData( void )
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void LeddarDevice::LdSensor::ComputeCartesianCoordinates()
 {
-    //This is a generic conversion
+    // This is a generic conversion
     // A better one can be provided by overridding this function in the corresponding sensor class
 
-    GetResultEchoes()->Lock( LeddarConnection::B_SET );
-    double lHFoV = GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_HFOV )->Value();
-    double lVFoV = GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_VFOV )->Value();
-    int32_t lHChanNumber = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_HSEGMENT )->Value();
+    auto lLock            = GetResultEchoes()->GetUniqueLock( LeddarConnection::B_SET );
+    double lHFoV          = GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_HFOV )->Value();
+    double lVFoV          = GetProperties()->GetFloatProperty( LeddarCore::LdPropertyIds::ID_VFOV )->Value();
+    int32_t lHChanNumber  = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_HSEGMENT )->Value();
+    int32_t lVChanNumber  = GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_VSEGMENT )->Value();
     double lDistanceScale = static_cast<double>( GetProperties()->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_DISTANCE_SCALE )->Value() );
 
-    if( lHFoV <= 0 || lVFoV <= 0 || lHChanNumber == 0 )
+    if( ( lHFoV <= 0 && lHChanNumber > 1 ) || ( lVFoV <= 0 && lVChanNumber > 1 ) || lHChanNumber == 0 )
     {
         throw std::invalid_argument( "Argument out of allowed values" );
     }
@@ -132,19 +163,28 @@ void LeddarDevice::LdSensor::ComputeCartesianCoordinates()
         uint16_t lHIndex = lEchoes[i].mChannelIndex % lHChanNumber;
         uint16_t lVIndex = lEchoes[i].mChannelIndex / lHChanNumber;
 
-        //angle taken from this page : https://upload.wikimedia.org/wikipedia/commons/8/8c/Spherical_Coordinates_%28Latitude%2C_Longitude%29.svg but rotate axis so z is the sensor axis
-        //angle from sensor axis on horizontal plane
-        double theta = LeddarUtils::LtMathUtils::DegreeToRadian( lHIndex * lHFoV / lHChanNumber + lHFoV / ( 2.0 * lHChanNumber ) - lHFoV / 2 );
-        //angle from the point to the horizontal plane
-        double delta = LeddarUtils::LtMathUtils::DegreeToRadian( lVIndex * lVFoV / lHChanNumber + lVFoV / ( 2.0 * lHChanNumber ) - lVFoV / 2 );
+        // angle taken from this page : https://upload.wikimedia.org/wikipedia/commons/8/8c/Spherical_Coordinates_%28Latitude%2C_Longitude%29.svg but rotate axis so z is the sensor
+        // axis angle from sensor axis on horizontal plane
+        double lTheta = 0;
+        if( lHChanNumber > 1 ) // To differenciate between 1D sensor and other sensors (2D and 3D)
+        {
+           lTheta = LeddarUtils::LtMathUtils::DegreeToRadian( (lHChanNumber - 1 - lHIndex) * lHFoV / lHChanNumber + lHFoV / ( 2.0 * lHChanNumber ) - lHFoV / 2 );
+        }
+        // angle from the point to the horizontal plane
+        double lDelta = 0;
+        if( lVChanNumber > 1 ) // To differenciate between 2D sensor and 3D sensors
+        {
+            lDelta = LeddarUtils::LtMathUtils::DegreeToRadian( ( lVChanNumber - 1 - lVIndex ) * lVFoV / lVChanNumber + lVFoV / ( 2.0 * lVChanNumber ) - lVFoV / 2 );
+        }
 
-        LeddarUtils::LtMathUtils::LtPointXYZ lPoint = LeddarUtils::LtMathUtils::SphericalToCartesian( double( lEchoes[i].mDistance ) / lDistanceScale, theta, delta );
-        lEchoes[i].mX = lPoint.x;
-        lEchoes[i].mY = lPoint.y;
-        lEchoes[i].mZ = lPoint.z;
+        if( lEchoes[i].mDistance < 0 ) //Dont convert negative distance
+            continue;
+
+        LeddarUtils::LtMathUtils::LtPointXYZ lPoint = LeddarUtils::LtMathUtils::SphericalToCartesian( double( lEchoes[i].mDistance ) / lDistanceScale, lTheta, lDelta );
+        lEchoes[i].mX                               = lPoint.x;
+        lEchoes[i].mY                               = lPoint.y;
+        lEchoes[i].mZ                               = lPoint.z;
     }
-
-    GetResultEchoes()->UnLock( LeddarConnection::B_SET );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -219,11 +259,11 @@ void LeddarDevice::LdSensor::UpdateFirmware( const std::string &aFileName, Ledda
         throw std::logic_error( "Provided file is not for this device" );
     }
 
-    const std::list< std::pair <uint32_t, std::vector<uint8_t> > > &lFirmwares = lLtbReader.GetFirmwares();
+    const std::list< std::pair <uint32_t, std::vector<uint8_t> > > lFirmwares = lLtbReader.GetFirmwares();
 
     for( std::list<std::pair <uint32_t, std::vector<uint8_t> > >::const_iterator it = lFirmwares.begin(); it != lFirmwares.end(); ++it )
     {
-        UpdateFirmware( LtbTypeToFirmwareType( it->first ), it->second, aProcessPercentage, aCancel );
+        UpdateFirmware( LtbTypeToFirmwareType( it->first ), LdFirmwareData(it->second), aProcessPercentage, aCancel );
     }
 }
 

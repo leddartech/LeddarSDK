@@ -17,11 +17,10 @@
 
 #pragma once
 
-#define MODBUS_MAX_ADDR                 247u
-#define LTMODBUS_TCP_MAX_ADU_LENGTH     260u
-#define LTMODBUS_RTU_MAX_ADU_LENGTH     256u
-#define MODBUS_DATA_OFFSET              2u //First byte is modbus address, second byte is  function code, then actual data
-//For several commands (see official modbus documentation) the next byte is the byte count, then the actual data
-#define MODBUS_CRC_SIZE                 2u
-
+constexpr uint8_t MODBUS_MAX_ADDR              = 247;
+constexpr uint16_t LTMODBUS_TCP_MAX_ADU_LENGTH = 260;
+constexpr uint16_t LTMODBUS_RTU_MAX_ADU_LENGTH = 256;
+constexpr uint8_t MODBUS_CRC_SIZE              = 2;
+constexpr uint8_t MODBUS_DATA_OFFSET           = 2; // First byte is modbus address, second byte is  function code, then actual data
+// For several commands (see official modbus documentation) the next byte is the byte count, then the actual data
 

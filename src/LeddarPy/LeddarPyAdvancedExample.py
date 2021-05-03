@@ -13,15 +13,21 @@ def echoes_callback(echoes):
 
     print("Count:" + str(len(data)))
     print("timestamp:" + str(echoes['timestamp']))
-
-    print("Channel - Timestamp - Distance - Amplitude - Flag")
+    
+    row = ["Indices", "Distance", "Amplitude", "Flag", "X", "Y", "Z", "Timestamp"]
+    print("{: <10} {: <15} {: <15} {: <5} {: <15} {: <15} {: <15} {: <15}".format(*row))
     for i in range(0, len(data), increment):
-        print(str(data[i]["indices"]) + " - " + str(data[i]["distances"]) + " - " + str(data[i]["amplitudes"]) + " - " + str(data[i]["flags"]))
+        row = [str(data[i]["indices"]), str(data[i]["distances"]),  str(data[i]["amplitudes"]), str(data[i]["flags"]), str(data[i]["x"]), str(data[i]["y"]), str(data[i]["z"]), str(data[i]["timestamps"])]
+        print("{: <10} {: <15} {: <15} {: <5} {: <15} {: <15} {: <15} {: <15}".format(*row))
 
 def states_callback(states):
     print("timestamp: " + str(states["timestamp"]))
     print("cpu_load " + str(states["cpu_load"]) + "%")
     print("system_temp " + str(states["system_temp"]) + " C")
+
+#Callback functions for the data thread
+def exception_callback(exception):
+    print(exception)
 
 #Create device
 dev = leddar.Device()
@@ -32,7 +38,6 @@ dev = leddar.Device()
 sensor_list = leddar.get_devices("Ethernet")
 print(leddar.device_types["Ethernet"])
 dev.connect('192.168.0.2', leddar.device_types["Ethernet"], 48630)
-connection = dev.connect('192.168.0.2', leddar.device_types["Ethernet"], 48630)
 
 #M16 Usb
 # sensor_list = leddar.get_devices("Usb")
@@ -48,6 +53,7 @@ connection = dev.connect('192.168.0.2', leddar.device_types["Ethernet"], 48630)
 # dev.connect('1000', leddar.device_types["Vu8Komodo"])
 
 #Get properties value
+#LeddarOne : comment the ID_DEVICE_NAME line (not available for this device)
 print("ID_DEVICE_NAME = " + dev.get_property_value(leddar.property_ids["ID_DEVICE_NAME"]))
 print("ID_SERIAL_NUMBER = " + dev.get_property_value(leddar.property_ids["ID_SERIAL_NUMBER"]))
 
@@ -59,6 +65,7 @@ print(values["data"])
 #Set callback method
 dev.set_callback_state(states_callback)
 dev.set_callback_echo(echoes_callback)
+dev.set_callback_exception(exception_callback)
 dev.set_data_mask(leddar.data_masks["DM_STATES"] | leddar.data_masks["DM_ECHOES"])
 
 #Optionnal : set the delay between two request to the sensor

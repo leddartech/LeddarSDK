@@ -15,13 +15,13 @@
 
 #include "LdBitFieldProperty.h"
 
-#include "LtStringUtils.h"
 #include "LtScope.h"
+#include "LtStringUtils.h"
 
-#include <sstream>
-#include <string>
 #include <cassert>
 #include <limits>
+#include <sstream>
+#include <string>
 
 // *****************************************************************************
 // Function: LdBitFieldProperty::LdBitFieldProperty
@@ -39,13 +39,12 @@
 ///
 /// \since   January 2016
 // *****************************************************************************
-
-LeddarCore::LdBitFieldProperty::LdBitFieldProperty( LdProperty::eCategories aCategory, uint32_t aFeatures, uint32_t aId,
-        uint32_t aDeviceId, uint32_t aUnitSize, const std::string &aDescription ) :
-    LdProperty( LdProperty::TYPE_BITFIELD, aCategory, aFeatures, aId, aDeviceId, aUnitSize, aUnitSize, aDescription ),
-    mDoNotEmitSignal( false ),
-    mExclusivityMask( 0 ),
-    mLimit( 0 )
+LeddarCore::LdBitFieldProperty::LdBitFieldProperty( LdProperty::eCategories aCategory, uint32_t aFeatures, uint32_t aId, uint32_t aDeviceId, uint32_t aUnitSize,
+                                                    const std::string &aDescription )
+    : LdProperty( LdProperty::TYPE_BITFIELD, aCategory, aFeatures, aId, aDeviceId, aUnitSize, aUnitSize, aDescription )
+    , mDoNotEmitSignal( false )
+    , mExclusivityMask( 0 )
+    , mLimit( 0 )
 {
     if( aUnitSize == 1 )
     {
@@ -69,6 +68,24 @@ LeddarCore::LdBitFieldProperty::LdBitFieldProperty( LdProperty::eCategories aCat
     }
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn	LeddarCore::LdBitFieldProperty::LdBitFieldProperty( const LdBitFieldProperty &aProperty )
+///
+/// \brief	Copy constructor
+///
+/// \author	Alain Ferron
+/// \date	December 2020
+///
+/// \param	aProperty	The property.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+LeddarCore::LdBitFieldProperty::LdBitFieldProperty( const LdBitFieldProperty &aProperty )
+    : LdProperty( aProperty )
+{
+    std::lock_guard<std::recursive_mutex> lock( aProperty.mPropertyMutex );
+    mDoNotEmitSignal = aProperty.mDoNotEmitSignal;
+    mExclusivityMask = aProperty.mExclusivityMask;
+    mLimit           = aProperty.mLimit;
+}
 
 // *****************************************************************************
 // Function: LdBitFieldProperty::MaskToBit
@@ -85,8 +102,7 @@ LeddarCore::LdBitFieldProperty::LdBitFieldProperty( LdProperty::eCategories aCat
 /// \since   January 2016
 // *****************************************************************************
 
-uint8_t
-LeddarCore::LdBitFieldProperty::MaskToBit( uint64_t aMask )
+uint8_t LeddarCore::LdBitFieldProperty::MaskToBit( uint64_t aMask )
 {
     if( std::bitset<64>( aMask ).count() > 1 )
     {
@@ -105,7 +121,7 @@ LeddarCore::LdBitFieldProperty::MaskToBit( uint64_t aMask )
 }
 
 // *****************************************************************************
-// Function: LdBitFieldProperty::SetValue
+// Function: LdBitFieldProperty::PerformSetValue
 //
 /// \brief   Change the value at the given index.
 ///
@@ -122,38 +138,37 @@ LeddarCore::LdBitFieldProperty::MaskToBit( uint64_t aMask )
 /// \since   January 2016
 // *****************************************************************************
 
-void
-LeddarCore::LdBitFieldProperty::SetValue( size_t aIndex, uint64_t aValue )
+void LeddarCore::LdBitFieldProperty::PerformSetValue( size_t aIndex, uint64_t aValue )
 {
-    if( !ValidateExclusivity( std::bitset<64>( aValue ) ) )
+    if( !PerformValidateExclusivity( std::bitset<64>( aValue ) ) )
     {
         throw std::logic_error( "Several exclusive bits are set." );
     }
 
     // Initialize the count to 1 on the fist SetValue if not done before.
-    if( Count() == 0 && aIndex == 0 )
+    if( PerformCount() == 0 && aIndex == 0 )
     {
-        SetCount( 1 );
+        PerformSetCount( 1 );
     }
 
-    if( aIndex >= Count() )
+    if( aIndex >= PerformCount() )
     {
-        throw std::out_of_range( "Index not valid, verify property count. Bitfield property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "Index not valid, verify property count. Bitfield property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
-    if( Stride() == 1 )
+    if( PerformStride() == 1 )
     {
         SetValueT<uint8_t>( aIndex, aValue );
     }
-    else if( Stride() == 2 )
+    else if( PerformStride() == 2 )
     {
         SetValueT<uint16_t>( aIndex, aValue );
     }
-    else if( Stride() == 4 )
+    else if( PerformStride() == 4 )
     {
         SetValueT<uint32_t>( aIndex, aValue );
     }
-    else if( Stride() == 8 )
+    else if( PerformStride() == 8 )
     {
         SetValueT<uint64_t>( aIndex, aValue );
     }
@@ -164,7 +179,7 @@ LeddarCore::LdBitFieldProperty::SetValue( size_t aIndex, uint64_t aValue )
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdBitFieldProperty::ForceValue( size_t aIndex, uint64_t aValue )
+/// \fn void LeddarCore::LdBitFieldProperty::PerformForceValue( size_t aIndex, uint64_t aValue )
 ///
 /// \brief  Force value
 ///
@@ -179,12 +194,11 @@ LeddarCore::LdBitFieldProperty::SetValue( size_t aIndex, uint64_t aValue )
 /// \author David Levy
 /// \date   March 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarCore::LdBitFieldProperty::ForceValue( size_t aIndex, uint64_t aValue )
+void LeddarCore::LdBitFieldProperty::PerformForceValue( size_t aIndex, uint64_t aValue )
 {
     LeddarUtils::LtScope<bool> lForceEdit( &mCheckEditable, true );
     mCheckEditable = false;
-    SetValue( aIndex, aValue );
+    PerformSetValue( aIndex, aValue );
 }
 
 /// *****************************************************************************
@@ -204,25 +218,24 @@ LeddarCore::LdBitFieldProperty::ForceValue( size_t aIndex, uint64_t aValue )
 ///
 /// \since   August 2018
 /// *****************************************************************************
-template<typename T>
-void LeddarCore::LdBitFieldProperty::SetValueT( size_t aIndex, uint64_t aValue )
+template <typename T> void LeddarCore::LdBitFieldProperty::SetValueT( size_t aIndex, uint64_t aValue )
 {
     CanEdit();
 
     // Initialize the count to 1 on the fist SetValue if not done before.
-    if( Count() == 0 && aIndex == 0 )
+    if( PerformCount() == 0 && aIndex == 0 )
     {
-        SetCount( 1 );
+        PerformSetCount( 1 );
     }
 
     if( aValue > mLimit )
     {
-        throw std::out_of_range( "Value is bigger than the limit. Bitfield property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "Value is bigger than the limit. Bitfield property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
-    if( sizeof( T ) != Stride() )
+    if( sizeof( T ) != PerformStride() )
     {
-        throw std::logic_error( "Template size does not correspond to stride. Bitfield property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::logic_error( "Template size does not correspond to stride. Bitfield property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
     T *lValues = reinterpret_cast<T *>( Storage() );
@@ -239,15 +252,26 @@ void LeddarCore::LdBitFieldProperty::SetValueT( size_t aIndex, uint64_t aValue )
     }
 }
 
-//Template specialisation so it can be defined in the cpp file
+// Template specialisation so it can be defined in the cpp file
 template void LeddarCore::LdBitFieldProperty::SetValueT<uint8_t>( size_t aIndex, uint64_t aValue );
 template void LeddarCore::LdBitFieldProperty::SetValueT<uint16_t>( size_t aIndex, uint64_t aValue );
 template void LeddarCore::LdBitFieldProperty::SetValueT<uint32_t>( size_t aIndex, uint64_t aValue );
 template void LeddarCore::LdBitFieldProperty::SetValueT<uint64_t>( size_t aIndex, uint64_t aValue );
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn	LdProperty *LeddarCore::LdBitFieldProperty::PerformClone()
+///
+/// \brief	Performs the clone action
+///
+/// \returns	Null if it fails, else a pointer to a LdProperty.
+///
+/// \author	Alain Ferron
+/// \date	March 2021
+////////////////////////////////////////////////////////////////////////////////////////////////////
+LeddarCore::LdProperty *LeddarCore::LdBitFieldProperty::PerformClone() { return new LdBitFieldProperty( *this ); }
 
 // *****************************************************************************
-// Function: LdBitFieldProperty::GetStringValue
+// Function: LdBitFieldProperty::PerformGetStringValue
 //
 /// \brief   Display the value in string format
 ///
@@ -255,15 +279,41 @@ template void LeddarCore::LdBitFieldProperty::SetValueT<uint64_t>( size_t aIndex
 ///
 /// \since   January 2016
 // *****************************************************************************
+std::string LeddarCore::LdBitFieldProperty::PerformGetStringValue( size_t aIndex ) const { return LeddarUtils::LtStringUtils::IntToString( PerformValueT<uint64_t>( aIndex ), 2 ); }
 
-std::string
-LeddarCore::LdBitFieldProperty::GetStringValue( size_t aIndex ) const
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LeddarCore::LdBitFieldProperty::PerformSetAnyValue( size_t aIndex, const boost::any &aNewValue )
+///
+/// \brief  Set the property value
+///
+/// \author David Lévy
+/// \date   February 2021
+///
+/// \exception  std::invalid_argument   Thrown when an invalid argument error condition occurs.
+///
+/// \param  aIndex      Zero-based index of the.
+/// \param  aNewValue   The new value.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void LeddarCore::LdBitFieldProperty::PerformSetAnyValue( size_t aIndex, const boost::any &aNewValue )
 {
-    return LeddarUtils::LtStringUtils::IntToString( ValueT<uint64_t>( aIndex ), 2 );
+    if( aNewValue.type() == typeid( int ) )
+    {
+        PerformSetValue( aIndex, boost::any_cast<int>( aNewValue ) );
+    }
+    else if( aNewValue.type() == typeid( uint32_t ) )
+    {
+        PerformSetValue( aIndex, boost::any_cast<uint32_t>( aNewValue ) );
+    }
+    else if( aNewValue.type() == typeid( uint64_t ) )
+    {
+        PerformSetValue( aIndex, boost::any_cast<uint64_t>( aNewValue ) );
+    }
+    else
+        throw std::invalid_argument( "Invalid value type" );
 }
 
 // *****************************************************************************
-// Function: LdBitFieldProperty::SetStringValue
+// Function: LdBitFieldProperty::PerformSetStringValue
 //
 /// \brief   Property writer for the value as text.
 ///
@@ -279,34 +329,33 @@ LeddarCore::LdBitFieldProperty::GetStringValue( size_t aIndex ) const
 /// \since   January 2016
 // *****************************************************************************
 
-void
-LeddarCore::LdBitFieldProperty::SetStringValue( size_t aIndex, const std::string &aValue )
+void LeddarCore::LdBitFieldProperty::PerformSetStringValue( size_t aIndex, const std::string &aValue )
 {
     CanEdit();
 
     // Initialize the count to 1 on the fist SetValue if not done before.
-    if( Count() == 0 && aIndex == 0 )
+    if( PerformCount() == 0 && aIndex == 0 )
     {
-        SetCount( 1 );
-        SetValue( 0, 0 );
+        PerformSetCount( 1 );
+        PerformSetValue( 0, 0 );
     }
 
-    if( aValue.length() > UnitSize() * 8 )
+    if( aValue.length() > PerformUnitSize() * 8 )
     {
-        throw std::out_of_range( "String too long. Bitfield property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "String too long. Bitfield property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
     // SetBit must not emit a ValueChanged signal
     mDoNotEmitSignal = true;
 
     if( !IsInitialized() )
-        SetValue( 0, 0 );
+        PerformSetValue( 0, 0 );
 
-    uint8_t bitIndex = UnitSize() * 8 - 1;
+    uint8_t bitIndex = PerformUnitSize() * 8 - 1;
 
-    for( size_t i = 0; i < UnitSize() * 8 - aValue.length(); ++i )
+    for( size_t i = 0; i < PerformUnitSize() * 8 - aValue.length(); ++i )
     {
-        ResetBit( aIndex, bitIndex );
+        PerformResetBit( aIndex, bitIndex );
         --bitIndex;
     }
 
@@ -317,18 +366,18 @@ LeddarCore::LdBitFieldProperty::SetStringValue( size_t aIndex, const std::string
         if( lChar != '0' && lChar != '1' && lChar != 'x' )
         {
             mDoNotEmitSignal = false;
-            throw std::invalid_argument( "Invalid argument. The string can only contains 0, 1 and x characters. Bitfield property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(),
-                                         16 ) );
+            throw std::invalid_argument( "Invalid argument. The string can only contains 0, 1 and x characters. Bitfield property id: " +
+                                         LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
         }
 
         if( lChar == '1' )
         {
-            SetBit( aIndex, bitIndex );
+            PerformSetBit( aIndex, bitIndex );
         }
 
         if( lChar == '0' )
         {
-            ResetBit( aIndex, bitIndex );
+            PerformResetBit( aIndex, bitIndex );
         }
 
         --bitIndex;
@@ -336,9 +385,9 @@ LeddarCore::LdBitFieldProperty::SetStringValue( size_t aIndex, const std::string
 
     mDoNotEmitSignal = false;
 
-    uint64_t lNewValue = ValueT<uint64_t>( aIndex );
+    uint64_t lNewValue = PerformValueT<uint64_t>( aIndex );
 
-    if( !IsInitialized() || lNewValue != ValueT<uint64_t>( aIndex ) )
+    if( !IsInitialized() || lNewValue != PerformValueT<uint64_t>( aIndex ) )
     {
         SetInitialized( true );
         EmitSignal( LdObject::VALUE_CHANGED );
@@ -346,7 +395,7 @@ LeddarCore::LdBitFieldProperty::SetStringValue( size_t aIndex, const std::string
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdBitFieldProperty::ForceStringValue( size_t aIndex, const std::string &aValue )
+/// \fn void LeddarCore::LdBitFieldProperty::PerformForceStringValue( size_t aIndex, const std::string &aValue )
 ///
 /// \brief  Force string value
 ///
@@ -359,16 +408,15 @@ LeddarCore::LdBitFieldProperty::SetStringValue( size_t aIndex, const std::string
 /// \author David Levy
 /// \date   March 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarCore::LdBitFieldProperty::ForceStringValue( size_t aIndex, const std::string &aValue )
+void LeddarCore::LdBitFieldProperty::PerformForceStringValue( size_t aIndex, const std::string &aValue )
 {
     LeddarUtils::LtScope<bool> lForceEdit( &mCheckEditable, true );
     mCheckEditable = false;
-    SetStringValue( aIndex, aValue );
+    PerformSetStringValue( aIndex, aValue );
 }
 
 // *****************************************************************************
-// Function: LdBitFieldProperty::Value
+// Function: LdBitFieldProperty::PerformValue
 //
 /// \brief   Return the property value
 ///
@@ -381,14 +429,10 @@ LeddarCore::LdBitFieldProperty::ForceStringValue( size_t aIndex, const std::stri
 ///
 /// \since   January 2016
 // *****************************************************************************
-uint32_t
-LeddarCore::LdBitFieldProperty::Value( size_t aIndex ) const
-{
-    return ValueT<uint32_t>( aIndex );
-}
+uint32_t LeddarCore::LdBitFieldProperty::PerformValue( size_t aIndex ) const { return PerformValueT<uint32_t>( aIndex ); }
 
 /// *****************************************************************************
-/// Function: LdBitFieldProperty::ValidateExclusivity
+/// Function: LdBitFieldProperty::PerformValidateExclusivity
 ///
 /// \brief   True if only one bit is set in the exclusivity mask
 ///
@@ -398,10 +442,10 @@ LeddarCore::LdBitFieldProperty::Value( size_t aIndex ) const
 ///
 /// \since   June 2018
 /// *****************************************************************************
-bool
-LeddarCore::LdBitFieldProperty::ValidateExclusivity( std::bitset<64> aValue )
+bool LeddarCore::LdBitFieldProperty::PerformValidateExclusivity( const std::bitset<64> &aValue ) const
 {
-    if( ( aValue &= mExclusivityMask ).count() > 1 )
+    auto lValue = aValue;
+    if( ( lValue &= mExclusivityMask ).count() > 1 )
     {
         return false;
     }
@@ -412,7 +456,7 @@ LeddarCore::LdBitFieldProperty::ValidateExclusivity( std::bitset<64> aValue )
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdBitFieldProperty::SetLimit( uint64_t aLimit )
+/// \fn void LeddarCore::LdBitFieldProperty::PerformSetLimit( uint64_t aLimit )
 ///
 /// \brief  Sets the maximum value of the property
 ///
@@ -423,28 +467,28 @@ LeddarCore::LdBitFieldProperty::ValidateExclusivity( std::bitset<64> aValue )
 /// \author David Levy
 /// \date   April 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void LeddarCore::LdBitFieldProperty::SetLimit( uint64_t aLimit )
+void LeddarCore::LdBitFieldProperty::PerformSetLimit( uint64_t aLimit )
 {
-    if( Count() > 0 && Value() > aLimit )
+    if( PerformCount() > 0 && PerformValue() > aLimit )
     {
-        throw std::out_of_range( "Current value is bigger than the new limit. Bitfield property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "Current value is bigger than the new limit. Bitfield property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
     uint64_t lMaxValue = 0;
 
-    if( UnitSize() == 1 )
+    if( PerformUnitSize() == 1 )
     {
         lMaxValue = std::numeric_limits<uint8_t>::max();
     }
-    else if( UnitSize() == 2 )
+    else if( PerformUnitSize() == 2 )
     {
         lMaxValue = std::numeric_limits<uint16_t>::max();
     }
-    else if( UnitSize() == 4 )
+    else if( PerformUnitSize() == 4 )
     {
         lMaxValue = std::numeric_limits<uint32_t>::max();
     }
-    else if( UnitSize() == 8 )
+    else if( PerformUnitSize() == 8 )
     {
         lMaxValue = std::numeric_limits<uint64_t>::max();
     }
@@ -455,12 +499,12 @@ void LeddarCore::LdBitFieldProperty::SetLimit( uint64_t aLimit )
     }
     else
     {
-        throw std::out_of_range( "Limit is bigger than maximum possible value. Bitfield property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "Limit is bigger than maximum possible value. Bitfield property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 }
 
 /// *****************************************************************************
-/// Function: LdBitFieldProperty::ValueT
+/// Function: LdBitFieldProperty::PerformValueT
 ///
 /// \brief   Return the property value - Templated on the return type
 ///
@@ -473,49 +517,48 @@ void LeddarCore::LdBitFieldProperty::SetLimit( uint64_t aLimit )
 ///
 /// \since   August 2018
 /// *****************************************************************************
-template<typename T>
-T LeddarCore::LdBitFieldProperty::ValueT( size_t aIndex ) const
+template <typename T> T LeddarCore::LdBitFieldProperty::PerformValueT( size_t aIndex ) const
 {
     VerifyInitialization();
 
-    if( aIndex >= Count() )
+    if( aIndex >= PerformCount() )
     {
-        throw std::out_of_range( "Index not valid, verify property count. Bitfield property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "Index not valid, verify property count. Bitfield property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
     uint64_t lValue = 0;
 
-    if( Stride() == 1 )
+    if( PerformStride() == 1 )
     {
         lValue = reinterpret_cast<const uint8_t *>( CStorage() )[aIndex];
     }
-    else if( Stride() == 2 )
+    else if( PerformStride() == 2 )
     {
         lValue = reinterpret_cast<const uint16_t *>( CStorage() )[aIndex];
     }
-    else if( Stride() == 4 )
+    else if( PerformStride() == 4 )
     {
         lValue = reinterpret_cast<const uint32_t *>( CStorage() )[aIndex];
     }
-    else if( Stride() == 8 )
+    else if( PerformStride() == 8 )
     {
         lValue = reinterpret_cast<const uint64_t *>( CStorage() )[aIndex];
     }
     else
     {
-        throw std::out_of_range( "Invalid stride. Bitfield property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "Invalid stride. Bitfield property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
     if( lValue > std::numeric_limits<T>::max() )
     {
         throw std::out_of_range( "Value is bigger than what the return type can hold. Use ValueT<TYPE> with a TYPE big enough. Bitfield property id: " +
-                                 LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+                                 LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
     return static_cast<T>( lValue );
 }
 
-//Template specialisation so it can be defined in the cpp file
+// Template specialisation so it can be defined in the cpp file
 template uint8_t LeddarCore::LdBitFieldProperty::ValueT( size_t aIndex ) const;
 template uint16_t LeddarCore::LdBitFieldProperty::ValueT( size_t aIndex ) const;
 template uint32_t LeddarCore::LdBitFieldProperty::ValueT( size_t aIndex ) const;

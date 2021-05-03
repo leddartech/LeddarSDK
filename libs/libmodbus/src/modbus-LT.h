@@ -19,6 +19,8 @@ int modbus_receive_raw_confirmation_timeoutEnd( modbus_t *ctx, uint8_t *rsp );
 int modbus_receive_raw_confirmation_sizeEnd( modbus_t *ctx, uint8_t *rsp, int length );
 int modbus_receive_raw_confirmation_0x41_LeddarVu( modbus_t *ctx, uint8_t *rsp );
 int modbus_receive_raw_confirmation_0x41_0x6A_M16( modbus_t *ctx, uint8_t *rsp );
+int modbus_receive_raw_data_timeoutEnd( modbus_t *ctx, uint8_t *rsp );
+int modbus_send_raw_data( modbus_t *ctx, uint8_t *data, int length, int crc);
 
 
 MODBUS_LT_END_DECLS

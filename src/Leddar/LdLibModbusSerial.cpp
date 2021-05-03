@@ -17,16 +17,16 @@
 
 #include "LdConnectionInfoModbus.h"
 #include "LtExceptions.h"
-#include "LtSystemUtils.h"
 #include "LtStringUtils.h"
+#include "LtSystemUtils.h"
 
-
-#include "comm/Modbus/LtComLeddarOneModbus.h"
-#include "comm/Modbus/LtComLeddarM16Modbus.h"
-#include "comm/Modbus/LtComLeddarVu8Modbus.h"
 #include "comm/LtComLeddarTechPublic.h"
+#include "comm/Modbus/LtComLeddarM16Modbus.h"
+#include "comm/Modbus/LtComLeddarOneModbus.h"
+#include "comm/Modbus/LtComLeddarVu8Modbus.h"
 
-extern "C" {
+extern "C"
+{
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
@@ -50,20 +50,19 @@ extern "C" {
 ///
 /// \since   September 2016
 // *****************************************************************************
-LeddarConnection::LdLibModbusSerial::LdLibModbusSerial( const LdConnectionInfoModbus *aConnectionInfo, LdConnection *aExistingConnection ) :
-    LeddarConnection::LdInterfaceModbus( aConnectionInfo ),
-    mHandle( nullptr ),
-    mSharedHandle( false )
+LeddarConnection::LdLibModbusSerial::LdLibModbusSerial( const LdConnectionInfoModbus *aConnectionInfo, LdConnection *aExistingConnection )
+    : LeddarConnection::LdInterfaceModbus( aConnectionInfo )
+    , mHandle( nullptr )
+    , mSharedHandle( false )
 {
-    LeddarConnection::LdLibModbusSerial *lExistingModbusConnection = dynamic_cast< LeddarConnection::LdLibModbusSerial * >( aExistingConnection );
+    LeddarConnection::LdLibModbusSerial *lExistingModbusConnection = dynamic_cast<LeddarConnection::LdLibModbusSerial *>( aExistingConnection );
 
     if( lExistingModbusConnection != nullptr && lExistingModbusConnection->GetHandle() != nullptr )
     {
-        mHandle = lExistingModbusConnection->GetHandle();
+        mHandle       = lExistingModbusConnection->GetHandle();
         mSharedHandle = true;
     }
 }
-
 
 // *****************************************************************************
 // Function: LdLibModbusSerial::~LdLibModbusSerial
@@ -74,10 +73,7 @@ LeddarConnection::LdLibModbusSerial::LdLibModbusSerial( const LdConnectionInfoMo
 ///
 /// \since   September 2016
 // *****************************************************************************
-LeddarConnection::LdLibModbusSerial::~LdLibModbusSerial()
-{
-    LdLibModbusSerial::Disconnect();
-}
+LeddarConnection::LdLibModbusSerial::~LdLibModbusSerial() { LdLibModbusSerial::Disconnect(); }
 
 // *****************************************************************************
 // Function: LdLibModbusSerial::Connect
@@ -90,63 +86,13 @@ LeddarConnection::LdLibModbusSerial::~LdLibModbusSerial()
 ///
 /// \since   September 2016
 // *****************************************************************************
-void
-LeddarConnection::LdLibModbusSerial::Connect( void )
+void LeddarConnection::LdLibModbusSerial::Connect( void )
 {
     Disconnect();
 
-    char lParityChar = ' ';
-
-    switch( mConnectionInfoModbus->GetParity() )
-    {
-        case LdConnectionInfoModbus::MB_PARITY_NONE:
-            lParityChar = 'N';
-            break;
-
-        case LdConnectionInfoModbus::MB_PARITY_EVEN:
-            lParityChar = 'E';
-            break;
-
-        case LdConnectionInfoModbus::MB_PARITY_ODD:
-            lParityChar = 'O';
-            break;
-    }
-
     try
     {
-        mHandle = modbus_new_rtu( mConnectionInfoModbus->GetSerialPort().c_str(), mConnectionInfoModbus->GetBaud(), lParityChar, mConnectionInfoModbus->GetDataBits(),
-                                  mConnectionInfoModbus->GetStopBits() );
-
-        if( mHandle == nullptr )
-        {
-            throw LeddarException::LtConnectionFailed( "Wrong argument on modbus device creation, Serial Port:" + mConnectionInfoModbus->GetSerialPort()
-                    + " Baud: " + LeddarUtils::LtStringUtils::IntToString( mConnectionInfoModbus->GetBaud() )
-                    + " Parity: " + lParityChar
-                    + " Data Bits: " + LeddarUtils::LtStringUtils::IntToString( mConnectionInfoModbus->GetDataBits() )
-                    + " Stop Bits: " + LeddarUtils::LtStringUtils::IntToString( mConnectionInfoModbus->GetStopBits() ), true );
-        }
-
-        // Set slave address
-        if( modbus_set_slave( mHandle, mConnectionInfoModbus->GetModbusAddr() ) != 0 )
-        {
-            modbus_free( mHandle );
-            mHandle = nullptr;
-
-            throw LeddarException::LtConnectionFailed( "Connection failed, libmodbus errno: (" + LeddarUtils::LtStringUtils::IntToString( errno ) + std::string( "),  msg: " ) + std::string(
-                        modbus_strerror(
-                            errno ) ), true );
-        }
-
-        // Connect to device
-        if( modbus_connect( mHandle ) != 0 )
-        {
-            modbus_free( mHandle );
-            mHandle = nullptr;
-
-            throw LeddarException::LtConnectionFailed( "Connection failed, libmodbus errno: (" + LeddarUtils::LtStringUtils::IntToString( errno ) + std::string( "),  msg: " ) + std::string(
-                        modbus_strerror(
-                            errno ) ), true );
-        }
+        ConnectRaw();
 
         modbus_set_response_timeout( mHandle, 10, 0 );
         modbus_set_byte_timeout( mHandle, 0, 100000 );
@@ -160,6 +106,84 @@ LeddarConnection::LdLibModbusSerial::Connect( void )
     }
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LeddarConnection::LdLibModbusSerial::ConnectRaw()
+///
+/// \brief  Connects and do nothing else
+///
+/// \author David Lévy
+/// \date   November 2020
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void LeddarConnection::LdLibModbusSerial::ConnectRaw()
+{
+    char lParityChar = ' ';
+
+    switch( mConnectionInfoModbus->GetParity() )
+    {
+    case LdConnectionInfoModbus::MB_PARITY_NONE:
+        lParityChar = 'N';
+        break;
+
+    case LdConnectionInfoModbus::MB_PARITY_EVEN:
+        lParityChar = 'E';
+        break;
+
+    case LdConnectionInfoModbus::MB_PARITY_ODD:
+        lParityChar = 'O';
+        break;
+    }
+
+    mHandle = modbus_new_rtu( mConnectionInfoModbus->GetSerialPort().c_str(), mConnectionInfoModbus->GetBaud(), lParityChar, mConnectionInfoModbus->GetDataBits(),
+                              mConnectionInfoModbus->GetStopBits() );
+
+    if( mHandle == nullptr )
+    {
+        throw LeddarException::LtConnectionFailed( "Wrong argument on modbus device creation, Serial Port:" + mConnectionInfoModbus->GetSerialPort() +
+                                                       " Baud: " + LeddarUtils::LtStringUtils::IntToString( mConnectionInfoModbus->GetBaud() ) + " Parity: " + lParityChar +
+                                                       " Data Bits: " + LeddarUtils::LtStringUtils::IntToString( mConnectionInfoModbus->GetDataBits() ) +
+                                                       " Stop Bits: " + LeddarUtils::LtStringUtils::IntToString( mConnectionInfoModbus->GetStopBits() ),
+                                                   true );
+    }
+
+    // Set slave address
+    if( modbus_set_slave( mHandle, mConnectionInfoModbus->GetModbusAddr() ) != 0 )
+    {
+        modbus_free( mHandle );
+        mHandle = nullptr;
+
+        throw LeddarException::LtConnectionFailed( "Connection failed, libmodbus errno: (" + LeddarUtils::LtStringUtils::IntToString( errno ) + std::string( "),  msg: " ) +
+                                                       std::string( modbus_strerror( errno ) ),
+                                                   true );
+    }
+
+    // Connect to device
+    if( modbus_connect( mHandle ) != 0 )
+    {
+        modbus_free( mHandle );
+        mHandle = nullptr;
+
+        throw LeddarException::LtConnectionFailed( "Connection failed, libmodbus errno: (" + LeddarUtils::LtStringUtils::IntToString( errno ) + std::string( "),  msg: " ) +
+                                                       std::string( modbus_strerror( errno ) ),
+                                                   true );
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn int LeddarConnection::LdLibModbusSerial::ReadRawData( uint8_t *aBuffer )
+///
+/// \brief  Reads data (maximum RTU_MAX_ADU_LENGTH) from device until it times out
+///
+/// \param [in,out] aBuffer The buffer to read data to
+///
+/// \returns    Number of bytes read.
+///
+/// \author David Lévy
+/// \date   November 2020
+////////////////////////////////////////////////////////////////////////////////////////////////////
+int LeddarConnection::LdLibModbusSerial::ReadRawData( uint8_t *aBuffer ) { return modbus_receive_raw_data_timeoutEnd( mHandle, aBuffer ); }
+
+int LeddarConnection::LdLibModbusSerial::WriteRawData( uint8_t *aBuffer, size_t aSize, bool aCRC ) { return modbus_send_raw_data(mHandle, aBuffer, aSize, aCRC ? 1 : 0); }
+
 // *****************************************************************************
 // Function: LdLibModbusSerial::Disconnect
 //
@@ -169,10 +193,9 @@ LeddarConnection::LdLibModbusSerial::Connect( void )
 ///
 /// \since   July 2016
 // *****************************************************************************
-void
-LeddarConnection::LdLibModbusSerial::Disconnect( void )
+void LeddarConnection::LdLibModbusSerial::Disconnect( void )
 {
-    //mIsConnected = false;
+    // mIsConnected = false;
 
     if( mHandle != nullptr && !mSharedHandle )
     {
@@ -181,7 +204,6 @@ LeddarConnection::LdLibModbusSerial::Disconnect( void )
         mHandle = nullptr;
     }
 }
-
 
 // *****************************************************************************
 // Function: LdLibModbusSerial::SendRawRequest
@@ -197,12 +219,11 @@ LeddarConnection::LdLibModbusSerial::Disconnect( void )
 ///
 /// \since   September 2016
 // *****************************************************************************
-void
-LeddarConnection::LdLibModbusSerial::SendRawRequest( uint8_t *aBuffer, uint32_t aSize )
+void LeddarConnection::LdLibModbusSerial::SendRawRequest( uint8_t *aBuffer, uint32_t aSize )
 {
     if( !IsConnected() )
     {
-        throw LeddarException::LtNotConnectedException( "Modbus device not connected." );
+        throw LeddarException::LtNotConnectedException( "Modbus device not connected.", true );
     }
 
     modbus_flush( mHandle );
@@ -210,9 +231,9 @@ LeddarConnection::LdLibModbusSerial::SendRawRequest( uint8_t *aBuffer, uint32_t 
     // Set slave address
     if( modbus_set_slave( mHandle, mConnectionInfoModbus->GetModbusAddr() ) != 0 )
     {
-        throw LeddarException::LtConnectionFailed( "Connection failed, libmodbus errno: (" + LeddarUtils::LtStringUtils::IntToString( errno ) + std::string( "),  msg: " ) + std::string(
-                    modbus_strerror(
-                        errno ) ), true );
+        throw LeddarException::LtConnectionFailed( "Connection failed, libmodbus errno: (" + LeddarUtils::LtStringUtils::IntToString( errno ) + std::string( "),  msg: " ) +
+                                                       std::string( modbus_strerror( errno ) ),
+                                                   true );
     }
 
     int lResult = modbus_send_raw_request( mHandle, aBuffer, aSize );
@@ -236,15 +257,14 @@ LeddarConnection::LdLibModbusSerial::SendRawRequest( uint8_t *aBuffer, uint32_t 
 /// \exception LtComException on error in reading registers
 ///
 // *****************************************************************************
-void
-LeddarConnection::LdLibModbusSerial::ReadRegisters( uint16_t aAddr, uint8_t aNb, uint16_t *aDest )
+void LeddarConnection::LdLibModbusSerial::ReadRegisters( uint16_t aAddr, uint8_t aNb, uint16_t *aDest )
 {
     // Set slave address
     if( modbus_set_slave( mHandle, mConnectionInfoModbus->GetModbusAddr() ) != 0 )
     {
-        throw LeddarException::LtConnectionFailed( "Connection failed, libmodbus errno: (" + LeddarUtils::LtStringUtils::IntToString( errno ) + std::string( "),  msg: " ) + std::string(
-                    modbus_strerror(
-                        errno ) ), true );
+        throw LeddarException::LtConnectionFailed( "Connection failed, libmodbus errno: (" + LeddarUtils::LtStringUtils::IntToString( errno ) + std::string( "),  msg: " ) +
+                                                       std::string( modbus_strerror( errno ) ),
+                                                   true );
     }
 
     int lStatus = modbus_read_registers( mHandle, aAddr, aNb, aDest );
@@ -268,15 +288,14 @@ LeddarConnection::LdLibModbusSerial::ReadRegisters( uint16_t aAddr, uint8_t aNb,
 /// \exception LtComException on error in reading input registers
 ///
 // *****************************************************************************
-void
-LeddarConnection::LdLibModbusSerial::ReadInputRegisters( uint16_t aAddr, uint8_t aNb, uint16_t *aDest )
+void LeddarConnection::LdLibModbusSerial::ReadInputRegisters( uint16_t aAddr, uint8_t aNb, uint16_t *aDest )
 {
     // Set slave address
     if( modbus_set_slave( mHandle, mConnectionInfoModbus->GetModbusAddr() ) != 0 )
     {
-        throw LeddarException::LtConnectionFailed( "Connection failed, libmodbus errno: (" + LeddarUtils::LtStringUtils::IntToString( errno ) + std::string( "),  msg: " ) + std::string(
-                    modbus_strerror(
-                        errno ) ), true );
+        throw LeddarException::LtConnectionFailed( "Connection failed, libmodbus errno: (" + LeddarUtils::LtStringUtils::IntToString( errno ) + std::string( "),  msg: " ) +
+                                                       std::string( modbus_strerror( errno ) ),
+                                                   true );
     }
 
     int lStatus = modbus_read_input_registers( mHandle, aAddr, aNb, aDest );
@@ -299,15 +318,14 @@ LeddarConnection::LdLibModbusSerial::ReadInputRegisters( uint16_t aAddr, uint8_t
 /// \exception LtComException on error in reading registers
 ///
 // *****************************************************************************
-void
-LeddarConnection::LdLibModbusSerial::WriteRegister( uint16_t aAddr, int aValue )
+void LeddarConnection::LdLibModbusSerial::WriteRegister( uint16_t aAddr, int aValue )
 {
     // Set slave address
     if( modbus_set_slave( mHandle, mConnectionInfoModbus->GetModbusAddr() ) != 0 )
     {
-        throw LeddarException::LtConnectionFailed( "Connection failed, libmodbus errno: (" + LeddarUtils::LtStringUtils::IntToString( errno ) + std::string( "),  msg: " ) + std::string(
-                    modbus_strerror(
-                        errno ) ), true );
+        throw LeddarException::LtConnectionFailed( "Connection failed, libmodbus errno: (" + LeddarUtils::LtStringUtils::IntToString( errno ) + std::string( "),  msg: " ) +
+                                                       std::string( modbus_strerror( errno ) ),
+                                                   true );
     }
 
     int lStatus = modbus_write_register( mHandle, aAddr, aValue );
@@ -317,7 +335,6 @@ LeddarConnection::LdLibModbusSerial::WriteRegister( uint16_t aAddr, int aValue )
         throw LeddarException::LtComException( "Error on modbus_write_register in WriteRegisters." );
     }
 }
-
 
 // *****************************************************************************
 // Function: LdLibModbusSerial::ReceiveRawConfirmation
@@ -341,17 +358,16 @@ LeddarConnection::LdLibModbusSerial::WriteRegister( uint16_t aAddr, int aValue )
 ///
 /// \since   September 2016
 // *****************************************************************************
-size_t
-LeddarConnection::LdLibModbusSerial::ReceiveRawConfirmation( uint8_t *aBuffer, uint32_t aSize )
+size_t LeddarConnection::LdLibModbusSerial::ReceiveRawConfirmation( uint8_t *aBuffer, uint32_t aSize )
 {
     int lResult;
 
     // Set slave address
     if( modbus_set_slave( mHandle, mConnectionInfoModbus->GetModbusAddr() ) != 0 )
     {
-        throw LeddarException::LtConnectionFailed( "Connection failed, libmodbus errno: (" + LeddarUtils::LtStringUtils::IntToString( errno ) + std::string( "),  msg: " ) + std::string(
-                    modbus_strerror(
-                        errno ) ), true );
+        throw LeddarException::LtConnectionFailed( "Connection failed, libmodbus errno: (" + LeddarUtils::LtStringUtils::IntToString( errno ) + std::string( "),  msg: " ) +
+                                                       std::string( modbus_strerror( errno ) ),
+                                                   true );
     }
 
     // Receive raw data.
@@ -362,7 +378,8 @@ LeddarConnection::LdLibModbusSerial::ReceiveRawConfirmation( uint8_t *aBuffer, u
         if( lResult < 0 )
         {
             modbus_flush( mHandle );
-            throw LeddarException::LtComException( "Error on modbus modbus_receive_raw_confirmation_sizeEnd in ReceiveRawConfirmation (" + LeddarUtils::LtStringUtils::IntToString( lResult ) + ")." );
+            throw LeddarException::LtComException( "Error on modbus modbus_receive_raw_confirmation_sizeEnd in ReceiveRawConfirmation (" +
+                                                   LeddarUtils::LtSystemUtils::ErrnoToString( errno ) + ")." );
         }
     }
     else
@@ -372,12 +389,13 @@ LeddarConnection::LdLibModbusSerial::ReceiveRawConfirmation( uint8_t *aBuffer, u
         if( lResult < 0 )
         {
             modbus_flush( mHandle );
-            throw LeddarException::LtComException( "Error on modbus modbus_receive_raw_confirmation_timeoutEnd in ReceiveRawConfirmation (" + LeddarUtils::LtStringUtils::IntToString( lResult ) + ")." );
+            throw LeddarException::LtComException( "Error on modbus modbus_receive_raw_confirmation_timeoutEnd in ReceiveRawConfirmation (" +
+                                                   LeddarUtils::LtSystemUtils::ErrnoToString( errno ) + ")." );
         }
     }
 
     // Check if the received message has an error
-    if( ( aBuffer[ 1 ] >> 7 ) == 1 )
+    if( ( aBuffer[1] >> 7 ) == 1 )
     {
         throw LeddarException::LtComException( "Received message has an error." );
     }
@@ -398,24 +416,21 @@ LeddarConnection::LdLibModbusSerial::ReceiveRawConfirmation( uint8_t *aBuffer, u
 /// \author David Levy
 /// \date   October 2018
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-int
-LeddarConnection::LdLibModbusSerial::ReceiveRawConfirmationLT( uint8_t *aBuffer, int aDeviceType )
+int LeddarConnection::LdLibModbusSerial::ReceiveRawConfirmationLT( uint8_t *aBuffer, int aDeviceType )
 {
     int lResult;
 
     // Set slave address
     if( modbus_set_slave( mHandle, mConnectionInfoModbus->GetModbusAddr() ) != 0 )
     {
-        throw LeddarException::LtConnectionFailed( "Connection failed, libmodbus errno: (" + LeddarUtils::LtStringUtils::IntToString( errno ) + std::string( "),  msg: " ) + std::string(
-                    modbus_strerror(
-                        errno ) ), true );
+        throw LeddarException::LtConnectionFailed( "Connection failed, libmodbus errno: (" + LeddarUtils::LtStringUtils::IntToString( errno ) + std::string( "),  msg: " ) +
+                                                       std::string( modbus_strerror( errno ) ),
+                                                   true );
     }
 
     // Receive raw data
-    if( aDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_IS16 ||
-            aDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_M16_EVALKIT ||
-            aDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_M16 ||
-            aDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_M16_LASER )
+    if( aDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_IS16 || aDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_M16_EVALKIT ||
+        aDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_M16 || aDeviceType == LtComLeddarTechPublic::LT_COMM_DEVICE_TYPE_M16_LASER )
     {
         lResult = modbus_receive_raw_confirmation_0x41_0x6A_M16( mHandle, aBuffer );
     }
@@ -431,11 +446,12 @@ LeddarConnection::LdLibModbusSerial::ReceiveRawConfirmationLT( uint8_t *aBuffer,
     if( lResult < 0 )
     {
         modbus_flush( mHandle );
-        throw LeddarException::LtComException( "Error on modbus modbus_receive_raw_confirmation_timeoutEnd in ReceiveRawConfirmation (" + LeddarUtils::LtStringUtils::IntToString( lResult ) + ")." );
+        throw LeddarException::LtComException( "Error on modbus modbus_receive_raw_confirmation_timeoutEnd in ReceiveRawConfirmation (" +
+                                               LeddarUtils::LtStringUtils::IntToString( lResult ) + ")." );
     }
 
     // Check if the received message has an error
-    if( ( aBuffer[ 1 ] >> 7 ) == 1 )
+    if( ( aBuffer[1] >> 7 ) == 1 )
     {
         throw LeddarException::LtComException( "Received message has an error." );
     }
@@ -452,12 +468,10 @@ LeddarConnection::LdLibModbusSerial::ReceiveRawConfirmationLT( uint8_t *aBuffer,
 ///
 /// \since   January 2017
 // *****************************************************************************
-bool
-LeddarConnection::LdLibModbusSerial::IsVirtualCOMPort( void )
+bool LeddarConnection::LdLibModbusSerial::IsVirtualCOMPort( void )
 {
     return ( this->mConnectionInfoModbus->GetDescription().compare( std::string( "LeddarTech Virtual COM Port" ) ) == 0 );
 }
-
 
 // *****************************************************************************
 // Function: LdLibModbusSerial::GetDeviceList
@@ -472,21 +486,19 @@ LeddarConnection::LdLibModbusSerial::IsVirtualCOMPort( void )
 /// \since   February 2017
 // *****************************************************************************
 
-std::vector<LeddarConnection::LdConnectionInfo *>
-LeddarConnection::LdLibModbusSerial::GetDeviceList( void )
+std::vector<LeddarConnection::LdConnectionInfo *> LeddarConnection::LdLibModbusSerial::GetDeviceList( void )
 {
     std::vector<LeddarConnection::LdConnectionInfo *> lResultList;
 
-    std::vector< std::string > lSerialPorts = LeddarUtils::LtSystemUtils::GetSerialPorts();
+    std::vector<std::string> lSerialPorts = LeddarUtils::LtSystemUtils::GetSerialPorts();
 
-    for( std::vector< std::string >::iterator lIter = lSerialPorts.begin(); lIter != lSerialPorts.end(); ++lIter )
+    for( std::vector<std::string>::iterator lIter = lSerialPorts.begin(); lIter != lSerialPorts.end(); ++lIter )
     {
         lResultList.push_back( new LdConnectionInfoModbus( *lIter, *lIter, 115200, LdConnectionInfoModbus::MB_PARITY_NONE, 8, 1, 1 ) );
     }
 
     return lResultList;
 }
-
 
 // *****************************************************************************
 // Function: LdLibModbusSerial::Flush
@@ -497,12 +509,7 @@ LeddarConnection::LdLibModbusSerial::GetDeviceList( void )
 ///
 /// \since   January 2017
 // *****************************************************************************
-void
-LeddarConnection::LdLibModbusSerial::Flush( void )
-{
-    modbus_flush( mHandle );
-}
-
+void LeddarConnection::LdLibModbusSerial::Flush( void ) { modbus_flush( mHandle ); }
 
 // *****************************************************************************
 // Function: LdLibModbusSerial::FetchDeviceType
@@ -513,15 +520,21 @@ LeddarConnection::LdLibModbusSerial::Flush( void )
 ///
 /// \since   November 2017
 // *****************************************************************************
-uint16_t
-LeddarConnection::LdLibModbusSerial::FetchDeviceType( void )
+uint16_t LeddarConnection::LdLibModbusSerial::FetchDeviceType( void )
 {
-    uint8_t lRawRequest[2] = { mConnectionInfoModbus->GetModbusAddr(), 0x11 };
+    uint8_t lRawRequest[2]                       = { mConnectionInfoModbus->GetModbusAddr(), 0x11 };
     uint8_t lResponse[MODBUS_RTU_MAX_ADU_LENGTH] = { 0 };
+
+    uint32_t lOldTimeout_sec, lOldTimeout_usec;
+    modbus_get_response_timeout( mHandle, &lOldTimeout_sec, &lOldTimeout_usec );
+
+    modbus_set_response_timeout( mHandle, 0, 100000 ); // 100 ms
 
     SendRawRequest( lRawRequest, 2 );
     size_t lReceivedSize = ReceiveRawConfirmation( lResponse, 0 );
-    LeddarUtils::LtTimeUtils::WaitBlockingMicro( ONE_WAIT_AFTER_REQUEST );
+    LeddarUtils::LtTimeUtils::WaitBlockingMicro( 20000 );
+
+    uint16_t lReturn = 0;
 
     if( lReceivedSize <= MODBUS_DATA_OFFSET )
     {
@@ -531,25 +544,26 @@ LeddarConnection::LdLibModbusSerial::FetchDeviceType( void )
     else if( lReceivedSize < MODBUS_DATA_OFFSET + lResponse[MODBUS_DATA_OFFSET] )
     {
         Flush();
-        return 0;
     }
     else if( lReceivedSize == MODBUS_DATA_OFFSET + sizeof( LtComLeddarOneModbus::sLeddarOneServerId ) + MODBUS_CRC_SIZE )
     {
         LtComLeddarOneModbus::sLeddarOneServerId *lDeviceInfo = reinterpret_cast<LtComLeddarOneModbus::sLeddarOneServerId *>( &lResponse[MODBUS_DATA_OFFSET] );
-        return lDeviceInfo->mDeviceId;
+        lReturn                                               = lDeviceInfo->mDeviceId;
     }
     else if( lReceivedSize == MODBUS_DATA_OFFSET + sizeof( LtComLeddarM16Modbus::sLeddarM16ServerId ) + MODBUS_CRC_SIZE )
     {
         LtComLeddarM16Modbus::sLeddarM16ServerId *lDeviceInfo = reinterpret_cast<LtComLeddarM16Modbus::sLeddarM16ServerId *>( &lResponse[MODBUS_DATA_OFFSET] );
-        return lDeviceInfo->mDeviceId;
+        lReturn                                               = lDeviceInfo->mDeviceId;
     }
     else if( lReceivedSize == MODBUS_DATA_OFFSET + sizeof( LtComLeddarVu8Modbus::sLeddarVu8ModbusServerId ) + MODBUS_CRC_SIZE )
     {
         LtComLeddarVu8Modbus::sLeddarVu8ModbusServerId *lDeviceInfo = reinterpret_cast<LtComLeddarVu8Modbus::sLeddarVu8ModbusServerId *>( &lResponse[MODBUS_DATA_OFFSET] );
-        return lDeviceInfo->mDeviceId;
+        lReturn                                                     = lDeviceInfo->mDeviceId;
     }
 
-    return 0;
+    modbus_set_response_timeout( mHandle, lOldTimeout_sec, lOldTimeout_usec );
+
+    return lReturn;
 }
 
 #endif

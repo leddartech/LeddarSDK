@@ -30,23 +30,22 @@ namespace LeddarUtils
         template <typename T> std::string IntToString( T aData, int aBase = 10, bool aLeadingZero = false );
 
         // Left trim
-        inline std::string &LeftTrim( std::string &s )
+        inline void LeftTrim( std::string &s )
         {
-            s.erase( s.begin(), std::find_if( s.begin(), s.end(), std::not1( std::ptr_fun<int, int>( std::isspace ) ) ) );
-            return s;
+            s.erase( s.begin(), std::find_if( s.begin(), s.end(), []( unsigned char ch ) { return !std::isspace( ch ); } ) );
         }
-
+        
         // Right trim
-        inline std::string &RightTrim( std::string &s )
+        static inline void RightTrim( std::string &s )
         {
-            s.erase( std::find_if( s.rbegin(), s.rend(), std::not1( std::ptr_fun<int, int>( std::isspace ) ) ).base(), s.end() );
-            return s;
+            s.erase( std::find_if( s.rbegin(), s.rend(), []( unsigned char ch ) { return !std::isspace( ch ); } ).base(), s.end() );
         }
 
         // Trim in both side
-        inline std::string &Trim( std::string &s )
+        inline  void Trim( std::string &s )
         {
-            return LeftTrim( RightTrim( s ) );
+            LeftTrim(s);
+            RightTrim(s);
         }
 
         // Replace all occurences of a character by another one

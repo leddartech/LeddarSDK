@@ -21,14 +21,6 @@
 #include <thread>
 #include <mutex>
 
-#if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 2
-#define HAVE_HEAP_TYPES
-#endif
-
-#if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 7
-#define HAVE_STRVAR
-#endif
-
 //Forward declaration
 namespace LeddarDevice
 {
@@ -57,6 +49,7 @@ struct sSharedData : public sSharedDataBase
     uint32_t mDelay = 5000u;        // Delay between two request (in microseconds)
     PyObject *mCallBackState = nullptr;
     PyObject *mCallBackEcho = nullptr;
+    PyObject *mCallBackException = nullptr;
     bool mGetDataLocked = false;                //reserved for use of DataThread()
 };
 
@@ -71,10 +64,6 @@ typedef struct sLeddarDevice
     uint32_t mDataMask = 0;                 //Current Datamask requested by user
 
     sSharedData mDataThreadSharedData;  //Data shared between thread. Need to use mutex to read / write
-
-    size_t v, h;
-    float v_fov, h_fov;
-    std::string mIP;
 } sLeddarDevice;
 
 
@@ -103,6 +92,7 @@ PyObject *GetCalibValues( sLeddarDevice *self, PyObject *args );
 
 PyObject *SetCallBackState( sLeddarDevice *self, PyObject *args );
 PyObject *SetCallBackEcho( sLeddarDevice *self, PyObject *args );
+PyObject *SetCallBackException( sLeddarDevice *self, PyObject *args );
 PyObject *StartDataThread( sLeddarDevice *self, PyObject *args );
 PyObject *StopDataThread( sLeddarDevice *self, PyObject *args );
 PyObject *SetDataThreadDelay( sLeddarDevice *self, PyObject *args );

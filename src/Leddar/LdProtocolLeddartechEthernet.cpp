@@ -88,15 +88,14 @@ LdProtocolLeddartechEthernet::Write( uint32_t aSize )
 ///
 /// \since   August 2017
 // *****************************************************************************
-void
-LdProtocolLeddartechEthernet::Read( uint32_t aSize )
+uint32_t LdProtocolLeddartechEthernet::Read( uint32_t aSize )
 {
     if( aSize > mTransferBufferSize )
     {
         ResizeInternalBuffers( aSize );
     }
 
-    mInterfaceEthernet->Receive( mTransferOutputBuffer, aSize );
+    return mInterfaceEthernet->Receive( mTransferOutputBuffer, aSize );
 }
 
 // *****************************************************************************

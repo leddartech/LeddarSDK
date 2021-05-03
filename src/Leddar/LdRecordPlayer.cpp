@@ -14,9 +14,10 @@
 
 #include "LdRecordPlayer.h"
 
-#include "LdSensor.h"
-#include "LdRecordReader.h"
 #include "LdLjrRecordReader.h"
+#include "LdPropertyIds.h"
+#include "LdRecordReader.h"
+#include "LdSensor.h"
 
 #include "LtFileUtils.h"
 #include "LtStringUtils.h"
@@ -34,9 +35,9 @@
 ///
 /// \since   May 2018
 /// *****************************************************************************
-LeddarRecord::LdRecordPlayer::LdRecordPlayer( const std::string &aFile ) :
-    mSensor( nullptr ),
-    mReader( nullptr )
+LeddarRecord::LdRecordPlayer::LdRecordPlayer( const std::string &aFile )
+    : mSensor( nullptr )
+    , mReader( nullptr )
 {
     mReader = FileToReader( aFile );
 
@@ -44,11 +45,7 @@ LeddarRecord::LdRecordPlayer::LdRecordPlayer( const std::string &aFile ) :
     {
         throw std::logic_error( "Could not create record player from that file extension." );
     }
-
-    mSensor = mReader->CreateSensor();
-    mEchoes = mSensor->GetResultEchoes();
-    mStates = mSensor->GetResultStates();
-    mProperties = mSensor->GetProperties();
+    Init();
 }
 
 /// *****************************************************************************
@@ -60,13 +57,34 @@ LeddarRecord::LdRecordPlayer::LdRecordPlayer( const std::string &aFile ) :
 ///
 /// \since   May 2018
 /// *****************************************************************************
-LeddarRecord::LdRecordPlayer::LdRecordPlayer() :
-    mSensor( nullptr ),
-    mReader( nullptr ),
-    mEchoes( nullptr ),
-    mStates( nullptr ),
-    mProperties( nullptr )
+LeddarRecord::LdRecordPlayer::LdRecordPlayer()
+    : mSensor( nullptr )
+    , mReader( nullptr )
+    , mEchoes( nullptr )
+    , mStates( nullptr )
+    , mProperties( nullptr )
 {
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LeddarRecord::LdRecordPlayer::Init()
+///
+/// \brief  Initializes this object
+///
+/// \author David Lévy
+/// \date   November 2020
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void LeddarRecord::LdRecordPlayer::Init()
+{
+    mSensor     = mReader->CreateSensor();
+    mEchoes     = mSensor->GetResultEchoes();
+    mStates     = mSensor->GetResultStates();
+    mProperties = mSensor->GetProperties();
+
+    if( mProperties->FindProperty( LeddarCore::LdPropertyIds::ID_DEVICE_TYPE )->Count() == 0 ) //Robustness for old recording
+    {
+        mProperties->GetIntegerProperty( LeddarCore::LdPropertyIds::ID_DEVICE_TYPE )->ForceValue( 0, mReader->GetDeviceType() );
+    }
 }
 
 /// *****************************************************************************
@@ -87,6 +105,9 @@ LeddarRecord::LdRecordPlayer::~LdRecordPlayer()
     }
 }
 
+/// \brief   Timestamp in seconds since epoch
+uint32_t LeddarRecord::LdRecordPlayer::GetRecordTimeStamp() const { return mReader->GetRecordTimeStamp(); }
+
 /// *****************************************************************************
 /// Function: LdPrvLtlRecordReader::ReadNext
 ///
@@ -96,11 +117,7 @@ LeddarRecord::LdRecordPlayer::~LdRecordPlayer()
 ///
 /// \since   May 2018
 /// *****************************************************************************
-void
-LeddarRecord::LdRecordPlayer::ReadNext()
-{
-    mReader->ReadNext();
-}
+void LeddarRecord::LdRecordPlayer::ReadNext() { mReader->ReadNext(); }
 
 /// *****************************************************************************
 /// Function: LdPrvLtlRecordReader::ReadPrevious
@@ -111,11 +128,7 @@ LeddarRecord::LdRecordPlayer::ReadNext()
 ///
 /// \since   May 2018
 /// *****************************************************************************
-void
-LeddarRecord::LdRecordPlayer::ReadPrevious()
-{
-    mReader->ReadPrevious();
-}
+void LeddarRecord::LdRecordPlayer::ReadPrevious() { mReader->ReadPrevious(); }
 
 /// *****************************************************************************
 /// Function: LdPrvLtlRecordReader::MoveTo
@@ -128,25 +141,13 @@ LeddarRecord::LdRecordPlayer::ReadPrevious()
 ///
 /// \since   May 2018
 /// *****************************************************************************
-void
-LeddarRecord::LdRecordPlayer::MoveTo( uint32_t aFrame )
-{
-    mReader->MoveTo( aFrame );
-}
+void LeddarRecord::LdRecordPlayer::MoveTo( uint32_t aFrame ) { mReader->MoveTo( aFrame ); }
 
-/// *****************************************************************************
-/// Function: LdPrvLtlRecordReader::GetRecordSize
-///
 /// \brief   Returns the number of frames in the record
-///
-/// \author  David Levy
-///
-/// \since   May 2018
-/// *****************************************************************************
-uint32_t LeddarRecord::LdRecordPlayer::GetRecordSize() const
-{
-    return mReader->GetRecordSize();
-}
+uint32_t LeddarRecord::LdRecordPlayer::GetRecordSize() const { return mReader->GetRecordSize(); }
+
+/// \brief  Gets current position
+uint32_t LeddarRecord::LdRecordPlayer::GetCurrentPosition() const { return mReader->GetCurrentPosition(); }
 
 /// *****************************************************************************
 /// Function: LdRecordPlayer::FileToReader
@@ -159,12 +160,11 @@ uint32_t LeddarRecord::LdRecordPlayer::GetRecordSize() const
 ///
 /// \since   May 2018
 /// *****************************************************************************
-LeddarRecord::LdRecordReader *
-LeddarRecord::LdRecordPlayer::FileToReader( const std::string &aFile )
+LeddarRecord::LdRecordReader *LeddarRecord::LdRecordPlayer::FileToReader( const std::string &aFile )
 {
     std::string lExtension = LeddarUtils::LtStringUtils::ToLower( LeddarUtils::LtFileUtils::FileExtension( aFile ) );
 
-    if( lExtension == "ljr" ) //leddar json record
+    if( lExtension == "ljr" ) // leddar json record
     {
         return new LeddarRecord::LdLjrRecordReader( aFile );
     }

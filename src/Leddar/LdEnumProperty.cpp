@@ -7,14 +7,33 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "LdEnumProperty.h"
-#include "LtStringUtils.h"
 #include "LtScope.h"
+#include "LtStringUtils.h"
 
 #include <cassert>
 #include <limits>
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn LeddarCore::LdEnumProperty::LdEnumProperty( LdProperty::eCategories aCategory, uint32_t aFeatures, uint32_t aId, uint16_t aDeviceId, uint32_t aUnitSize, bool aStoreValue, const std::string &aDescription ) : LdProperty( LdProperty::TYPE_ENUM, aCategory, aFeatures, aId, aDeviceId, aUnitSize, aUnitSize, aDescription ), mStoreValue( aStoreValue )
+/// \fn	LeddarCore::LdEnumProperty::LdEnumProperty( const LdEnumProperty &aProperty )
+///
+/// \brief	Copy constructor
+///
+/// \author	Alain Ferron
+/// \date	December 2020
+///
+/// \param	aProperty	The property.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+LeddarCore::LdEnumProperty::LdEnumProperty( const LdEnumProperty &aProperty )
+    : LdProperty( aProperty )
+{
+    std::lock_guard<std::recursive_mutex> lock( aProperty.mPropertyMutex );
+    mEnumValues = aProperty.mEnumValues;
+    mStoreValue = aProperty.mStoreValue;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn LeddarCore::LdEnumProperty::LdEnumProperty( LdProperty::eCategories aCategory, uint32_t aFeatures, uint32_t aId, uint16_t aDeviceId, uint32_t aUnitSize, bool aStoreValue,
+/// const std::string &aDescription ) : LdProperty( LdProperty::TYPE_ENUM, aCategory, aFeatures, aId, aDeviceId, aUnitSize, aUnitSize, aDescription ), mStoreValue( aStoreValue )
 ///
 /// \brief  Constructor.
 ///
@@ -30,14 +49,14 @@
 /// \date   February 2016
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 LeddarCore::LdEnumProperty::LdEnumProperty( LdProperty::eCategories aCategory, uint32_t aFeatures, uint32_t aId, uint16_t aDeviceId, uint32_t aUnitSize, bool aStoreValue,
-        const std::string &aDescription ) :
-    LdProperty( LdProperty::TYPE_ENUM, aCategory, aFeatures, aId, aDeviceId, aUnitSize, aUnitSize, aDescription ),
-    mStoreValue( aStoreValue )
+                                            const std::string &aDescription )
+    : LdProperty( LdProperty::TYPE_ENUM, aCategory, aFeatures, aId, aDeviceId, aUnitSize, aUnitSize, aDescription )
+    , mStoreValue( aStoreValue )
 {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn size_t LeddarCore::LdEnumProperty::ValueIndex( size_t aIndex ) const
+/// \fn size_t LeddarCore::LdEnumProperty::PerformValueIndex( size_t aIndex ) const
 ///
 /// \brief  Get the index in the enum of the current value.
 ///
@@ -50,24 +69,23 @@ LeddarCore::LdEnumProperty::LdEnumProperty( LdProperty::eCategories aCategory, u
 /// \author Patrick Boulay
 /// \date   February 2016
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-size_t
-LeddarCore::LdEnumProperty::ValueIndex( size_t aIndex ) const
+size_t LeddarCore::LdEnumProperty::PerformValueIndex( size_t aIndex ) const
 {
-    const uint64_t lValue = ValueT<uint64_t>( aIndex );
+    const uint64_t lValue = PerformValueT<uint64_t>( aIndex );
 
     for( size_t i = 0; i < mEnumValues.size(); ++i )
     {
-        if( mEnumValues[ i ].first == lValue )
+        if( mEnumValues[i].first == lValue )
         {
             return i;
         }
     }
 
-    throw std::out_of_range( "No index associated to this value. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+    throw std::out_of_range( "No index associated to this value. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdEnumProperty::SetValue( size_t aIndex, uint64_t aValue )
+/// \fn void LeddarCore::LdEnumProperty::PerformSetValue( size_t aIndex, uint64_t aValue )
 ///
 /// \brief  Set the value at the current array index.
 ///
@@ -82,24 +100,22 @@ LeddarCore::LdEnumProperty::ValueIndex( size_t aIndex ) const
 /// \author Patrick Boulay
 /// \date   February 2016
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarCore::LdEnumProperty::SetValue( size_t aIndex, uint64_t aValue )
+void LeddarCore::LdEnumProperty::PerformSetValue( size_t aIndex, uint64_t aValue )
 {
     CanEdit();
 
     // Initialize the count to 1 on the fist SetValue if not done before.
-    if( Count() == 0 && aIndex == 0 )
+    if( PerformCount() == 0 && aIndex == 0 )
     {
-        SetCount( 1 );
+        PerformSetCount( 1 );
     }
 
-    if( aIndex >= Count() )
+    if( aIndex >= PerformCount() )
     {
-        throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
-
-    if( !IsInitialized()  || aValue != ValueT<uint64_t>( aIndex ) )
+    if( !IsInitialized() || aValue != PerformValueT<uint64_t>( aIndex ) )
     {
         uint64_t lIndex = static_cast<uint64_t>( mEnumValues.size() - 1 );
 
@@ -109,19 +125,19 @@ LeddarCore::LdEnumProperty::SetValue( size_t aIndex, uint64_t aValue )
             {
                 uint64_t lValue = mStoreValue ? aValue : lIndex;
 
-                if( Stride() == 1 )
+                if( PerformStride() == 1 )
                 {
                     SetStorageValueT<uint8_t>( aIndex, lValue );
                 }
-                else if( Stride() == 2 )
+                else if( PerformStride() == 2 )
                 {
                     SetStorageValueT<uint16_t>( aIndex, lValue );
                 }
-                else if( Stride() == 4 )
+                else if( PerformStride() == 4 )
                 {
                     SetStorageValueT<uint32_t>( aIndex, lValue );
                 }
-                else if( Stride() == 8 )
+                else if( PerformStride() == 8 )
                 {
                     SetStorageValueT<uint64_t>( aIndex, lValue );
                 }
@@ -139,12 +155,12 @@ LeddarCore::LdEnumProperty::SetValue( size_t aIndex, uint64_t aValue )
         }
 
         // If we get here aValue is not valid (i.e. it is not in the enum).
-        throw std::out_of_range( "No associated value found for this enum. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "No associated value found for this enum. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdEnumProperty::ForceValue( size_t aIndex, uint64_t aValue )
+/// \fn void LeddarCore::LdEnumProperty::PerformForceValue( size_t aIndex, uint64_t aValue )
 ///
 /// \brief  Force the value at the current array index.
 ///
@@ -159,12 +175,11 @@ LeddarCore::LdEnumProperty::SetValue( size_t aIndex, uint64_t aValue )
 /// \author David Levy
 /// \date   March 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarCore::LdEnumProperty::ForceValue( size_t aIndex, uint64_t aValue )
+void LeddarCore::LdEnumProperty::PerformForceValue( size_t aIndex, uint64_t aValue )
 {
     LeddarUtils::LtScope<bool> lForceEdit( &mCheckEditable, true );
     mCheckEditable = false;
-    SetValue( aIndex, aValue );
+    PerformSetValue( aIndex, aValue );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -181,14 +196,13 @@ LeddarCore::LdEnumProperty::ForceValue( size_t aIndex, uint64_t aValue )
 /// \author David Levy
 /// \date   August 2018
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<typename T>
-void LeddarCore::LdEnumProperty::SetStorageValueT( size_t aIndex, uint64_t aValue )
+template <typename T> void LeddarCore::LdEnumProperty::SetStorageValueT( size_t aIndex, uint64_t aValue )
 {
     CanEdit();
 
     if( aValue > std::numeric_limits<T>::max() )
     {
-        throw std::out_of_range( "Value is too big. Increase stride/unitsize. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "Value is too big. Increase stride/unitsize. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
     T *lValues = reinterpret_cast<T *>( Storage() );
@@ -200,14 +214,14 @@ void LeddarCore::LdEnumProperty::SetStorageValueT( size_t aIndex, uint64_t aValu
     }
 }
 
-//Template specialisation so it can be defined in the cpp file
+// Template specialisation so it can be defined in the cpp file
 template void LeddarCore::LdEnumProperty::SetStorageValueT<uint8_t>( size_t aIndex, uint64_t aValue );
 template void LeddarCore::LdEnumProperty::SetStorageValueT<uint16_t>( size_t aIndex, uint64_t aValue );
 template void LeddarCore::LdEnumProperty::SetStorageValueT<uint32_t>( size_t aIndex, uint64_t aValue );
 template void LeddarCore::LdEnumProperty::SetStorageValueT<uint64_t>( size_t aIndex, uint64_t aValue );
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn uint64_t LeddarCore::LdEnumProperty::DeviceValue( size_t aIndex ) const
+/// \fn uint64_t LeddarCore::LdEnumProperty::PerformDeviceValue( size_t aIndex ) const
 ///
 /// \brief  Device value. This value is stored in the backup storage.
 ///
@@ -220,43 +234,43 @@ template void LeddarCore::LdEnumProperty::SetStorageValueT<uint64_t>( size_t aIn
 /// \author Patrick Boulay
 /// \date   December 2018
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-uint64_t LeddarCore::LdEnumProperty::DeviceValue( size_t aIndex ) const
+uint64_t LeddarCore::LdEnumProperty::PerformDeviceValue( size_t aIndex ) const
 {
     VerifyInitialization();
 
-    if( aIndex >= Count() )
+    if( aIndex >= PerformCount() )
     {
-        throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
     uint64_t lValue = 0;
 
-    if( Stride() == 1 )
+    if( PerformStride() == 1 )
     {
-        lValue = reinterpret_cast<const uint8_t *>( BackupStorage() )[ aIndex ];
+        lValue = reinterpret_cast<const uint8_t *>( BackupStorage() )[aIndex];
     }
-    else if( Stride() == 2 )
+    else if( PerformStride() == 2 )
     {
-        lValue = reinterpret_cast<const uint16_t *>( BackupStorage() )[ aIndex ];
+        lValue = reinterpret_cast<const uint16_t *>( BackupStorage() )[aIndex];
     }
-    else if( Stride() == 4 )
+    else if( PerformStride() == 4 )
     {
-        lValue = reinterpret_cast<const uint32_t *>( BackupStorage() )[ aIndex ];
+        lValue = reinterpret_cast<const uint32_t *>( BackupStorage() )[aIndex];
     }
-    else if( Stride() == 8 )
+    else if( PerformStride() == 8 )
     {
-        lValue = reinterpret_cast<const uint64_t *>( BackupStorage() )[ aIndex ];
+        lValue = reinterpret_cast<const uint64_t *>( BackupStorage() )[aIndex];
     }
     else
     {
-        throw std::out_of_range( "Invalid stride. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "Invalid stride. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
     return lValue;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn uint64_t LeddarCore::LdEnumProperty::GetKeyFromValue( const std::string &aValue )
+/// \fn uint64_t LeddarCore::LdEnumProperty::PerformGetKeyFromValue( const std::string &aValue )
 ///
 /// \brief  Return the key value of the string value
 ///
@@ -269,8 +283,7 @@ uint64_t LeddarCore::LdEnumProperty::DeviceValue( size_t aIndex ) const
 /// \author Patrick Boulay
 /// \date   February 2016
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-uint64_t
-LeddarCore::LdEnumProperty::GetKeyFromValue( const std::string &aValue )
+uint64_t LeddarCore::LdEnumProperty::PerformGetKeyFromValue( const std::string &aValue )
 {
     for( std::vector<Pair>::iterator lIter = mEnumValues.begin(); lIter < mEnumValues.end(); ++lIter )
     {
@@ -280,11 +293,37 @@ LeddarCore::LdEnumProperty::GetKeyFromValue( const std::string &aValue )
         }
     }
 
-    throw std::out_of_range( "No associated string value found for this enum. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+    throw std::out_of_range( "No associated string value found for this enum. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdEnumProperty::AddEnumPair( uint64_t aValue, const std::string &aText )
+/// \fn size_t LeddarCore::LdEnumProperty::PerformGetEnumIndexFromValue( uint64_t aEnumValue ) const
+///
+/// \brief  Gets enum index from enum value - Usefull when the stored value is not the index
+///
+/// \exception  std::out_of_range   Thrown when an out of range error condition occurs.
+///
+/// \param  aEnumValue  The enum value.
+///
+/// \returns    The enum index from value.
+///
+/// \author David Lévy
+/// \date   December 2020
+////////////////////////////////////////////////////////////////////////////////////////////////////
+size_t LeddarCore::LdEnumProperty::PerformGetEnumIndexFromValue( uint64_t aEnumValue ) const
+{
+    for( size_t i = 0; i < mEnumValues.size(); ++i )
+    {
+        if( mEnumValues[i].first == aEnumValue )
+        {
+            return i;
+        }
+    }
+
+    throw std::out_of_range( "No index associated to this value. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn void LeddarCore::LdEnumProperty::PerformAddEnumPair( uint64_t aValue, const std::string &aText )
 ///
 /// \brief  Add a new entry in the enum.
 ///
@@ -296,47 +335,50 @@ LeddarCore::LdEnumProperty::GetKeyFromValue( const std::string &aValue )
 /// \author Patrick Boulay
 /// \date   February 2016
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarCore::LdEnumProperty::AddEnumPair( uint64_t aValue, const std::string &aText )
+void LeddarCore::LdEnumProperty::PerformAddEnumPair( uint64_t aValue, const std::string &aText )
 {
     assert( mEnumValues.size() < std::numeric_limits<uint8_t>::max() - 1u );
     uint64_t lMax = 0;
 
-    switch( UnitSize() )
+    switch( PerformUnitSize() )
     {
-        case 1: lMax = std::numeric_limits<uint8_t>::max(); break;
+    case 1:
+        lMax = std::numeric_limits<uint8_t>::max();
+        break;
 
-        case 2: lMax = std::numeric_limits<uint16_t>::max(); break;
+    case 2:
+        lMax = std::numeric_limits<uint16_t>::max();
+        break;
 
-        case 4: lMax = std::numeric_limits<uint32_t>::max(); break;
+    case 4:
+        lMax = std::numeric_limits<uint32_t>::max();
+        break;
 
-        case 8: lMax = std::numeric_limits<uint64_t>::max(); break;
+    case 8:
+        lMax = std::numeric_limits<uint64_t>::max();
+        break;
     }
 
     if( aValue > lMax )
     {
-        throw std::invalid_argument( "Value is higher than the property size. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::invalid_argument( "Value is higher than the property size. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
     mEnumValues.push_back( Pair( aValue, aText ) );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdEnumProperty::ClearEnum( void )
+/// \fn void LeddarCore::LdEnumProperty::PerformClearEnum( void )
 ///
 /// \brief  Clear the enum vector. Use this function carefully.
 ///
 /// \author Patrick Boulay
 /// \date   October 2017
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarCore::LdEnumProperty::ClearEnum( void )
-{
-    mEnumValues.clear();
-}
+void LeddarCore::LdEnumProperty::PerformClearEnum( void ) { mEnumValues.clear(); }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdEnumProperty::SetValueIndex( size_t aArrayIndex, size_t aEnumIndex )
+/// \fn void LeddarCore::LdEnumProperty::PerformSetValueIndex( size_t aArrayIndex, size_t aEnumIndex )
 ///
 /// \brief  Set the value via its index in the enum.
 ///
@@ -348,19 +390,18 @@ LeddarCore::LdEnumProperty::ClearEnum( void )
 /// \author Patrick Boulay
 /// \date   February 2016
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarCore::LdEnumProperty::SetValueIndex( size_t aArrayIndex, size_t aEnumIndex )
+void LeddarCore::LdEnumProperty::PerformSetValueIndex( size_t aArrayIndex, size_t aEnumIndex )
 {
     if( aEnumIndex >= mEnumValues.size() )
     {
-        throw std::out_of_range( "Enum index not valid. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "Enum index not valid. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
-    SetValue( aArrayIndex, mEnumValues[ aEnumIndex ].first );
+    PerformSetValue( aArrayIndex, mEnumValues[aEnumIndex].first );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdEnumProperty::ForceValueIndex( size_t aArrayIndex, size_t aEnumIndex )
+/// \fn void LeddarCore::LdEnumProperty::PerformForceValueIndex( size_t aArrayIndex, size_t aEnumIndex )
 ///
 /// \brief  Force value via enum index
 ///
@@ -372,16 +413,69 @@ LeddarCore::LdEnumProperty::SetValueIndex( size_t aArrayIndex, size_t aEnumIndex
 /// \author David Levy
 /// \date   March 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarCore::LdEnumProperty::ForceValueIndex( size_t aArrayIndex, size_t aEnumIndex )
+void LeddarCore::LdEnumProperty::PerformForceValueIndex( size_t aArrayIndex, size_t aEnumIndex )
 {
     LeddarUtils::LtScope<bool> lForceEdit( &mCheckEditable, true );
     mCheckEditable = false;
-    SetValueIndex( aArrayIndex, aEnumIndex );
+    PerformSetValueIndex( aArrayIndex, aEnumIndex );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn std::string LeddarCore::LdEnumProperty::GetStringValue( size_t aIndex ) const
+/// \fn void LeddarCore::LdEnumProperty::PerformSetAnyValue( size_t aIndex, const boost::any &aNewValue )
+///
+/// \brief  Set the property value
+///
+/// \author David Lévy
+/// \date   February 2021
+///
+/// \exception  std::invalid_argument   Thrown when an invalid argument error condition occurs.
+///
+/// \param  aIndex      Zero-based index of the.
+/// \param  aNewValue   The new value.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void LeddarCore::LdEnumProperty::PerformSetAnyValue( size_t aIndex, const boost::any &aNewValue )
+{
+    if( aNewValue.type() == typeid( int ) )
+    {
+        if( boost::any_cast<int>( aNewValue ) < 0 )
+            throw std::invalid_argument( "No negative value for enum properties" );
+
+        PerformSetValue( aIndex, boost::any_cast<int>( aNewValue ) );
+    }
+    else if( aNewValue.type() == typeid( uint8_t ) )
+    {
+        PerformSetValue( aIndex, boost::any_cast<uint8_t>( aNewValue ) );
+    }
+    else if( aNewValue.type() == typeid( uint16_t ) )
+    {
+        PerformSetValue( aIndex, boost::any_cast<uint16_t>( aNewValue ) );
+    }
+    else if( aNewValue.type() == typeid( uint32_t ) )
+    {
+        PerformSetValue( aIndex, boost::any_cast<uint32_t>( aNewValue ) );
+    }
+    else if( aNewValue.type() == typeid( uint64_t ) )
+    {
+        PerformSetValue( aIndex, boost::any_cast<uint64_t>( aNewValue ) );
+    }
+    else
+        throw std::invalid_argument( "Invalid value type" );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn	LeddarCore::LdProperty *LeddarCore::LdEnumProperty::PerformClone()
+///
+/// \brief	Performs the clone action
+///
+/// \returns	Null if it fails, else a pointer to a LeddarCore::LdProperty.
+///
+/// \author	Alain Ferron
+/// \date	March 2021
+////////////////////////////////////////////////////////////////////////////////////////////////////
+LeddarCore::LdProperty *LeddarCore::LdEnumProperty::PerformClone() { return new LdEnumProperty( *this ); }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \fn std::string LeddarCore::LdEnumProperty::PerformGetStringValue( size_t aIndex ) const
 ///
 /// \brief  Returns the string of the value.
 ///
@@ -394,19 +488,25 @@ LeddarCore::LdEnumProperty::ForceValueIndex( size_t aArrayIndex, size_t aEnumInd
 /// \author Patrick Boulay
 /// \date   February 2016
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-std::string
-LeddarCore::LdEnumProperty::GetStringValue( size_t aIndex ) const
+std::string LeddarCore::LdEnumProperty::PerformGetStringValue( size_t aIndex ) const
 {
-    if( aIndex >= Count() )
+    if( aIndex >= PerformCount() )
     {
-        throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
-
-    return mEnumValues[ ValueIndex( aIndex ) ].second;
+    
+    try
+    {
+        return mEnumValues[PerformValueIndex( aIndex )].second;
+    }
+    catch( const std::out_of_range & )
+    {
+        return LeddarUtils::LtStringUtils::IntToString( PerformValue( aIndex ) );
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdEnumProperty::SetStringValue( size_t aIndex, const std::string &aValue )
+/// \fn void LeddarCore::LdEnumProperty::PerformSetStringValue( size_t aIndex, const std::string &aValue )
 ///
 /// \brief  Property writer for the value as text.
 ///
@@ -418,15 +518,14 @@ LeddarCore::LdEnumProperty::GetStringValue( size_t aIndex ) const
 /// \author Patrick Boulay
 /// \date   January 2016
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarCore::LdEnumProperty::SetStringValue( size_t aIndex, const std::string &aValue )
+void LeddarCore::LdEnumProperty::PerformSetStringValue( size_t aIndex, const std::string &aValue )
 {
-    uint64_t lKey = GetKeyFromValue( aValue );
-    SetValue( aIndex, lKey );
+    uint64_t lKey = PerformGetKeyFromValue( aValue );
+    PerformSetValue( aIndex, lKey );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn void LeddarCore::LdEnumProperty::ForceStringValue( size_t aIndex, const std::string &aValue )
+/// \fn void LeddarCore::LdEnumProperty::PerformForceStringValue( size_t aIndex, const std::string &aValue )
 ///
 /// \brief  Force string value
 ///
@@ -436,16 +535,15 @@ LeddarCore::LdEnumProperty::SetStringValue( size_t aIndex, const std::string &aV
 /// \author David Levy
 /// \date   March 2019
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-LeddarCore::LdEnumProperty::ForceStringValue( size_t aIndex, const std::string &aValue )
+void LeddarCore::LdEnumProperty::PerformForceStringValue( size_t aIndex, const std::string &aValue )
 {
     LeddarUtils::LtScope<bool> lForceEdit( &mCheckEditable, true );
     mCheckEditable = false;
-    SetStringValue( aIndex, aValue );
+    PerformSetStringValue( aIndex, aValue );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn uint32_t LeddarCore::LdEnumProperty::Value( size_t aIndex ) const
+/// \fn uint32_t LeddarCore::LdEnumProperty::PerformValue( size_t aIndex ) const
 ///
 /// \brief  Return the property value
 ///
@@ -458,14 +556,10 @@ LeddarCore::LdEnumProperty::ForceStringValue( size_t aIndex, const std::string &
 /// \author Patrick Boulay
 /// \date   January 2016
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-uint32_t
-LeddarCore::LdEnumProperty::Value( size_t aIndex ) const
-{
-    return ValueT<uint32_t>( aIndex );
-}
+uint32_t LeddarCore::LdEnumProperty::PerformValue( size_t aIndex ) const { return PerformValueT<uint32_t>( aIndex ); }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn template<typename T> T LeddarCore::LdEnumProperty::ValueT( size_t aIndex ) const
+/// \fn template<typename T> T LeddarCore::LdEnumProperty::PerformValueT( size_t aIndex ) const
 ///
 /// \brief  Return the property value - Templated on the return type
 ///
@@ -482,54 +576,54 @@ LeddarCore::LdEnumProperty::Value( size_t aIndex ) const
 ///
 /// ### tparam  T   Generic type parameter.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<typename T>
-T LeddarCore::LdEnumProperty::ValueT( size_t aIndex ) const
+template <typename T> T LeddarCore::LdEnumProperty::PerformValueT( size_t aIndex ) const
 {
     VerifyInitialization();
 
-    if( aIndex >= Count() )
+    if( aIndex >= PerformCount() )
     {
-        throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "Index not valid, verify property count. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
     uint64_t lValue = 0;
 
-    if( Stride() == 1 )
+    if( PerformStride() == 1 )
     {
-        lValue = reinterpret_cast<const uint8_t *>( CStorage() )[ aIndex ];
+        lValue = reinterpret_cast<const uint8_t *>( CStorage() )[aIndex];
     }
-    else if( Stride() == 2 )
+    else if( PerformStride() == 2 )
     {
-        lValue = reinterpret_cast<const uint16_t *>( CStorage() )[ aIndex ];
+        lValue = reinterpret_cast<const uint16_t *>( CStorage() )[aIndex];
     }
-    else if( Stride() == 4 )
+    else if( PerformStride() == 4 )
     {
-        lValue = reinterpret_cast<const uint32_t *>( CStorage() )[ aIndex ];
+        lValue = reinterpret_cast<const uint32_t *>( CStorage() )[aIndex];
     }
-    else if( Stride() == 8 )
+    else if( PerformStride() == 8 )
     {
-        lValue = reinterpret_cast<const uint64_t *>( CStorage() )[ aIndex ];
+        lValue = reinterpret_cast<const uint64_t *>( CStorage() )[aIndex];
     }
     else
     {
-        throw std::out_of_range( "Invalid stride. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "Invalid stride. Property id: " + LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
     if( !mStoreValue )
     {
         // Index is stored, return the associated value
-        lValue = mEnumValues[ static_cast<size_t>( lValue ) ].first;
+        lValue = mEnumValues[static_cast<size_t>( lValue )].first;
     }
 
     if( lValue > std::numeric_limits<T>::max() )
     {
-        throw std::out_of_range( "Value is bigger than what the return type can hold. Use ValueT<TYPE> with a TYPE big enough. Property id: " + LeddarUtils::LtStringUtils::IntToString( GetId(), 16 ) );
+        throw std::out_of_range( "Value is bigger than what the return type can hold. Use ValueT<TYPE> with a TYPE big enough. Property id: " +
+                                 LeddarUtils::LtStringUtils::IntToString( PerformGetId(), 16 ) );
     }
 
     return static_cast<T>( lValue );
 }
-//Template specialisation so it can be defined in the cpp file
-template uint8_t LeddarCore::LdEnumProperty::ValueT( size_t aIndex ) const;
-template uint16_t LeddarCore::LdEnumProperty::ValueT( size_t aIndex ) const;
-template uint32_t LeddarCore::LdEnumProperty::ValueT( size_t aIndex ) const;
-template uint64_t LeddarCore::LdEnumProperty::ValueT( size_t aIndex ) const;
+// Template specialisation so it can be defined in the cpp file
+template uint8_t LeddarCore::LdEnumProperty::PerformValueT( size_t aIndex ) const;
+template uint16_t LeddarCore::LdEnumProperty::PerformValueT( size_t aIndex ) const;
+template uint32_t LeddarCore::LdEnumProperty::PerformValueT( size_t aIndex ) const;
+template uint64_t LeddarCore::LdEnumProperty::PerformValueT( size_t aIndex ) const;
